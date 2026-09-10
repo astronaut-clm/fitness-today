@@ -1,4 +1,4 @@
-# 今天练了吧（fitness-action-today）
+# 今天练了吧（fitness-today）
 
 8-bit 像素风的微信小程序健身打卡应用：挑计划 → 跟练 → 打卡记录。
 

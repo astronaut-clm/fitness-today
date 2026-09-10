@@ -1,0 +1,71 @@
+/* pages/account/account.wxss */
+page { height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.scrollarea { flex: 1; overflow-y: hidden; }
+.page { padding: 36rpx 32rpx 200rpx; }
+
+.avatar-wrap { display: flex; flex-direction: column; align-items: center; padding: 8rpx 0 34rpx; }
+/* 方形头像容器（像素风），按钮做透明覆盖层负责 chooseMedia 点选事件。 */
+.avatar-clip {
+  position: relative;
+  width: 168rpx;
+  height: 168rpx;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--card2);
+  box-sizing: border-box;
+  flex: none;
+}
+.avatar-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  background: transparent;
+}
+.avatar-btn::after { content: none; border: 0; }
+.avatar-img { width: 100%; height: 100%; display: block; }
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-size: 76rpx;
+  font-weight: 700;
+}
+.avatar-tip { margin-top: 16rpx; font-size: 24rpx; }
+
+.form-card { padding: 8rpx 28rpx; }
+.form-row { display: flex; align-items: center; min-height: 104rpx; }
+.form-label { flex: none; width: 132rpx; color: var(--ink); font-size: 29rpx; font-weight: 600; }
+.form-input { flex: 1; min-width: 0; color: var(--ink); font-size: 29rpx; }
+
+.menu-card { display: flex; align-items: center; gap: 18rpx; margin-top: 22rpx; padding: 24rpx 26rpx; }
+.menu-copy { flex: 1; min-width: 0; color: var(--ink); font-size: 27rpx; }
+.menu-title { font-weight: 600; }
+.menu-sub { margin-top: 6rpx; font-size: 21rpx; }
+.menu-arrow { color: var(--ink3); font-size: 40rpx; line-height: 1; }
+
+.save-bar { position: fixed; right: 0; bottom: 0; left: 0; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: var(--px) solid var(--ink); background: var(--card); }
+.logout-save-btn { background: #e60012; color: #ffffff; }
+.bottom-space { height: 24rpx; }
+.hover { opacity: .7; }
+
+/* 页内确认弹窗 */
+.logout-mask { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 999; display: flex; align-items: center; justify-content: center; background: rgba(26, 26, 26, 0.5); }
+.logout-dialog { width: 600rpx; box-sizing: border-box; padding: 40rpx 32rpx 28rpx; border: var(--px) solid var(--ink); border-radius: 0; box-shadow: var(--shadow); background: var(--card); }
+.logout-dialog-title { color: var(--ink); font-size: 32rpx; font-weight: 700; text-align: center; }
+.logout-dialog-copy { margin-top: 16rpx; color: var(--ink2); font-size: 25rpx; line-height: 1.65; text-align: center; }
+.logout-dialog-btns { display: flex; gap: 20rpx; margin-top: 36rpx; }
+.logout-btn { display: flex; flex: 1; align-items: center; justify-content: center; height: 84rpx; border: var(--pxs) solid var(--ink); border-radius: 0; box-sizing: border-box; font-size: 28rpx; font-weight: 700; }
+.logout-btn.cancel { background: var(--card2); color: var(--ink2); }
+.logout-btn.danger { background: #e60012; color: #ffffff; }

@@ -1,0 +1,216 @@
+/* pages/tutorial-detail/tutorial-detail.wxss */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.scrollarea {
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.page {
+  padding: 20rpx 32rpx 48rpx;
+}
+
+.hover {
+  opacity: 0.86;
+}
+
+/* 头部 */
+.hero {
+  background: #0058f8;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  padding: 44rpx 40rpx;
+  color: #ffffff;
+}
+
+.hero-tags {
+  display: flex;
+}
+
+.h-tag {
+  font-size: 22rpx;
+  padding: 6rpx 18rpx;
+  border: var(--pxs) solid #ffd800;
+  border-radius: 0;
+  background: #0058f8;
+  margin-right: 14rpx;
+}
+
+.hero-name {
+  font-size: 56rpx;
+  font-weight: 800;
+  margin-top: 18rpx;
+}
+
+.hero-meta {
+  font-size: 26rpx;
+  opacity: 0.92;
+  margin-top: 10rpx;
+}
+
+/* 内容卡 */
+.g-card {
+  margin-top: 24rpx;
+}
+
+.brief {
+  margin-top: 24rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+}
+
+.brief-text {
+  font-size: 26rpx;
+  color: var(--ink2);
+}
+
+.brief-level {
+  margin-top: 16rpx;
+}
+
+/* 要点/步骤列表 */
+.kv {
+  display: flex;
+  align-items: flex-start;
+  padding: 10rpx 0;
+}
+
+.kv-dot {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 28rpx;
+  margin: 0 16rpx 0 4rpx;
+  line-height: 1.5;
+}
+
+.kv-text {
+  flex: 1;
+  font-size: 27rpx;
+  color: var(--ink);
+}
+
+.step-idx {
+  flex: none;
+  width: 44rpx;
+  height: 44rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--primary-bg);
+  color: var(--ink);
+  font-size: 24rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  margin-top: 4rpx;
+}
+
+/* 节奏、错误与替代 */
+.guide-card {
+  margin-top: 24rpx;
+}
+
+.tempo {
+  padding: 18rpx 20rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  color: var(--ink2);
+  background: var(--card2);
+  font-size: 25rpx;
+}
+
+.mistakes-title {
+  margin-top: 26rpx;
+}
+
+.warn-dot {
+  color: var(--ink2);
+}
+
+.alternative-card {
+  margin-top: 24rpx;
+}
+
+.alternative-label {
+  margin-top: 18rpx;
+  color: var(--ink);
+  font-size: 23rpx;
+  font-weight: 700;
+}
+
+.alternative-text {
+  margin-top: 6rpx;
+  color: var(--ink2);
+  font-size: 25rpx;
+}
+
+/* 注意事项 */
+.caution {
+  margin-top: 24rpx;
+  background: var(--card2);
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  padding: 26rpx 28rpx;
+}
+
+.caution-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.caution-text {
+  font-size: 25rpx;
+  color: var(--ink2);
+  margin-top: 8rpx;
+}
+
+/* 相关动作 */
+.rel-head {
+  display: flex;
+  align-items: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  margin: 36rpx 8rpx 16rpx;
+}
+
+.rel {
+  padding: 8rpx 28rpx;
+}
+
+.rel-item {
+  display: flex;
+  align-items: center;
+  padding: 26rpx 0;
+  border-bottom: var(--pxs) solid var(--line);
+}
+
+.rel-item:last-child {
+  border-bottom: none;
+}
+
+.rel-name {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.rel-item .tag {
+  margin-right: 10rpx;
+}
+
+.rel-arrow {
+  color: var(--ink3);
+  font-size: 36rpx;
+}

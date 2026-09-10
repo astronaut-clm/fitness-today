@@ -1,0 +1,160 @@
+/* pages/tutorial/tutorial.wxss */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.scrollarea {
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.page {
+  padding: 20rpx 32rpx 48rpx;
+}
+
+.hover {
+  opacity: 0.86;
+}
+
+/* 搜索框 */
+.search {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  padding: 0 28rpx;
+  height: 84rpx;
+}
+
+.search-ico {
+  font-size: 40rpx;
+  color: var(--ink3);
+  margin-right: 14rpx;
+  line-height: 1;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--ink);
+}
+
+.search-ph {
+  color: var(--ink3);
+}
+
+.search-clear {
+  width: 40rpx;
+  height: 40rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--card2);
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  line-height: 1;
+}
+
+/* 分类 chips */
+.cats {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 20rpx;
+}
+
+.cat {
+  font-size: 26rpx;
+  color: var(--ink2);
+  background: var(--card);
+  border: var(--pxs) solid var(--ink);
+  padding: 12rpx 30rpx;
+  border-radius: 0;
+  margin: 0 16rpx 16rpx 0;
+}
+
+.cat.on {
+  background: var(--primary);
+  border-color: var(--ink);
+  color: var(--card);
+  font-weight: 700;
+}
+
+.list-head {
+  padding: 8rpx 8rpx 16rpx;
+}
+
+/* 动作卡片 */
+.act {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.act-badge {
+  width: 96rpx;
+  height: 96rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--card2);
+  color: var(--ink);
+  font-size: 24rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+  flex: none;
+}
+
+.act-name-row {
+  display: flex;
+  align-items: center;
+}
+
+.act-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  margin-right: 14rpx;
+}
+
+.act-meta {
+  font-size: 22rpx;
+  margin-top: 4rpx;
+}
+
+.act-key {
+  font-size: 22rpx;
+  margin-top: 6rpx;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.act-arrow {
+  color: var(--ink3);
+  font-size: 36rpx;
+  margin-left: 16rpx;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.empty-sub {
+  font-size: 26rpx;
+  margin-top: 10rpx;
+}

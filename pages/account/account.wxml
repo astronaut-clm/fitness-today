@@ -1,0 +1,53 @@
+<!-- pages/account/account.wxml 个人设置 -->
+<navigation-bar title="个人设置" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<px-toast></px-toast>
+<scroll-view class="scrollarea" scroll-y>
+  <view class="page">
+    <view class="avatar-wrap">
+      <view class="avatar-clip">
+        <image wx:if="{{avatarUrl}}" class="avatar-img" src="{{avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="avatar-fallback">{{avatarChar}}</view>
+        <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar"></button>
+      </view>
+      <view class="weak avatar-tip">点击更换头像</view>
+    </view>
+
+    <view class="g-card form-card">
+      <view class="form-row">
+        <view class="form-label">昵称</view>
+        <input class="form-input" type="nickname" value="{{nickname}}" maxlength="20" placeholder="请输入昵称" placeholder-class="weak" bindinput="onNicknameInput" bindblur="onNicknameBlur" />
+      </view>
+    </view>
+
+    <view class="g-card menu-card" hover-class="hover" hover-stay-time="100" bindtap="goPrefs">
+      <view class="menu-copy">
+        <view class="menu-title">训练偏好配置</view>
+        <view class="weak menu-sub">训练目标 · 场地 · 器械 · 每周目标</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <view class="bottom-space"></view>
+  </view>
+</scroll-view>
+<view class="save-bar">
+  <view class="btn logout-save-btn" hover-class="hover" hover-stay-time="100" bindtap="onLogout">退出登录</view>
+</view>
+<view class="logout-mask" wx:if="{{showLogoutConfirm}}" bindtap="onCancelLogout" catchtouchmove="noop">
+  <view class="logout-dialog" catchtap="noop">
+    <view class="logout-dialog-title">退出并清空记录？</view>
+    <view class="logout-dialog-copy">再次登录会自动恢复全部云端数据</view>
+    <view class="logout-dialog-btns">
+      <view class="logout-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelLogout">再想想</view>
+      <view class="logout-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmLogout">退出并清空</view>
+    </view>
+  </view>
+</view>
+
+<!-- 保存中：页内像素加载层（原生 wx.showLoading 无法使用自定义像素字体） -->
+<view class="px-loading-mask" wx:if="{{savingShow}}" catchtouchmove="noop">
+  <view class="px-loading">
+    <view class="px-loading-dot"></view>
+    <text>保存中…</text>
+  </view>
+</view>

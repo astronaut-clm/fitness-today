@@ -1,0 +1,119 @@
+<!--pages/workout/workout.wxml 训练跟练-->
+<px-toast></px-toast>
+<!-- 自绘顶部导航：不依赖导航组件的事件链路，返回点击直接绑定页面方法 -->
+  <view class="workout-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="workout-nav-inner">
+      <view class="workout-nav-back" hover-class="hover" hover-stay-time="100" bindtap="onNavBack" aria-role="button" aria-label="返回">
+        <text class="workout-nav-arrow">‹</text>
+      </view>
+      <view class="workout-nav-title">训练跟练</view>
+    </view>
+  </view>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page" wx:if="{{loaded}}">
+    <view class="top">
+      <view class="flex1">
+        <view class="plan">{{planName}}</view>
+        <view class="plan-sub weak">{{sceneName}} · 共 {{total}} 组动作</view>
+      </view>
+    </view>
+
+    <block wx:if="{{state === 'finished'}}">
+      <view class="panel done">
+        <view class="done-ico">✓</view>
+        <view class="done-title">训练完成！</view>
+        <view class="done-sub sub">{{planName}} · {{total - skippedGroups}}/{{total}} 组完成 · 用时 {{costText}}</view>
+        <view class="feedback" wx:if="{{showFeedback}}">
+          <view class="feedback-title">这次训练感觉如何？</view>
+          <view class="efforts">
+            <view class="effort {{effort === item ? 'on' : ''}}" wx:for="{{effortOptions}}" wx:key="*this" data-value="{{item}}" bindtap="onChooseEffort">{{item}}</view>
+          </view>
+          <view class="feedback-sub weak">1 很轻松 · 5 很吃力</view>
+        </view>
+        <view class="btn done-btn {{isSaving ? 'plain' : ''}}" hover-class="hover" hover-stay-time="100" bindtap="onFinishCheckin">{{isSaving ? '保存中…' : '保存本次训练'}}</view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="prog">
+        <view class="prog-track"><view class="prog-bar" style="{{pctStyle}}"></view></view>
+        <view class="prog-row">
+          <text class="weak">已完成 {{completed}} / {{total}} 组</text>
+          <text class="prog-txt">当前第 {{group.setNo}} 组</text>
+        </view>
+      </view>
+
+      <view wx:if="{{state === 'rest'}}" class="panel rest">
+        <view class="panel-label">休息一下</view>
+        <view class="big-num">{{restLeft}}</view>
+        <view class="big-unit weak">秒</view>
+        <view class="rest-next weak">下一组：{{group.name}}<text wx:if="{{group.targetText}}"> · {{group.targetText}}</text></view>
+        <view class="actions">
+          <view class="btn btn-ghost act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onExtendRest">+15 秒</view>
+          <view class="btn btn-primary act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onSkipRest">跳过休息</view>
+        </view>
+      </view>
+
+      <view wx:elif="{{state === 'working' && group}}" class="panel">
+        <view class="g-tags">
+          <text class="g-tag">{{group.category}}</text>
+          <text class="g-tag" wx:if="{{group.equipment}}">{{group.equipment}}</text>
+          <text class="g-tag" wx:if="{{group.roundLabel}}">{{group.roundLabel}}</text>
+        </view>
+        <view class="g-name">{{group.name}}</view>
+        <view class="g-target sub">目标：{{group.targetText}}</view>
+        <view class="next-preview weak" wx:if="{{nextGroup}}">下一组：{{nextGroup.name}} · {{nextGroup.targetText}}</view>
+
+        <block wx:if="{{group.kind === 'time'}}">
+          <view class="big-num timer">{{left}}</view>
+          <view class="big-unit weak">秒 · 倒数结束后自动进入下一组</view>
+        </block>
+        <view class="g-tip weak" wx:else>请按标准完成本组目标后，点击下方按钮</view>
+
+        <view class="actions">
+          <block wx:if="{{group.kind === 'time'}}">
+            <view wx:if="{{running}}" class="btn btn-ghost act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onPauseWork">暂停</view>
+            <view wx:else class="btn btn-ghost act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onStartWork">{{timeStarted ? '继续计时' : '开始计时'}}</view>
+            <view class="btn btn-primary act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onCompleteSet">本组完成</view>
+          </block>
+          <view wx:else class="btn btn-primary act-btn" hover-class="hover" hover-stay-time="100" bindtap="onCompleteSet">本组完成</view>
+        </view>
+        <view class="skip-set weak" hover-class="hover" hover-stay-time="100" bindtap="onSkipSet">跳过本组</view>
+      </view>
+    </block>
+  </view>
+</scroll-view>
+
+<!-- 退出确认弹层 -->
+<view wx:if="{{showExitConfirm}}" class="mask" catchtouchmove="noop" bindtap="onCancelExit">
+  <view class="dialog" catchtap="noop">
+    <view class="dialog-title">退出训练？</view>
+    <view class="dialog-content">当前进度会自动保存，下次可从这里继续。</view>
+    <view class="dialog-btns">
+      <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onCancelExit">继续训练</view>
+      <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onConfirmExit">保存并退出</view>
+    </view>
+  </view>
+</view>
+
+<!-- 恢复上次训练弹层 -->
+<view wx:if="{{showResumeConfirm}}" class="mask" catchtouchmove="noop">
+  <view class="dialog" catchtap="noop">
+    <block wx:if="{{resumeFinished}}">
+      <view class="dialog-title">上次训练未保存</view>
+      <view class="dialog-content">上次已完成全部训练但未保存</view>
+      <view class="dialog-btns">
+        <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeBack">返回</view>
+        <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="dialog-title">继续上次训练？</view>
+      <view class="dialog-content">已完成 {{resumeDone}}/{{total}} 组，可选择继续或重新开始。</view>
+      <view class="dialog-btns">
+        <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
+        <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeContinue">继续训练</view>
+      </view>
+    </block>
+  </view>
+</view>

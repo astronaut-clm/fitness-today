@@ -1,0 +1,297 @@
+/* pages/plan-detail/plan-detail.wxss */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.scrollarea {
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.page {
+  padding: 24rpx 32rpx 220rpx;
+}
+
+.hover {
+  opacity: 0.86;
+}
+
+/* 信息卡 */
+.head {
+  background: var(--card2);
+}
+
+.name {
+  font-size: 44rpx;
+  font-weight: 800;
+  margin-top: 16rpx;
+}
+
+.meta {
+  font-size: 24rpx;
+  margin-top: 8rpx;
+}
+
+.summary {
+  font-size: 26rpx;
+  color: var(--ink2);
+  margin-top: 16rpx;
+}
+
+/* 提示 */
+.notice {
+  background: var(--card2);
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  padding: 24rpx 28rpx;
+  margin-top: 24rpx;
+}
+
+.notice-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.notice-text {
+  font-size: 24rpx;
+  color: var(--ink2);
+  margin-top: 8rpx;
+}
+
+.notice-round {
+  display: inline-flex;
+  font-size: 22rpx;
+  color: var(--ink2);
+  background: var(--card);
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  padding: 6rpx 18rpx;
+  margin-top: 14rpx;
+}
+
+/* 动作清单 */
+.ex-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 30rpx;
+  font-weight: 700;
+  margin: 32rpx 8rpx 16rpx;
+}
+
+.ex-head .weak {
+  font-size: 22rpx;
+  font-weight: 400;
+}
+
+.ex-list {
+  padding: 8rpx 28rpx;
+}
+
+.ex-item {
+  display: flex;
+  align-items: center;
+  padding: 26rpx 0;
+  border-bottom: var(--pxs) solid var(--line);
+}
+
+.ex-item:last-child {
+  border-bottom: none;
+}
+
+.ex-idx {
+  width: 52rpx;
+  height: 52rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--primary-bg);
+  color: var(--ink);
+  font-size: 26rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 22rpx;
+}
+
+.ex-name {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.ex-meta {
+  font-size: 22rpx;
+  margin-top: 4rpx;
+}
+
+.set-adjust {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.set-label {
+  color: var(--ink3);
+  font-size: 20rpx;
+}
+
+.set-control, .set-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38rpx;
+  height: 38rpx;
+  border-radius: 0;
+  font-size: 23rpx;
+}
+
+.set-control {
+  color: var(--card);
+  background: var(--primary);
+  border: var(--pxs) solid var(--ink);
+  font-weight: 700;
+}
+
+.set-control.disabled {
+  color: var(--ink3);
+  background: var(--card2);
+  border-color: var(--ink3);
+}
+
+.set-value {
+  width: 30rpx;
+  color: var(--ink2);
+  font-size: 22rpx;
+}
+
+.ex-arrow {
+  color: var(--ink3);
+  font-size: 36rpx;
+  margin-left: 12rpx;
+}
+
+.adjust-tip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 8rpx 16rpx;
+  padding: 16rpx 20rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--primary-bg);
+  color: var(--ink);
+  font-size: 24rpx;
+}
+
+.adjust-reset {
+  font-weight: 700;
+}
+
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--card);
+  border-top: var(--px) solid var(--ink);
+  display: flex;
+  align-items: center;
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  z-index: 10;
+}
+
+.bar-info {
+  margin-right: 24rpx;
+  width: 150rpx;
+  flex: none;
+}
+
+.bar-time {
+  font-size: 30rpx;
+}
+
+.bar-kcal {
+  font-size: 20rpx;
+}
+
+.bar-btn {
+  flex: 1;
+  height: 88rpx;
+}
+
+.bar-main {
+  margin-left: 16rpx;
+}
+
+/* 切换计划确认弹层 */
+.switch-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 26, 0.5);
+}
+
+.switch-dialog {
+  width: 600rpx;
+  box-sizing: border-box;
+  padding: 40rpx 32rpx 28rpx;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  background: var(--card);
+}
+
+.switch-title {
+  color: var(--ink);
+  font-size: 32rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.switch-copy {
+  margin-top: 16rpx;
+  color: var(--ink2);
+  font-size: 25rpx;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.switch-btns {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 36rpx;
+}
+
+.switch-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  height: 84rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.switch-btn.cancel {
+  background: var(--card2);
+  color: var(--ink2);
+}
+
+.switch-btn.primary {
+  background: var(--primary);
+  color: var(--card);
+}

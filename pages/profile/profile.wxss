@@ -1,0 +1,26 @@
+/* pages/profile/profile.wxss */
+page { height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.scrollarea { flex: 1; overflow-y: hidden; }
+.page { padding: 24rpx 32rpx 180rpx; }
+.intro { margin: 8rpx 8rpx 24rpx; }
+.intro-title { color: var(--ink); font-size: 42rpx; font-weight: 800; }
+.intro .weak { margin-top: 8rpx; font-size: 24rpx; }
+.section { margin-top: 20rpx; }
+.section-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }
+.goal-list { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 20rpx; }
+.goal-item { flex: 0 0 calc((100% - 16rpx) / 2); min-height: 126rpx; box-sizing: border-box; padding: 20rpx; border: var(--pxs) solid var(--ink); border-radius: 0; background: var(--card); }
+.goal-item.on { border-color: var(--ink); background: var(--primary-bg); box-shadow: var(--shadow); }
+.goal-name { color: var(--ink); font-size: 26rpx; font-weight: 700; }
+.goal-desc { margin-top: 7rpx; color: var(--ink3); font-size: 20rpx; line-height: 1.35; }
+.goal-item.on .goal-name { color: var(--ink); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 14rpx; margin-top: 20rpx; }
+.chip { padding: 13rpx 22rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink2); font-size: 24rpx; }
+.chip.on { border-color: var(--ink); color: var(--ink); background: var(--primary-bg); font-weight: 700; }
+.slider-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; padding-top: 26rpx; color: var(--ink); font-size: 25rpx; }
+.slider-copy { flex: none; width: 190rpx; }
+.slider-row .weak { margin-top: 5rpx; font-size: 21rpx; }
+.slider-area { flex: 1; min-width: 0; padding-top: 2rpx; }
+.slider-row slider { width: 100%; }
+.save-bar { position: fixed; right: 0; bottom: 0; left: 0; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: var(--px) solid var(--ink); background: var(--card); }
+.bottom-space { height: 24rpx; }
+.hover { opacity: .68; }

@@ -1,0 +1,5 @@
+<!-- components/px-toast/px-toast.wxml 页内像素提示（由 utils/toast.js 驱动） -->
+<view class="px-toast" wx:if="{{show}}">
+  <view wx:if="{{success}}" class="px-toast-icon"></view>
+  <text class="px-toast-text">{{text}}</text>
+</view>

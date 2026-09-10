@@ -1,0 +1,314 @@
+/**app.wxss 全局样式与设计变量 —— 8-bit NES 多彩像素主题**/
+page {
+  /* ===== NES 多彩（红黄蓝） + 白色画布 =====
+     描边/文字用黑，强调色取自红黄蓝，成功用绿；页面与卡片底为白 */
+  --ink: #1a1a1a;        /* 黑：主文字 / 描边 */
+  --ink2: #4a4a4a;       /* 灰：次级文字 */
+  --ink3: #7a7a7a;       /* 中灰：弱化文字（提升白底对比度） */
+  --line: #1a1a1a;       /* 描边线 */
+  --bg: #ffffff;         /* 页面底色：白 */
+  --card: #ffffff;       /* 卡片底色：白 */
+  --card2: #cfe3ff;      /* 浅蓝：次级填充（标签 / 轨道 / 提示框） */
+  --primary: #e60012;    /* NES 红：主按钮 / 选中 / 进度 */
+  --primary2: #0058f8;   /* NES 蓝 */
+  --primary-bg: #ffd800; /* NES 黄：芯片 / 徽章 / 高亮 */
+  --green: #00a800;      /* NES 绿：成功 */
+  --green-bg: #c8f000;   /* 浅绿 */
+
+  /* 像素风尺寸：统一描边与硬阴影 */
+  --px: 4rpx;
+  --pxs: 3rpx;
+  --shadow: 6rpx 6rpx 0 0 #1a1a1a;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 28rpx;
+  line-height: 1.5;
+  /* 像素字体优先（运行时由 wx.loadFontFace 注册），加载失败回退系统等宽栈 */
+  font-family: "Zpix", "Press Start 2P", "Courier New", Menlo, Consolas, monospace;
+  /* 关闭抗锯齿，让笔画边缘生硬、带锯齿，更接近像素观感 */
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  letter-spacing: 1rpx;
+}
+
+/* 通用卡片：直角 + 深色描边 + 像素硬阴影 + 抖动网点纹理 */
+.g-card {
+  background: var(--card);
+  /* 抖动网点：4x4 像素棋盘格，叠在卡片底色上形成颗粒质感 */
+  background-image:
+    linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%),
+    linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%);
+  background-size: 8rpx 8rpx;
+  background-position: 0 0, 4rpx 4rpx;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  padding: 28rpx;
+  box-sizing: border-box;
+}
+
+/* 通用按钮 */
+.btn {
+  height: 92rpx;
+  border-radius: 0;
+  border: var(--px) solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.btn-primary.plain {
+  opacity: 0.55;
+}
+
+.btn-ghost {
+  background: var(--card);
+  color: var(--ink);
+  border: var(--px) solid var(--ink);
+}
+
+/* 像素按键反馈（配合 hover-class="hover"）
+   有硬阴影的元素：按下时阴影收合、整体沉入阴影位置；
+   无硬阴影的按键：轻微下沉并压暗，模拟物理按键被按下。
+   注意：无 transition，保持像素风的「瞬切」手感。 */
+.btn.btn-primary.hover,
+.g-card.hover {
+  box-shadow: none;
+  transform: translate(6rpx, 6rpx);
+  opacity: 1;
+}
+
+.btn.hover,
+.hbtn.hover,
+.dialog-btn.hover,
+.logout-btn.hover,
+.switch-btn.hover,
+.sheet-free.hover,
+.scene-tab.hover,
+.goal-guide-btn.hover,
+.uc-pill.hover,
+.cal-arrow.hover,
+.effort.hover,
+.chip.hover,
+.goal-item.hover,
+.rec-delete.hover,
+.adjust-reset.hover,
+.sheet-close.hover,
+.skip-set.hover,
+.px-dialog-btn.hover {
+  transform: translate(3rpx, 3rpx);
+  opacity: 0.75;
+}
+
+/* 标签 / 徽章 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 0;
+  border: var(--pxs) solid var(--ink);
+  background: var(--card2);
+  color: var(--ink2);
+}
+
+.tag-lv1,
+.tag-lv2,
+.tag-lv3,
+.tag-orange {
+  background: var(--card2);
+  color: var(--ink2);
+  border-color: var(--ink);
+}
+
+/* 文本 */
+.sub {
+  color: var(--ink2);
+}
+
+.weak {
+  color: var(--ink3);
+}
+
+.num {
+  font-weight: 700;
+}
+
+/* 布局工具 */
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.flex1 {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===================================================================
+   复古屏幕增强：像素转角
+   =================================================================== */
+
+/* --- 像素转角：强制全站直角，清除组件默认圆角的最后残留 --- */
+button,
+input,
+textarea,
+image,
+navigator,
+scroll-view,
+picker,
+slider,
+switch,
+checkbox,
+radio,
+progress,
+cover-view {
+  border-radius: 0;
+}
+
+button::after,
+input::after {
+  border-radius: 0;
+}
+
+/* ===================================================================
+   统一像素弹窗，跟随全局像素字体
+   用法：.px-mask（遮罩）> .px-dialog（卡片）> 标题/正文/输入/按钮
+   =================================================================== */
+.px-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 26, 0.5);
+}
+
+.px-dialog {
+  width: 600rpx;
+  box-sizing: border-box;
+  padding: 40rpx 32rpx 28rpx;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  background: var(--card);
+}
+
+.px-dialog-title {
+  color: var(--ink);
+  font-size: 32rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.px-dialog-copy {
+  margin-top: 16rpx;
+  color: var(--ink2);
+  font-size: 25rpx;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.px-dialog-input {
+  margin-top: 28rpx;
+  height: 84rpx;
+  padding: 0 20rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  box-sizing: border-box;
+  color: var(--ink);
+  background: var(--card2);
+  font-size: 28rpx;
+  text-align: center;
+}
+
+.px-dialog-btns {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 36rpx;
+}
+
+.px-dialog-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  height: 84rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.px-dialog-btn.cancel {
+  background: var(--card2);
+  color: var(--ink2);
+}
+
+.px-dialog-btn.primary {
+  background: var(--primary);
+  color: var(--card);
+}
+
+.px-dialog-btn.danger {
+  background: var(--primary);
+  color: var(--card);
+}
+
+/* 统一像素加载提示：替代原生 wx.showLoading（原生层无法使用自定义像素字体）
+   用法：.px-loading-mask（遮罩）> .px-loading（卡片）> 闪烁方块 + 文案 */
+.px-loading-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 26, 0.5);
+}
+
+.px-loading {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 30rpx 44rpx;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.px-loading-dot {
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 0;
+  background: var(--primary);
+  animation: px-loading-blink 0.7s steps(1, end) infinite;
+}
+
+@keyframes px-loading-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}

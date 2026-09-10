@@ -1,0 +1,279 @@
+/* pages/index/index.wxss */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.scrollarea {
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.page {
+  padding: 8rpx 32rpx calc(148rpx + env(safe-area-inset-bottom));
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  margin: 24rpx 8rpx 28rpx;
+}
+
+.head-date {
+  margin-top: 6rpx;
+  font-size: 26rpx;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.streak-chip {
+  display: flex;
+  align-items: center;
+  background: var(--primary-bg);
+  color: var(--ink);
+  font-size: 24rpx;
+  font-weight: 700;
+  padding: 10rpx 22rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+}
+
+.streak-chip.ghost {
+  background: var(--card);
+  color: var(--ink2);
+  border: var(--pxs) solid var(--ink);
+}
+
+.streak-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 0;
+  background: var(--ink);
+  margin-right: 10rpx;
+}
+
+/* Hero 卡片 */
+.hero {
+  background: #0058f8;
+  /* 彩色底叠加反白网点（halftone），增强复古网点质感 */
+  background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5rpx, transparent 1.6rpx);
+  background-size: 8rpx 8rpx;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  padding: 44rpx 40rpx;
+  color: #ffffff;
+}
+
+.hero-done {
+  background: #00a800;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5rpx, transparent 1.6rpx);
+  background-size: 8rpx 8rpx;
+}
+
+.hero-title {
+  font-size: 56rpx;
+  font-weight: 800;
+  margin: 0 0 8rpx;
+}
+
+.hero-sub {
+  font-size: 28rpx;
+  opacity: 0.95;
+}
+
+.hero-reason {
+  margin-top: 12rpx;
+  font-size: 23rpx;
+  opacity: .82;
+}
+
+.hero-tags {
+  display: flex;
+  margin-top: 20rpx;
+}
+
+.h-tag {
+  font-size: 22rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 0;
+  border: var(--pxs) solid #ffd800;
+  background: #0058f8;
+  margin-right: 14rpx;
+}
+
+.hero-btns {
+  display: flex;
+  margin-top: 36rpx;
+}
+
+.hbtn {
+  height: 84rpx;
+  border-radius: 0;
+  border: var(--pxs) solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  flex: 1;
+}
+
+.hbtn-solid {
+  background: #ffd800;
+  color: var(--ink);
+}
+
+.hbtn-line {
+  background: #0058f8;
+  color: #ffffff;
+  margin-left: 20rpx;
+  border: var(--pxs) solid #ffffff;
+}
+
+/* 今日已有记录（hero 转绿）后，右侧按钮描边与文字转为黑色 */
+.hero-done .hbtn-line {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.hover {
+  opacity: 0.86;
+}
+
+/* 快捷入口 */
+.quick-row {
+  display: flex;
+  margin-top: 28rpx;
+}
+
+/* 手动打卡弹层（复用「我的」页打卡表单样式） */
+.mask { position: fixed; z-index: 20; top: 0; right: 0; bottom: 0; left: 0; background: rgba(26,26,26,.5); }
+.sheet { position: fixed; z-index: 21; right: 0; bottom: 0; left: 0; height: 82vh; display: flex; flex-direction: column; overflow: hidden; border-top: var(--px) solid var(--ink); border-radius: 0; background: var(--card); }
+.sheet-handle { width: 64rpx; height: 8rpx; margin: 16rpx auto 8rpx; border-radius: 0; background: var(--ink3); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 4rpx 28rpx 20rpx; }
+.sheet-title { color: var(--ink); font-size: 34rpx; font-weight: 750; }
+.sheet-close { padding: 10rpx 4rpx 10rpx 24rpx; color: var(--ink2); font-size: 24rpx; }
+.sheet-date-row { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 28rpx; border-top: var(--pxs) solid var(--line); border-bottom: var(--pxs) solid var(--line); font-size: 25rpx; }
+.sheet-date { color: var(--ink); font-weight: 700; }
+.scene-tabs { display: block; flex: none; height: 92rpx; box-sizing: border-box; white-space: nowrap; }
+.scene-tabs-inner { display: inline-flex; height: 92rpx; box-sizing: border-box; align-items: center; gap: 14rpx; padding: 0 28rpx; }
+.scene-tab { box-sizing: border-box; flex: none; padding: 12rpx 24rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink2); background: var(--card2); font-size: 24rpx; line-height: 1.4; }
+.scene-tab.on { color: var(--card); background: var(--primary); }
+.sheet-plans { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 0 28rpx; }
+.sheet-plan { display: flex; align-items: center; justify-content: space-between; gap: 24rpx; padding: 22rpx 4rpx; border-bottom: var(--pxs) solid var(--line); color: var(--ink3); font-size: 38rpx; }
+.sheet-plan > view { flex: 1; min-width: 0; }
+.sheet-plan-name { margin-bottom: 8rpx; color: var(--ink); font-size: 27rpx; font-weight: 650; }
+.sheet-plan .weak { font-size: 21rpx; }
+.sheet-free { flex: none; margin: 20rpx 28rpx calc(24rpx + env(safe-area-inset-bottom)); padding: 23rpx; border: var(--px) solid var(--ink); border-radius: 0; color: var(--card); background: var(--primary); font-size: 27rpx; font-weight: 700; text-align: center; }
+
+.quick {
+  flex: 1;
+  padding: 30rpx 28rpx;
+}
+
+.quick + .quick {
+  margin-left: 24rpx;
+}
+
+.quick-name {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.quick-sub {
+  font-size: 22rpx;
+  margin-top: 8rpx;
+}
+
+/* 本周目标 */
+.goal-card {
+  margin-top: 28rpx;
+}
+
+/* 未设置目标时的引导卡 */
+.goal-guide {
+  margin-top: 28rpx;
+  border: var(--px) dashed var(--ink);
+  background: var(--card2);
+}
+
+.goal-guide-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.goal-guide-sub {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+}
+
+.goal-guide-btn {
+  flex: none;
+  margin-left: 16rpx;
+  padding: 14rpx 28rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  color: var(--card);
+  background: var(--primary);
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20rpx;
+  color: var(--ink2);
+  font-size: 23rpx;
+}
+
+.progress-track {
+  height: 16rpx;
+  overflow: hidden;
+  margin-top: 10rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--card2);
+}
+
+.progress-fill {
+  height: 100%;
+  min-width: 8rpx;
+  border-radius: 0;
+  background: var(--primary);
+  transition: width 0.35s steps(8, end);
+}
+
+.progress-fill.blue {
+  background: #0058f8;
+}
+
+.coverage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 20rpx;
+  font-size: 22rpx;
+}
+
+.coverage-tag {
+  padding: 4rpx 12rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  color: var(--ink2);
+  background: var(--card2);
+}
+
+/* 本周目标标题 */
+.week-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}

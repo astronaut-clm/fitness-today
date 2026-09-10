@@ -1,0 +1,51 @@
+/* components/px-toast/px-toast.wxss 页内像素提示 */
+.px-toast {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 1100;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  max-width: 560rpx;
+  box-sizing: border-box;
+  padding: 26rpx 40rpx;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 28rpx;
+  font-weight: 700;
+  /* 不拦截点击：与原生 toast 一致，不阻塞底层交互 */
+  pointer-events: none;
+}
+
+.px-toast-icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38rpx;
+  height: 38rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--green);
+}
+
+/* 用边框折出对勾，避免依赖像素字体是否包含 ✓ 字形 */
+.px-toast-icon::after {
+  content: '';
+  width: 8rpx;
+  height: 16rpx;
+  margin-top: -4rpx;
+  border: solid var(--card);
+  border-width: 0 4rpx 4rpx 0;
+  transform: rotate(45deg);
+}
+
+.px-toast-text {
+  flex: 1;
+  text-align: center;
+}

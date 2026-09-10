@@ -1,0 +1,61 @@
+/* pages/checkin/checkin.wxss */
+/* 自定义导航栏与内容区共用视口，避免底部内容被页面边界裁切。 */
+page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+/* 滚动条归属 scroll-view：padding 必须放在内层容器，否则会把内层滚动层挤窄，滚动条内缩不贴右。 */
+.scrollarea { flex: 1; min-height: 0; overflow-y: hidden; background: var(--bg, #ffffff); }
+.page { box-sizing: border-box; padding: 24rpx 28rpx 0; }
+.user-card { display: flex; align-items: center; gap: 18rpx; padding: 22rpx 24rpx; margin-bottom: 20rpx; }
+.uc-avatar { width: 96rpx; height: 96rpx; flex: none; border-radius: 0; }
+.uc-avatar-box { width: 96rpx; height: 96rpx; flex: none; border-radius: 0; border: var(--pxs) solid var(--ink); overflow: hidden; background: var(--card2); }
+.uc-avatar-box .uc-avatar-img { display: block; width: 100%; height: 100%; }
+.uc-fallback { display: flex; align-items: center; justify-content: center; color: var(--ink); background: var(--card2); font-size: 42rpx; font-weight: 700; }
+.uc-main { min-width: 0; }
+.uc-name { color: var(--ink); font-size: 31rpx; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uc-sub { margin-top: 6rpx; font-size: 22rpx; }
+.uc-arrow { color: var(--ink3); font-size: 40rpx; }
+.uc-pill { flex: none; padding: 12rpx 28rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--card); background: var(--primary); font-size: 24rpx; font-weight: 700; }
+
+.summary { display: flex; align-items: center; padding: 28rpx 22rpx; margin-bottom: 20rpx; }
+.summary-main { width: 204rpx; padding-right: 18rpx; border-right: var(--pxs) solid var(--line); }
+.summary-num { color: var(--ink); font-weight: 800; font-size: 56rpx; line-height: 1; }
+.summary-item { flex: 1; padding-left: 18rpx; }
+.summary-value { color: var(--ink); font-size: 34rpx; font-weight: 700; }
+.summary-label { margin-top: 8rpx; color: var(--ink3); font-size: 20rpx; white-space: nowrap; }
+
+.calendar { padding: 22rpx 18rpx 18rpx; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; }
+.cal-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }
+.cal-arrow { width: 56rpx; height: 56rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink); font-size: 46rpx; line-height: 50rpx; text-align: center; }
+.cal-arrow.disabled { color: var(--ink3); border-color: var(--ink3); }
+.week-row, .date-row { display: flex; }
+.week-day, .date-cell { width: 14.285%; box-sizing: border-box; text-align: center; }
+.week-day { padding-bottom: 10rpx; color: var(--ink3); font-size: 21rpx; }
+.date-cell { position: relative; height: 74rpx; color: var(--ink); font-size: 25rpx; line-height: 62rpx; }
+.date-cell.empty { color: transparent; }
+.date-cell.today > text { display: inline-block; width: 50rpx; height: 50rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink); background: var(--card2); line-height: 46rpx; }
+.date-cell.selected > text { color: var(--card); background: var(--primary); }
+.date-dot { position: absolute; left: 50%; bottom: 0; min-width: 10rpx; height: 10rpx; padding: 0 4rpx; transform: translateX(-50%); border-radius: 0; color: var(--card); background: var(--ink); font-size: 16rpx; line-height: 10rpx; }
+.date-cell.selected .date-dot { background: var(--card); color: var(--ink); }
+
+.record-head { display: flex; align-items: center; justify-content: space-between; margin: 30rpx 4rpx 16rpx; }
+.record-date { color: var(--ink); font-size: 30rpx; font-weight: 700; }
+.record-list { display: flex; flex-direction: column; gap: 14rpx; }
+.rec { padding: 24rpx; }
+.rec-top { display: flex; justify-content: space-between; gap: 16rpx; }
+.rec-name { color: var(--ink); font-size: 29rpx; font-weight: 700; }
+.rec-time { margin-top: 8rpx; font-size: 22rpx; }
+.rec-delete { align-self: center; padding: 8rpx 4rpx 8rpx 16rpx; color: var(--ink); font-size: 23rpx; font-weight: 700; }
+.rec-detail { margin-top: 16rpx; color: var(--ink2); font-size: 24rpx; }
+.rec-meta { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 14rpx; }
+.rec-meta text { padding: 5rpx 12rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink2); background: var(--card2); font-size: 20rpx; }
+.empty { padding: 48rpx 22rpx; color: var(--ink2); font-size: 26rpx; text-align: center; }
+.empty-icon { margin-bottom: 10rpx; color: var(--ink3); font-size: 56rpx; }
+.empty .weak { margin-top: 8rpx; font-size: 22rpx; }
+.bottom-space { height: calc(148rpx + env(safe-area-inset-bottom)); }
+
+.hover { opacity: .65; }
+.weak { color: var(--ink3); }
+
+/* 未登录账号卡片即登录按钮：需重置 button 默认样式 */
+button.login-card { display: flex; align-items: center; gap: 18rpx; width: 100%; margin: 0 0 20rpx; padding: 22rpx 24rpx; border: var(--px) solid var(--ink); border-radius: 0; background: var(--card); box-sizing: border-box; color: inherit; font-size: inherit; font-weight: inherit; line-height: 1.5; text-align: left; }
+button.login-card::after { border: none; }

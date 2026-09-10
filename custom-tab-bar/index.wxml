@@ -1,0 +1,20 @@
+<!-- custom-tab-bar/index.wxml —— 8-bit 像素风底部导航 -->
+<view class="tabbar">
+  <view class="tabbar-inner">
+    <view
+      wx:for="{{list}}"
+      wx:key="pagePath"
+      class="tab-item {{selected === index ? 'on' : ''}}"
+      data-index="{{index}}"
+      hover-class="tab-hover"
+      hover-stay-time="80"
+      bindtap="switchTab"
+    >
+      <view class="tab-mark"></view>
+      <view class="tab-icon">
+        <view class="px icon-{{item.icon}}"></view>
+      </view>
+      <view class="tab-text">{{item.text}}</view>
+    </view>
+  </view>
+</view>

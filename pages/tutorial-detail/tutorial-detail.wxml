@@ -1,0 +1,87 @@
+<!--pages/tutorial-detail/tutorial-detail.wxml 动作详情-->
+<navigation-bar title="动作详情" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<px-toast></px-toast>
+<scroll-view class="scrollarea" scroll-y type="list" wx:if="{{view}}">
+  <view class="page">
+
+    <!-- 头部 -->
+    <view class="hero">
+      <view class="hero-tags">
+        <text class="h-tag">{{view.category}}</text>
+        <text class="h-tag">{{view.equipment}}</text>
+      </view>
+      <view class="hero-name">{{view.name}}</view>
+      <view class="hero-meta">目标肌群：{{view.muscles}}</view>
+    </view>
+
+    <!-- 简介 -->
+    <view class="g-card brief">
+      <view class="section-title">动作简介</view>
+      <view class="brief-text">{{view.summary}}</view>
+      <view class="brief-level"><text class="tag {{view.lvClass}}">{{view.level}}</text></view>
+    </view>
+
+    <!-- 动作要点 -->
+    <view class="g-card">
+      <view class="section-title">动作要点</view>
+      <view class="kv" wx:for="{{view.keys}}" wx:key="*this">
+        <text class="kv-dot">•</text>
+        <text class="kv-text">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 训练步骤 -->
+    <view class="g-card">
+      <view class="section-title">训练步骤</view>
+      <view class="kv" wx:for="{{view.steps}}" wx:key="*this">
+        <view class="step-idx">{{index + 1}}</view>
+        <text class="kv-text">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 节奏与常见错误 -->
+    <view class="g-card guide-card">
+      <view class="section-title">建议节奏</view>
+      <view class="tempo">{{view.tempo}}</view>
+      <view class="section-title mistakes-title">常见错误</view>
+      <view class="kv" wx:for="{{view.mistakes}}" wx:key="*this">
+        <text class="kv-dot warn-dot">!</text>
+        <text class="kv-text">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="g-card alternative-card">
+      <view class="section-title">做不了怎么办？</view>
+      <view class="alternative-label">简化版本</view>
+      <view class="alternative-text">{{view.regression}}</view>
+      <view class="alternative-label">可选替代</view>
+      <view class="alternative-text">{{view.alternative}}</view>
+    </view>
+
+    <!-- 注意事项 -->
+    <view class="caution">
+      <view class="caution-title">注意事项</view>
+      <view class="caution-text">{{view.caution}}</view>
+    </view>
+
+    <!-- 相关动作 -->
+    <view class="rel-head" wx:if="{{related.length}}">
+      <view class="flex1">同部位动作</view>
+    </view>
+    <view class="g-card rel" wx:if="{{related.length}}">
+      <view
+        class="rel-item"
+        wx:for="{{related}}"
+        wx:key="id"
+        hover-class="hover" hover-stay-time="100"
+        data-id="{{item.id}}"
+        bindtap="goAction"
+      >
+        <text class="rel-name">{{item.name}}</text>
+        <text class="tag {{item.lvClass}}">{{item.level}}</text>
+        <text class="rel-arrow">›</text>
+      </view>
+    </view>
+
+  </view>
+</scroll-view>

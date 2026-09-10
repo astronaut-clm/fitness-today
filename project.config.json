@@ -1,0 +1,50 @@
+{
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "uglifyFileName": false,
+    "enhance": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useCompilerPlugins": false,
+    "condition": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "compileWorklet": false
+  },
+  "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "value": ".woff2",
+        "type": "suffix"
+      },
+      {
+        "value": ".md",
+        "type": "suffix"
+      },
+      {
+        "value": "assets/fonts",
+        "type": "folder"
+      },
+      {
+        "value": "assets/avatar.png",
+        "type": "file"
+      }
+    ],
+    "include": []
+  },
+  "appid": "wx2a594e3763268b15",
+  "editorSetting": {}
+}

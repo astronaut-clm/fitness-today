@@ -1,0 +1,65 @@
+<!--pages/tutorial/tutorial.wxml 动作教学-->
+<navigation-bar title="动作教学" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page">
+
+    <!-- 搜索 -->
+    <view class="search">
+      <text class="search-ico">⌕</text>
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索动作，如：深蹲、俯卧撑"
+        placeholder-class="search-ph"
+        confirm-type="search"
+        bindinput="onSearch"
+      />
+      <text wx:if="{{keyword}}" class="search-clear" hover-class="hover" hover-stay-time="100" bindtap="onClearSearch">×</text>
+    </view>
+
+    <!-- 分类 -->
+    <view class="cats">
+      <view
+        wx:for="{{cats}}"
+        wx:key="*this"
+        class="cat {{cat === item ? 'on' : ''}}"
+        hover-class="hover" hover-stay-time="100"
+        data-cat="{{item}}"
+        bindtap="onCatTap"
+      >{{item}}</view>
+    </view>
+
+    <!-- 列表 -->
+    <view class="list-head">
+      <text class="weak">共 {{list.length}} 个动作</text>
+    </view>
+
+    <view
+      class="act g-card"
+      wx:for="{{list}}"
+      wx:key="id"
+      hover-class="hover" hover-stay-time="100"
+      data-id="{{item.id}}"
+      bindtap="goDetail"
+    >
+      <view class="act-badge">
+        <text>{{item.category}}</text>
+      </view>
+      <view class="flex1">
+        <view class="act-name-row">
+          <text class="act-name">{{item.name}}</text>
+          <text class="tag {{item.lvClass}}">{{item.level}}</text>
+        </view>
+        <view class="act-meta weak">{{item.equipment}} · {{item.muscles}}</view>
+        <view class="act-key sub">{{item.key}}</view>
+      </view>
+      <text class="act-arrow">›</text>
+    </view>
+
+    <view wx:if="{{list.length === 0}}" class="empty">
+      <view class="empty-title">没有找到相关动作</view>
+      <view class="empty-sub weak">换个关键词或分类试试</view>
+    </view>
+
+  </view>
+</scroll-view>

@@ -1,0 +1,40 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/plan/plan",
+    "pages/checkin/checkin",
+    "pages/profile/profile",
+    "pages/plan-detail/plan-detail",
+    "pages/workout/workout",
+    "pages/tutorial/tutorial",
+    "pages/tutorial-detail/tutorial-detail",
+    "pages/account/account"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationStyle": "custom"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#7A7A7A",
+    "selectedColor": "#E60012",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "主页"
+      },
+      {
+        "pagePath": "pages/checkin/checkin",
+        "text": "我的"
+      }
+    ]
+  },
+  "usingComponents": {
+    "px-toast": "/components/px-toast/px-toast"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

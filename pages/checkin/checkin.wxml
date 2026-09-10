@@ -1,0 +1,131 @@
+<!-- pages/checkin/checkin.wxml -->
+<navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<px-toast></px-toast>
+<scroll-view class="scrollarea" scroll-y>
+  <view class="page">
+  <view wx:if="{{accountInfo.nickname}}" class="user-card g-card" hover-class="hover" hover-stay-time="100" bindtap="goAccount">
+    <view wx:if="{{accountInfo.avatar}}" class="uc-avatar-box">
+      <image class="uc-avatar-img" src="{{accountInfo.avatar}}" mode="aspectFill"></image>
+    </view>
+    <view wx:else class="uc-avatar uc-fallback">{{accountInfo.char}}</view>
+    <view class="flex1 uc-main">
+      <view class="uc-name">{{accountInfo.nickname}}</view>
+      <view class="weak uc-sub">账号资料已与云端同步</view>
+    </view>
+    <view class="uc-arrow">›</view>
+  </view>
+
+  <button wx:else class="user-card login-card g-card" open-type="chooseAvatar" bindchooseavatar="onLoginOneTap" hover-class="hover" hover-stay-time="100">
+    <view class="uc-avatar uc-fallback">{{accountInfo.char}}</view>
+    <view class="flex1 uc-main">
+      <view class="uc-name">未登录</view>
+      <view class="weak uc-sub">选择微信头像一键登录</view>
+    </view>
+    <view class="uc-pill">微信登录</view>
+  </button>
+
+  <view class="summary g-card">
+    <view class="summary-main">
+      <view class="summary-num">{{stats.total}}</view>
+      <view class="summary-label">累计训练天数</view>
+    </view>
+    <view class="summary-item">
+      <view class="summary-value">{{stats.streak}}</view>
+      <view class="summary-label">连续打卡</view>
+    </view>
+    <view class="summary-item">
+      <view class="summary-value">{{stats.monthCount}}</view>
+      <view class="summary-label">本月训练天数</view>
+    </view>
+    <view class="summary-item">
+      <view class="summary-value">{{stats.monthMinutes}}</view>
+      <view class="summary-label">本月分钟</view>
+    </view>
+  </view>
+
+  <view class="calendar g-card">
+    <view class="cal-head">
+      <view class="cal-arrow" hover-class="hover" hover-stay-time="100" bindtap="onPrevMonth">‹</view>
+      <view class="cal-title">{{monthLabel}}</view>
+      <view class="cal-arrow {{canNext ? '' : 'disabled'}}" hover-class="hover" hover-stay-time="100" bindtap="onNextMonth">›</view>
+    </view>
+    <view class="week-row">
+      <view wx:for="{{weekHead}}" wx:key="*this" class="week-day">{{item}}</view>
+    </view>
+    <view wx:for="{{weeks}}" wx:for-item="week" wx:key="key" class="date-row">
+      <view
+        wx:for="{{week.cells}}"
+        wx:key="key"
+        class="date-cell {{!item.inMonth ? 'empty' : ''}} {{item.isToday ? 'today' : ''}} {{item.isSel ? 'selected' : ''}}"
+        data-date="{{item.date}}"
+        bindtap="onSelectDay"
+      >
+        <text wx:if="{{item.inMonth}}">{{item.day}}</text>
+        <view wx:if="{{item.checked}}" class="date-dot">{{item.count > 1 ? item.count : ''}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="record-head">
+    <view class="record-date">{{selectedLabel}}</view>
+  </view>
+
+  <view wx:if="{{selectedRecords.length}}" class="record-list">
+    <view wx:for="{{selectedRecords}}" wx:key="id" class="rec g-card">
+      <view class="rec-top">
+        <view>
+          <view class="rec-name">{{item.planName}}</view>
+          <view class="weak rec-time">{{item.timeText}} · {{item.sceneName}}</view>
+        </view>
+        <view class="rec-delete" data-id="{{item.id}}" hover-class="hover" hover-stay-time="100" bindtap="onDeleteRecord">删除</view>
+      </view>
+      <view class="rec-detail">{{item.detailText}}</view>
+      <view class="rec-meta" wx:if="{{item.groupsText || item.skippedText || item.effortText}}">
+        <text wx:if="{{item.groupsText}}">{{item.groupsText}}</text>
+        <text wx:if="{{item.skippedText}}">{{item.skippedText}}</text>
+        <text wx:if="{{item.effortText}}">{{item.effortText}}</text>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="empty g-card">
+    <view class="empty-icon">○</view>
+    <view>这一天还没有训练记录</view>
+    <view class="weak">完成训练或手动补卡后会显示在这里</view>
+  </view>
+
+  <view class="bottom-space"></view>
+  </view>
+</scroll-view>
+
+<!-- 删除记录确认弹层：页内像素弹窗 -->
+<view class="px-mask" wx:if="{{deleteConfirm.show}}" bindtap="onCancelDelete" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">删除训练记录？</view>
+    <view class="px-dialog-copy">{{deleteConfirm.name}} 将从记录中移除</view>
+    <view class="px-dialog-btns">
+      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelDelete">取消</view>
+      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmDelete">删除</view>
+    </view>
+  </view>
+</view>
+
+<!-- 登录未完成提示弹层 -->
+<view class="px-mask" wx:if="{{loginFailShow}}" bindtap="onCloseLoginFail" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">登录未完成</view>
+    <view class="px-dialog-copy">请确认已部署 login 云函数并创建 ft_users 集合后重试。</view>
+    <view class="px-dialog-btns">
+      <view class="px-dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onCloseLoginFail">知道了</view>
+    </view>
+  </view>
+</view>
+
+<!-- 登录中：页内像素加载层（原生 wx.showLoading 无法使用自定义像素字体） -->
+<view class="px-loading-mask" wx:if="{{loginBusy}}" catchtouchmove="noop">
+  <view class="px-loading">
+    <view class="px-loading-dot"></view>
+    <text>登录中…</text>
+  </view>
+</view>
+
+

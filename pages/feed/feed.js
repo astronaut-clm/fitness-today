@@ -15,7 +15,6 @@ Page({
     loadingMore: false,
     hasMore: true,
     error: false,
-    showLoginDialog: false,
     showPostDialog: false,
     draft: '',
     draftLen: 0,
@@ -42,11 +41,8 @@ Page({
   },
 
   onShow() {
-    // 未登录不拉取（云端接口需要 openid），引导去「我的」页一键登录。
-    if (!account.requireLogin()) {
-      if (!this.data.showLoginDialog) this.setData({ showLoginDialog: true })
-      return
-    }
+    // 铁友圈仅从已登录的首页进入；异常无登录态时直接返回，不发起需要 openid 的请求。
+    if (!account.requireLogin()) { wx.navigateBack({ fail: function () {} }); return }
     if (!this.data.loaded) {
       this.load()
       return
@@ -391,17 +387,6 @@ Page({
     }).catch(() => {
       toast.show('删除失败，请重试')
     })
-  },
-
-  // 登录引导弹层
-  onCancelLogin() {
-    this.setData({ showLoginDialog: false })
-    wx.navigateBack({ fail: function () {} })
-  },
-
-  onConfirmLogin() {
-    this.setData({ showLoginDialog: false })
-    wx.switchTab({ url: '/pages/checkin/checkin' })
   },
 
   noop() {}

@@ -75,15 +75,3 @@
     </view>
   </view>
 </view>
-
-<!-- 登录引导弹层：页内像素弹窗 -->
-<view wx:if="{{showLoginDialog}}" class="px-mask" bindtap="onCancelLogin" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">请先登录</view>
-    <view class="px-dialog-copy">登录后，便于云端数据同步</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelLogin">暂不</view>
-      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmLogin">去登录</view>
-    </view>
-  </view>
-</view>

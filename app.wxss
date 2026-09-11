@@ -68,7 +68,7 @@ page {
   box-shadow: var(--shadow);
 }
 
-.btn-primary.plain {
+.btn.plain {
   opacity: 0.55;
 }
 
@@ -95,7 +95,6 @@ page {
 .logout-btn.hover,
 .switch-btn.hover,
 .goal-guide-btn.hover,
-.uc-pill.hover,
 .cal-arrow.hover,
 .effort.hover,
 .chip.hover,
@@ -122,8 +121,7 @@ page {
 
 .tag-lv1,
 .tag-lv2,
-.tag-lv3,
-.tag-orange {
+.tag-lv3 {
   background: var(--card2);
   color: var(--ink2);
   border-color: var(--ink);
@@ -234,19 +232,6 @@ input::after {
   color: var(--ink2);
   font-size: 25rpx;
   line-height: 1.65;
-  text-align: center;
-}
-
-.px-dialog-input {
-  margin-top: 28rpx;
-  height: 84rpx;
-  padding: 0 20rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  box-sizing: border-box;
-  color: var(--ink);
-  background: var(--card2);
-  font-size: 28rpx;
   text-align: center;
 }
 

@@ -13,7 +13,6 @@ page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .uc-name { color: var(--ink); font-size: 31rpx; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .uc-sub { margin-top: 6rpx; font-size: 22rpx; }
 .uc-arrow { color: var(--ink3); font-size: 40rpx; }
-.uc-pill { flex: none; padding: 12rpx 28rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--card); background: var(--primary); font-size: 24rpx; font-weight: 700; }
 
 .summary { display: flex; align-items: center; padding: 28rpx 22rpx; margin-bottom: 20rpx; }
 .summary-main { width: 204rpx; padding-right: 18rpx; border-right: var(--pxs) solid var(--line); }
@@ -54,8 +53,3 @@ page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .bottom-space { height: calc(148rpx + env(safe-area-inset-bottom)); }
 
 .hover { opacity: .65; }
-.weak { color: var(--ink3); }
-
-/* 未登录账号卡片即登录按钮：需重置 button 默认样式 */
-button.login-card { display: flex; align-items: center; gap: 18rpx; width: 100%; margin: 0 0 20rpx; padding: 22rpx 24rpx; border: var(--px) solid var(--ink); border-radius: 0; background: var(--card); box-sizing: border-box; color: inherit; font-size: inherit; font-weight: inherit; line-height: 1.5; text-align: left; }
-button.login-card::after { border: none; }

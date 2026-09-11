@@ -175,14 +175,18 @@ function uploadAvatar(tempFilePath) {
   })
 }
 
-// 读取云端 ft_users 中当前头像 fileID（纯云端读，不依赖本机登录态），用于换头像后清理旧文件。
-function cloudAvatar() {
-  if (!enabled()) return Promise.resolve('')
+// 读取云端 ft_users 中当前用户资料文档（纯云端读，不依赖本机登录态）。
+// 用途：换头像后清理旧文件，以及在写入资料前判断是否首次登录。
+// 全新账号在该文档尚不存在，服务端返回 updatedAt = 0；据此可区分新老用户。
+// 读取失败返回 null，调用方按「非新用户」保守处理，避免误触发引导。
+function cloudProfile() {
+  if (!enabled()) return Promise.resolve(null)
   return call('profile').then(function (r) {
     const result = (r && r.result) || {}
-    return (result && result.avatar) || ''
+    if (!result.openid) return null
+    return result
   }).catch(function () {
-    return ''
+    return null
   })
 }
 
@@ -247,7 +251,7 @@ module.exports = {
   fetchProfile: fetchProfile,
   saveProfile: saveProfile,
   uploadAvatar: uploadAvatar,
-  cloudAvatar: cloudAvatar,
+  cloudProfile: cloudProfile,
   repair: repair,
   deleteFile: deleteFile,
   resolveAvatar: resolveAvatar

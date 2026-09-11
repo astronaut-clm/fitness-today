@@ -1,0 +1,116 @@
+<!--pages/onboarding/onboarding.wxml 登录后引导-->
+<navigation-bar title="完善资料" back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<px-toast></px-toast>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page">
+
+    <!-- 步骤指示 -->
+    <view class="steps">
+      <view class="step {{step >= 1 ? 'on' : ''}}"><text class="step-no">1</text><text>训练偏好</text></view>
+      <view class="step-line"></view>
+      <view class="step {{step >= 2 ? 'on' : ''}}"><text class="step-no">2</text><text>自定义计划</text></view>
+    </view>
+
+    <!-- 第一步：训练偏好 -->
+    <block wx:if="{{step === 1}}">
+      <view class="intro">
+        <view class="intro-title">让每日推荐更懂你</view>
+        <view class="weak intro-sub">花 10 秒选一下，首页推荐会更贴合你的目标</view>
+      </view>
+
+      <view class="g-card section">
+        <view class="section-title">你的主要目标<text class="required-tag">必选</text></view>
+        <view class="goal-list">
+          <view wx:for="{{goals}}" wx:key="value" class="goal-item {{item.selected ? 'on' : ''}}" data-value="{{item.value}}" hover-class="hover" hover-stay-time="100" bindtap="onChooseGoal">
+            <view class="goal-name">{{item.name}}</view>
+            <view class="goal-desc">{{item.desc}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="g-card section">
+        <view class="section-title">常用训练地点</view>
+        <view class="chip-row">
+          <view wx:for="{{scenes}}" wx:key="value" class="chip {{item.selected ? 'on' : ''}}" data-value="{{item.value}}" hover-class="hover" hover-stay-time="100" bindtap="onToggleScene">{{item.name}}</view>
+        </view>
+      </view>
+
+      <view class="g-card section">
+        <view class="section-title">训练经验</view>
+        <view class="chip-row">
+          <view wx:for="{{experiences}}" wx:key="name" class="chip {{item.selected ? 'on' : ''}}" data-value="{{item.name}}" hover-class="hover" hover-stay-time="100" bindtap="onChooseExperience">{{item.name}}</view>
+        </view>
+      </view>
+
+      <view class="g-card section">
+        <view class="section-title">可用器械</view>
+        <view class="chip-row">
+          <view wx:for="{{equipment}}" wx:key="value" class="chip {{item.selected ? 'on' : ''}}" data-value="{{item.value}}" hover-class="hover" hover-stay-time="100" bindtap="onToggleEquipment">{{item.name}}</view>
+        </view>
+      </view>
+
+      <view class="g-card section">
+        <view class="section-title">每周目标</view>
+        <view class="slider-row">
+          <view class="slider-copy"><view>每周训练天数</view><view class="weak">{{weeklyTargetDays}} 天</view></view>
+          <view class="slider-area">
+            <slider min="1" max="7" step="1" value="{{weeklyTargetDays}}" activeColor="#E60012" bindchange="onDaysChange" />
+          </view>
+        </view>
+        <view class="slider-row">
+          <view class="slider-copy"><view>每周训练时长</view><view class="weak">{{weeklyTargetMinutes}} 分钟</view></view>
+          <view class="slider-area">
+            <slider min="30" max="600" step="30" value="{{weeklyTargetMinutes}}" activeColor="#E60012" bindchange="onMinutesChange" />
+          </view>
+        </view>
+      </view>
+
+      <view class="bottom-space"></view>
+    </block>
+    <block wx:else>
+      <view class="intro">
+        <view class="intro-title">打造专属计划</view>
+        <view class="weak intro-sub">从动作库自由组合动作，生成只属于你的训练计划</view>
+      </view>
+
+      <view class="g-card cp-entry" hover-class="hover" hover-stay-time="100" bindtap="goCustomPlan">
+        <view class="row">
+          <view class="cp-badge">计划</view>
+          <view class="flex1 cn-main">
+            <view class="cp-title">自定义计划</view>
+            <view class="weak cp-sub">{{customHint}}</view>
+          </view>
+          <view class="cp-arrow">›</view>
+        </view>
+      </view>
+
+      <view class="g-card section">
+        <view class="section-title">设置后你会得到</view>
+        <view class="cp-item">· 首页优先推荐你组合的训练计划</view>
+        <view class="cp-item">· 居家 / 健身房各可保存一份专属计划</view>
+        <view class="cp-item">· 动作、组数、目标全部按你的节奏设置</view>
+      </view>
+
+      <view class="bottom-space"></view>
+    </block>
+
+  </view>
+</scroll-view>
+
+<view class="foot-bar">
+  <block wx:if="{{step === 1}}">
+    <view class="foot-row">
+      <view class="btn btn-ghost foot-ghost" hover-class="hover" hover-stay-time="100" bindtap="onSkipStep">跳过</view>
+      <view class="btn btn-green foot-primary" hover-class="hover" hover-stay-time="100" bindtap="onNextStep">保存并继续</view>
+    </view>
+  </block>
+  <block wx:else>
+    <view class="foot-row">
+      <view class="btn btn-ghost foot-ghost" hover-class="hover" hover-stay-time="100" bindtap="onPrevStep">上一步</view>
+      <view class="btn btn-green foot-primary foot-stack" hover-class="hover" hover-stay-time="100" bindtap="onExit">
+        <view class="foot-stack-main">完成</view>
+        <view class="foot-stack-sub">后续可在「个人信息」中设置</view>
+      </view>
+    </view>
+  </block>
+</view>

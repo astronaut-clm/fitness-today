@@ -5,6 +5,12 @@ const profile = require('../../utils/profile.js')
 const recommend = require('../../utils/recommend.js')
 const insights = require('../../utils/insights.js')
 const account = require('../../utils/account.js')
+const login = require('../../utils/login.js')
+const onboarding = require('../../utils/onboarding.js')
+const toast = require('../../utils/toast.js')
+
+// 未登录 / 无数据时首页的默认目标统计，供初始 data 与登出清空复用。
+const EMPTY_INSIGHT = { weekDays: 0, targetDays: 3, weekMinutes: 0, targetMinutes: 90, dayPercent: 0, minutePercent: 0, coverage: [], dayBar: '', minuteBar: '' }
 
 Page({
   data: {
@@ -12,10 +18,12 @@ Page({
     streak: 0,
     recPlan: null,
     isLogged: false,
+    loggedIn: false,
     goalReady: false,
     todaySummary: null,
-    insight: { weekDays: 0, targetDays: 3, weekMinutes: 0, targetMinutes: 90, dayPercent: 0, minutePercent: 0, coverage: [], dayBar: '', minuteBar: '' },
-    showLoginDialog: false
+    insight: EMPTY_INSIGHT,
+    loginBusy: false,
+    loginFailShow: false
   },
 
   onShow() {
@@ -24,6 +32,22 @@ Page({
       const tabBar = this.getTabBar()
       if (tabBar && tabBar.setData) tabBar.setData({ selected: 0 })
     }
+    // 未登录：首页只展示登录入口，不做需要 openid 的拉取与统计，
+    // 并清空上次登录时渲染的统计/打卡数据，避免退出后残留旧数据。
+    const loggedIn = account.isLoggedIn()
+    if (!loggedIn) {
+      this.setData({
+        loggedIn: false,
+        streak: 0,
+        recPlan: null,
+        isLogged: false,
+        goalReady: false,
+        todaySummary: null,
+        insight: EMPTY_INSIGHT
+      })
+      return
+    }
+    this.setData({ loggedIn: true })
     this.refresh()
   },
 
@@ -69,22 +93,18 @@ Page({
   goRecPlan() {
     // 进入计划库挑选任意计划（pick=1），挑中后进入可开始训练的详情页；
     // 推荐计划仍在首页 hero 文案中展示。
-    if (!account.requireLogin()) { this.showLogin(); return }
     wx.navigateTo({ url: '/pages/plan/plan?pick=1' })
   },
 
   goProfile() {
-    if (!account.requireLogin()) { this.showLogin(); return }
     wx.navigateTo({ url: '/pages/profile/profile' })
   },
 
   goRank() {
-    if (!account.requireLogin()) { this.showLogin(); return }
     wx.navigateTo({ url: '/pages/rank/rank' })
   },
 
   goFeed() {
-    if (!account.requireLogin()) { this.showLogin(); return }
     wx.navigateTo({ url: '/pages/feed/feed' })
   },
 
@@ -92,18 +112,35 @@ Page({
     wx.switchTab({ url: '/pages/checkin/checkin' })
   },
 
-  // 登录引导弹层（页内像素弹窗）
-  showLogin() {
-    this.setData({ showLoginDialog: true })
+  // 首页一键登录逻辑（utils/login.js）：
+  // 点击「点击登录」按钮选择微信头像即完成登录，昵称默认取 openid 后六位。
+  onLoginOneTap(e) {
+    if (this.data.loginBusy) return
+    const tempUrl = (e.detail && e.detail.avatarUrl) || ''
+    if (!tempUrl) return
+    this.setData({ loginBusy: true })
+    login.loginOneTap(tempUrl).then((res) => {
+      if (!res || !res.ok) {
+        this.setData({ loginBusy: false })
+        if (res && res.code === 'save_error') this.setData({ loginFailShow: true })
+        else toast.show('登录失败，请重试')
+        return
+      }
+      // 登录成功：收起加载层并展示首页内容，随后拉回历史记录与偏好；
+      // 仅全新账号的首次登录（res.newUser）才引导补全偏好与自定义计划，老用户不打扰。
+      this.setData({ loginBusy: false, loggedIn: true })
+      this.refresh()
+      login.syncAfterLogin().then((ok) => {
+        if (ok) this.refresh()
+        if (res.newUser && !onboarding.isDone()) {
+          wx.navigateTo({ url: '/pages/onboarding/onboarding' })
+        }
+      })
+    })
   },
 
-  onCancelLogin() {
-    this.setData({ showLoginDialog: false })
-  },
-
-  onConfirmLogin() {
-    this.setData({ showLoginDialog: false })
-    wx.switchTab({ url: '/pages/checkin/checkin' })
+  onCloseLoginFail() {
+    this.setData({ loginFailShow: false })
   },
 
   noop() {},

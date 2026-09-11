@@ -17,6 +17,47 @@ const defaults = {
   updatedAt: 0
 }
 
+// 训练偏好选项与表单渲染：个人设置页与登录后引导页共用，保证两处选项与选中态一致。
+const goals = [
+  { value: 'fat_loss', name: '减脂塑形', desc: '优先安排轻量高效训练' },
+  { value: 'muscle_gain', name: '增肌增重', desc: '优先安排力量训练' }
+]
+const scenes = [
+  { value: 'home', name: '居家' },
+  { value: 'gym', name: '健身房' }
+]
+const experiences = ['初级', '中级', '高级']
+const equipment = [
+  { value: 'none', name: '徒手' },
+  { value: 'dumbbell', name: '哑铃' },
+  { value: 'gym', name: '健身房器械' }
+]
+
+function selectedMap(values) {
+  const map = {}
+  ;(values || []).forEach(function (value) { map[value] = true })
+  return map
+}
+
+function withSelected(list, values) {
+  const selected = selectedMap(values)
+  return list.map(function (item) {
+    return Object.assign({}, item, { selected: !!selected[item.value] })
+  })
+}
+
+function buildView(current) {
+  const p = current || {}
+  return {
+    goals: goals.map(function (item) { return Object.assign({}, item, { selected: p.goal === item.value }) }),
+    scenes: withSelected(scenes, p.scenes),
+    experiences: experiences.map(function (name) { return { name: name, selected: name === p.experience } }),
+    equipment: withSelected(equipment, p.equipment),
+    weeklyTargetDays: p.weeklyTargetDays,
+    weeklyTargetMinutes: p.weeklyTargetMinutes
+  }
+}
+
 function get() {
   let saved = {}
   try { saved = wx.getStorageSync(KEY) || {} } catch (e) {}
@@ -160,6 +201,7 @@ module.exports = {
   get: get,
   save: save,
   completed: completed,
+  buildView: buildView,
   resetLocal: resetLocal,
   pushToCloud: pushToCloud,
   syncFromCloud: syncFromCloud,

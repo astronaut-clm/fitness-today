@@ -10,19 +10,10 @@
     <view wx:else class="uc-avatar uc-fallback">{{accountInfo.char}}</view>
     <view class="flex1 uc-main">
       <view class="uc-name">{{accountInfo.nickname}}</view>
-      <view class="weak uc-sub">账号资料已与云端同步</view>
+      <view class="weak uc-sub">账号数据已与云端自动同步</view>
     </view>
     <view class="uc-arrow">›</view>
   </view>
-
-  <button wx:else class="user-card login-card g-card" open-type="chooseAvatar" bindchooseavatar="onLoginOneTap" hover-class="hover" hover-stay-time="100">
-    <view class="uc-avatar uc-fallback">{{accountInfo.char}}</view>
-    <view class="flex1 uc-main">
-      <view class="uc-name">未登录</view>
-      <view class="weak uc-sub">选择微信头像一键登录</view>
-    </view>
-    <view class="uc-pill">微信登录</view>
-  </button>
 
   <view class="summary g-card">
     <view class="summary-main">
@@ -109,23 +100,7 @@
   </view>
 </view>
 
-<!-- 登录未完成提示弹层 -->
-<view class="px-mask" wx:if="{{loginFailShow}}" bindtap="onCloseLoginFail" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">登录未完成</view>
-    <view class="px-dialog-copy">请确认已部署 login 云函数并创建 ft_users 集合后重试。</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onCloseLoginFail">知道了</view>
-    </view>
-  </view>
-</view>
 
-<!-- 登录中：页内像素加载层（原生 wx.showLoading 无法使用自定义像素字体） -->
-<view class="px-loading-mask" wx:if="{{loginBusy}}" catchtouchmove="noop">
-  <view class="px-loading">
-    <view class="px-loading-dot"></view>
-    <text>登录中…</text>
-  </view>
-</view>
+
 
 

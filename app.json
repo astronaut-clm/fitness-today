@@ -11,7 +11,8 @@
     "pages/account/account",
     "pages/custom-plan/custom-plan",
     "pages/rank/rank",
-    "pages/feed/feed"
+    "pages/feed/feed",
+    "pages/onboarding/onboarding"
   ],
   "window": {
     "navigationBarTextStyle": "black",

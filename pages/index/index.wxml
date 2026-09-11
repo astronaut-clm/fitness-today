@@ -1,7 +1,9 @@
 <!--pages/index/index.wxml 今日首页-->
 <navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
+    <block wx:if="{{loggedIn}}">
     <view class="head">
       <view class="flex1">
         <view class="head-date weak">{{dateText}}</view>
@@ -76,17 +78,40 @@
         <view class="entry-arrow">›</view>
       </view>
     </view>
+    </block>
+
+    <block wx:else>
+      <view class="login-guide">
+        <view class="login-guide-title">练了吧？</view>
+        <view class="weak login-guide-sub">登录后即可开始训练、查看排行榜与铁友圈</view>
+      </view>
+      <view class="login-card g-card">
+        <view class="login-avatar">练</view>
+        <view class="flex1 login-main">
+          <view class="login-title">请先登录</view>
+          <view class="weak login-sub">可选择微信头像一键登录</view>
+        </view>
+        <button class="login-pill" open-type="chooseAvatar" bindchooseavatar="onLoginOneTap" hover-class="hover" hover-stay-time="100">点击登录</button>
+      </view>
+    </block>
   </view>
 </scroll-view>
 
-<!-- 登录引导弹层：页内像素弹窗 -->
-<view class="px-mask" wx:if="{{showLoginDialog}}" bindtap="onCancelLogin" catchtouchmove="noop">
+<!-- 登录未完成提示弹层 -->
+<view class="px-mask" wx:if="{{loginFailShow}}" bindtap="onCloseLoginFail" catchtouchmove="noop">
   <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">请先登录</view>
-    <view class="px-dialog-copy">登录后，便于云端数据同步</view>
+    <view class="px-dialog-title">登录未完成</view>
+    <view class="px-dialog-copy">请确认已部署 login 云函数并创建 ft_users 集合后重试。</view>
     <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelLogin">暂不</view>
-      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmLogin">去登录</view>
+      <view class="px-dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onCloseLoginFail">知道了</view>
     </view>
+  </view>
+</view>
+
+<!-- 登录中：页内像素加载层 -->
+<view class="px-loading-mask" wx:if="{{loginBusy}}" catchtouchmove="noop">
+  <view class="px-loading">
+    <view class="px-loading-dot"></view>
+    <text>登录中…</text>
   </view>
 </view>

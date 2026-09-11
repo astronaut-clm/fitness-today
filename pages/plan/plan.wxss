@@ -90,7 +90,7 @@ page {
 }
 
 .plan-done {
-  color: var(--primary);
+  color: var(--green);
   font-size: 22rpx;
   font-weight: 700;
 }

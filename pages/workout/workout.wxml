@@ -103,8 +103,8 @@
       <view class="dialog-title">上次训练未保存</view>
       <view class="dialog-content">上次已完成全部训练但未保存</view>
       <view class="dialog-btns">
-        <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeBack">返回</view>
-        <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
+        <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
+        <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeSave">去保存</view>
       </view>
     </block>
     <block wx:else>

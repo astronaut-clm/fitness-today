@@ -69,10 +69,6 @@ function getAllRecords() {
   return records.getAll()
 }
 
-function computeStats() {
-  return records.computeStats()
-}
-
 // 从已读取的记录数组派生统计，供调用方一次读取后复用同一份快照。
 function computeStatsFrom(list) {
   return records.computeStatsFrom(list)
@@ -96,6 +92,10 @@ function syncFromCloud() {
     // 拉取失败时向上抛出真实错误，由调用方决定是否提示用户。
     if (!remote) return false
 
+    // 拉取期间可能已退出登录：此时禁止再用云端数据回填本机，
+    // 否则登出时已清空的记录会被这条在途同步"复活"。
+    if (!account.isLoggedIn()) return false
+
     // 合并前先收集本地待推改动（含删除墓碑），合并后仍保持原 updatedAt 的才算真正的本地增量。
     const before = {}
     const pending = records.getAll({ includeDeleted: true }).filter(function (record) {
@@ -115,6 +115,9 @@ function syncFromCloud() {
 
     return sync.pushAll(toPush).then(function (ok) {
       if (!ok) return false
+      // 推送期间也可能已退出登录：此时不能推进同步水位，
+      // 否则会覆盖 clearLocal 归零的水位，导致再次登录时漏拉历史记录。
+      if (!account.isLoggedIn()) return false
       saveSyncMeta({
         lastSyncAt: Date.now(),
         lastFullPullAt: needsFullPull ? Date.now() : meta.lastFullPullAt
@@ -137,7 +140,6 @@ module.exports = {
   addRecord: addRecord,
   removeRecord: removeRecord,
   clearLocal: clearLocal,
-  computeStats: computeStats,
   computeStatsFrom: computeStatsFrom,
   syncEnabled: syncEnabled,
   syncFromCloud: syncFromCloud

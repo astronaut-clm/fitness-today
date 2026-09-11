@@ -10,16 +10,12 @@ Page({
     me: { minutes: 0, days: 0, rank: 0 },
     loaded: false,
     loading: false,
-    error: false,
-    showLoginDialog: false
+    error: false
   },
 
   onShow() {
-    // 未登录不拉取榜单（云端接口需要 openid），引导去「我的」页一键登录。
-    if (!account.requireLogin()) {
-      if (!this.data.showLoginDialog) this.setData({ showLoginDialog: true })
-      return
-    }
+    // 排行榜仅从已登录的首页进入；异常无登录态时直接返回，不发起需要 openid 的请求。
+    if (!account.requireLogin()) { wx.navigateBack({ fail: function () {} }); return }
     // 30 秒内重复进入（如从详情页返回）不重复请求。
     const now = Date.now()
     if (this._lastLoad && now - this._lastLoad < 30000) return
@@ -61,16 +57,6 @@ Page({
     const index = e.currentTarget.dataset.index
     if (index == null) return
     this.setData({ ['rows[' + index + '].avatar']: '' })
-  },
-
-  onCancelLogin() {
-    this.setData({ showLoginDialog: false })
-    wx.navigateBack({ fail: function () {} })
-  },
-
-  onConfirmLogin() {
-    this.setData({ showLoginDialog: false })
-    wx.switchTab({ url: '/pages/checkin/checkin' })
   },
 
   noop() {}

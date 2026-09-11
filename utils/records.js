@@ -246,10 +246,6 @@ function computeStatsFrom(list) {
   }
 }
 
-function computeStats() {
-  return computeStatsFrom(getAll())
-}
-
 module.exports = {
   getAll: getAll,
   getById: getById,
@@ -261,7 +257,6 @@ module.exports = {
   purgeDeleted: purgeDeleted,
   replaceAll: replaceAll,
   mergeRemote: mergeRemote,
-  computeStats: computeStats,
   computeStatsFrom: computeStatsFrom,
   getDateMapFrom: getDateMapFrom
 }

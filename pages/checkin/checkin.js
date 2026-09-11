@@ -7,28 +7,23 @@ const toast = require('../../utils/toast.js')
 
 function recordView(record) {
   const time = new Date(record.createdAt || record.ts)
-  const minutes = Number(record.actualMinutes || record.duration || 0)
   return {
     id: record.id,
     planName: record.planName,
     sceneName: record.sceneName,
-    duration: record.duration,
     timeText: dateUtil.pad(time.getHours()) + ':' + dateUtil.pad(time.getMinutes()),
-    isFree: record.type === 'free',
     detailText: record.actualMinutes
       ? '实际训练 ' + record.actualMinutes + ' 分钟'
       : (record.type === 'free' ? '时长 ' + record.duration + ' 分钟' : '训练 ' + record.duration + ' 分钟'),
     groupsText: record.completedGroups ? '完成 ' + record.completedGroups + '/' + record.totalGroups + ' 组' : '',
     skippedText: record.skippedGroups ? '跳过 ' + record.skippedGroups + ' 组' : '',
-    effortText: record.effort ? '主观强度 ' + record.effort + '/5' : '',
-    minutes: minutes
+    effortText: record.effort ? '主观强度 ' + record.effort + '/5' : ''
   }
 }
 
 Page({
   data: {
     accountInfo: { nickname: '', avatar: '', char: '练' },
-    loginBusy: false,
     todayStr: '',
     stats: { total: 0, streak: 0, monthCount: 0, monthMinutes: 0 },
     year: 0,
@@ -41,9 +36,7 @@ Page({
     selectedLabel: '',
     selectedRecords: [],
     // 删除记录确认弹层（页内像素弹窗）
-    deleteConfirm: { show: false, id: '', name: '' },
-    // 登录未完成提示弹层
-    loginFailShow: false
+    deleteConfirm: { show: false, id: '', name: '' }
   },
 
   onLoad() {
@@ -121,55 +114,6 @@ Page({
       if (!res || !res.ok) this._lastPrefsSyncAt = 0
       return !!(res && res.ok)
     }).catch(() => { this._lastPrefsSyncAt = 0; return false })
-  },
-
-  // 未登录卡片本身是 chooseAvatar 按钮：用户点头像（含"微信头像"）即完成登录。
-  // 昵称默认取 openid 后六位（免填写、好识别），头像上传云端；后续可在个人设置页改成更好记的昵称。
-  onLoginOneTap(e) {
-    if (this.data.loginBusy) return
-    const tempUrl = (e.detail && e.detail.avatarUrl) || ''
-    if (!tempUrl) return
-    this.setData({ loginBusy: true })
-    account.login().then((openid) => {
-      if (!openid) throw new Error('no_openid')
-      // 先记录云端当前头像：登录保存成功后若文件有变化，顺手清理旧文件，避免存储积累。
-      const previousAvatar = account.cloudAvatar()
-      return account.uploadAvatar(tempUrl).then((uploadRes) => {
-        if (!uploadRes || !uploadRes.ok) throw new Error('upload_failed')
-        return account.saveProfile({ nickname: account.defaultNickname(openid), avatar: uploadRes.fileID || '' }).then((res) => {
-          if (res && res.ok) {
-            previousAvatar.then((oldFileID) => {
-              if (oldFileID && oldFileID !== uploadRes.fileID) account.deleteFile(oldFileID)
-            })
-          }
-          return res
-        })
-      })
-    }).then((res) => {
-      if (!res || !res.ok) {
-        this.setData({ loginBusy: false })
-        this.setData({ loginFailShow: true })
-        return
-      }
-      // 登录成功：先收起「登录中」加载层，随后后台静默与云端同步
-      // （历史训练记录、偏好与自定义计划、云端自愈），不展示任何同步提示打扰用户。
-      this.setData({ loginBusy: false })
-      this.refreshAccount()
-      // 顺带触发一次云端自愈（幂等）：收敛同 openid 可能存在的历史重复资料/订阅文档。
-      account.repair().catch(function () {})
-      store.syncFromCloud().then((ok) => {
-        return this.syncPrefs(true).then(() => ok)
-      }).then((ok) => {
-        // 同步完成且数据有变化才刷新统计，失败仅记日志，不打扰用户。
-        if (ok) this.reload()
-      }).catch((err) => {
-        console.error('[login-sync]', err)
-      })
-    }).catch((err) => {
-      this.setData({ loginBusy: false })
-      console.error('[one-tap-login]', err)
-      toast.show('登录失败，请重试')
-    })
   },
 
   pullCloud() {
@@ -282,10 +226,6 @@ Page({
     this.reload()
     this.setData({ deleteConfirm: { show: false, id: '', name: '' } })
     toast.show('已删除')
-  },
-
-  onCloseLoginFail() {
-    this.setData({ loginFailShow: false })
   },
 
   // 头像链接失效（如临时链接过期）：回退为文字头像，避免破图。

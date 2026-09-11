@@ -278,3 +278,79 @@ page {
   font-size: 32rpx;
   font-weight: 700;
 }
+
+/* 未登录：首页只展示登录入口 */
+.login-guide {
+  margin: 48rpx 8rpx 32rpx;
+}
+
+.login-guide-title {
+  font-size: 56rpx;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.login-guide-sub {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+}
+
+.login-card {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  width: 100%;
+  padding: 32rpx 28rpx;
+  box-sizing: border-box;
+  box-shadow: var(--shadow);
+}
+
+.login-avatar {
+  flex: none;
+  width: 96rpx;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--pxs) solid var(--ink);
+  background: var(--card2);
+  color: var(--ink);
+  font-size: 42rpx;
+  font-weight: 700;
+}
+
+.login-main {
+  min-width: 0;
+}
+
+.login-title {
+  color: var(--ink);
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.login-sub {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+}
+
+/* 只有「点击登录」按钮可点击：重置 button 默认样式 */
+button.login-pill {
+  flex: none;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 14rpx 26rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  color: var(--card);
+  background: var(--primary);
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+button.login-pill::after {
+  border: none;
+}

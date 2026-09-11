@@ -3,6 +3,9 @@ const plansData = require('../data/plans.js')
 const actionsData = require('../data/actions.js')
 const insights = require('./insights.js')
 const customPlans = require('./custom-plans.js')
+const dateUtil = require('./date.js')
+
+const LEVELS = { 初级: 1, 中级: 2, 高级: 3 }
 
 function planCategories(plan) {
   const out = {}
@@ -25,8 +28,7 @@ function score(plan, records, profile, recentMuscles) {
     reasons.push('匹配你的' + plansData.sceneName(plan.scene) + '训练地点')
   }
 
-  const levels = { 初级: 1, 中级: 2, 高级: 3 }
-  const levelGap = Math.abs((levels[plan.level] || 1) - (levels[p.experience] || 1))
+  const levelGap = Math.abs((LEVELS[plan.level] || 1) - (LEVELS[p.experience] || 1))
   value += Math.max(0, 20 - levelGap * 12)
 
   const categories = planCategories(plan)
@@ -64,7 +66,45 @@ function candidates() {
   return list
 }
 
-function pick(records, profile) {
+// 给原始计划补展示字段（场景名 / 推荐理由），不改动原始数据
+function decorate(rawPlan, reason) {
+  const plan = Object.assign({}, rawPlan)
+  plan.sceneName = plansData.sceneName(plan.scene)
+  plan.reason = reason || '根据近期训练记录为你推荐'
+  return plan
+}
+
+function findById(id) {
+  const list = candidates()
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].id === id) return list[i]
+  }
+  return null
+}
+
+// 当日推荐缓存：{ date, sig, planId, reason }
+const CACHE_KEY = 'ft_recommend_v1'
+
+function readCache() {
+  try { return wx.getStorageSync(CACHE_KEY) || null } catch (e) { return null }
+}
+
+function writeCache(data) {
+  try { wx.setStorageSync(CACHE_KEY, data) } catch (e) {}
+}
+
+// 影响推荐打分的偏好内容签名（场景 / 经验 / 目标 / 器械）。
+// 不能用 profile.updatedAt 当缓存键：云端同步会刷新该时间戳（内容其实没变），
+// 会造成「偏好已改」的误判，导致当天推荐莫名重选。
+function prefsSignature(profile) {
+  const p = profile || {}
+  const scenes = (p.scenes || []).slice().sort()
+  const equipment = (p.equipment || []).slice().sort()
+  return [p.goal || '', scenes.join(','), p.experience || '', equipment.join(',')].join('|')
+}
+
+// 纯算法：按记录 + 偏好打分选出最优计划
+function compute(records, profile) {
   const recent = insights.recentMuscles(records, 2)
   const scored = candidates().map(function (plan) {
     const result = score(plan, records, profile, recent)
@@ -73,10 +113,21 @@ function pick(records, profile) {
 
   scored.sort(function (a, b) { return b.score - a.score })
   const best = scored[0] || { plan: plansData.plans[0], reasons: ['从轻松的计划开始'] }
-  const plan = {}
-  Object.keys(best.plan).forEach(function (key) { plan[key] = best.plan[key] })
-  plan.sceneName = plansData.sceneName(plan.scene)
-  plan.reason = best.reasons[0] || '根据近期训练记录为你推荐'
+  return decorate(best.plan, best.reasons[0])
+}
+
+// 当日推荐：同一天内保持稳定，避免练完当日推荐后记录变化（近期部位/未练过加分）导致改选。
+// 命中缓存（同一天且偏好内容未变）直接返回原计划；用户真正改了偏好才重新推荐。
+function pick(records, profile) {
+  const today = dateUtil.today()
+  const sig = prefsSignature(profile)
+  const cache = readCache()
+  if (cache && cache.date === today && cache.sig === sig && cache.planId) {
+    const cached = findById(cache.planId)
+    if (cached) return decorate(cached, cache.reason)
+  }
+  const plan = compute(records, profile)
+  writeCache({ date: today, sig: sig, planId: plan.id, reason: plan.reason })
   return plan
 }
 

@@ -81,7 +81,6 @@ function resetLocal() {
 }
 
 module.exports = {
-  getStore: getStore,
   get: get,
   setExercise: setExercise,
   clear: clear,

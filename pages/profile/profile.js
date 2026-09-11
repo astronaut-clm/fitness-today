@@ -1,39 +1,11 @@
-// pages/profile/profile.js
+// pages/profile/profile.js 训练偏好设置
 const profile = require('../../utils/profile.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
 
-const goals = [
-  { value: 'fat_loss', name: '减脂塑形', desc: '优先安排轻量高效训练' },
-  { value: 'muscle_gain', name: '增肌增重', desc: '优先安排力量训练' }
-]
-const scenes = [
-  { value: 'home', name: '居家' },
-  { value: 'gym', name: '健身房' }
-]
-const experiences = ['初级', '中级', '高级']
-const equipment = [
-  { value: 'none', name: '徒手' },
-  { value: 'dumbbell', name: '哑铃' },
-  { value: 'gym', name: '健身房器械' }
-]
-
-function selectedMap(values) {
-  const map = {}
-  ;(values || []).forEach(function (value) { map[value] = true })
-  return map
-}
-
-function withSelected(list, values) {
-  const selected = selectedMap(values)
-  return list.map(function (item) {
-    return Object.assign({}, item, { selected: !!selected[item.value] })
-  })
-}
-
 Page({
   data: {
-    goals: goals,
+    goals: [],
     scenes: [],
     experiences: [],
     equipment: [],
@@ -52,16 +24,8 @@ Page({
   },
 
   loadProfile() {
-    const current = profile.get()
-    this.current = current
-    this.setData({
-      goals: goals.map(function (item) { return Object.assign({}, item, { selected: current.goal === item.value }) }),
-      scenes: withSelected(scenes, current.scenes),
-      experiences: experiences.map(function (name) { return { name: name, selected: name === current.experience } }),
-      equipment: withSelected(equipment, current.equipment),
-      weeklyTargetDays: current.weeklyTargetDays,
-      weeklyTargetMinutes: current.weeklyTargetMinutes
-    })
+    this.current = profile.get()
+    this.applyCurrent()
   },
 
   toggleValue(key, value) {
@@ -74,14 +38,7 @@ Page({
   },
 
   applyCurrent() {
-    this.setData({
-      goals: goals.map((item) => Object.assign({}, item, { selected: this.current.goal === item.value })),
-      scenes: withSelected(scenes, this.current.scenes),
-      experiences: experiences.map((name) => ({ name: name, selected: name === this.current.experience })),
-      equipment: withSelected(equipment, this.current.equipment),
-      weeklyTargetDays: this.current.weeklyTargetDays,
-      weeklyTargetMinutes: this.current.weeklyTargetMinutes
-    })
+    this.setData(profile.buildView(this.current))
   },
 
   onChooseGoal(e) {

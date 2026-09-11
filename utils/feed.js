@@ -108,6 +108,5 @@ module.exports = {
   report: report,
   comments: comments,
   comment: comment,
-  removeComment: removeComment,
-  timeText: timeText
+  removeComment: removeComment
 }

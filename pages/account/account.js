@@ -7,6 +7,7 @@ const sessionStore = require('../../utils/workout-session.js')
 const profile = require('../../utils/profile.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
+const onboarding = require('../../utils/onboarding.js')
 const font = require('../../utils/font.js')
 const toast = require('../../utils/toast.js')
 
@@ -91,6 +92,7 @@ Page({
     profile.resetLocal()
     adjustments.resetLocal()
     customPlans.resetLocal()
+    onboarding.resetLocal()
     toast.back('已退出，记录已清空')
   },
 

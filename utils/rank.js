@@ -2,15 +2,12 @@
 // 榜单由 social 云函数的 rankMonth 动作在服务端聚合（跨用户数据客户端读不到）。
 // 月度按用户本机时区计算，避免云函数时区与用户不一致导致月初/月末错位。
 const cloud = require('./cloud.js')
-
-function pad(n) {
-  return n < 10 ? '0' + n : '' + n
-}
+const dateUtil = require('./date.js')
 
 // 本机时区的自然月 key：'YYYY-MM'
 function currentMonth() {
   const now = new Date()
-  return now.getFullYear() + '-' + pad(now.getMonth() + 1)
+  return now.getFullYear() + '-' + dateUtil.pad(now.getMonth() + 1)
 }
 
 // 'YYYY-MM' -> 'YYYY年M月'

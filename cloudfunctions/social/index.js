@@ -61,6 +61,17 @@ function rankName(openid, user) {
   return id ? '练友' + id.slice(-6) : '神秘练友'
 }
 
+// 批量读取用户文档并按 _id 建映射，供榜单 / 动态 / 评论 join 昵称头像复用。
+async function loadUserMap(ids) {
+  const list = (ids || []).filter(Boolean)
+  if (!list.length) return {}
+  const res = await db.collection(COL_USERS).where({ _id: _.in(list) }).limit(list.length)
+    .get().catch(function () { return { data: [] } })
+  const map = {}
+  ;((res && res.data) || []).forEach(function (u) { if (u && u._id) map[u._id] = u })
+  return map
+}
+
 // 按 _openid 聚合当月累计训练分钟；actualMinutes 缺失时回退 duration。
 function rankMinutesExpr() {
   const $ = db.command.aggregate
@@ -80,14 +91,7 @@ async function buildRankRows(range) {
     .end()
   const list = (res && res.list) || []
   const ids = list.map(function (row) { return row && row._id }).filter(Boolean)
-  let users = []
-  if (ids.length) {
-    const usersRes = await db.collection(COL_USERS).where({ _id: _.in(ids) }).limit(ids.length)
-      .get().catch(function () { return { data: [] } })
-    users = (usersRes && usersRes.data) || []
-  }
-  const userMap = {}
-  users.forEach(function (u) { if (u && u._id) userMap[u._id] = u })
+  const userMap = await loadUserMap(ids)
   return list.map(function (row, index) {
     const openid = row._id || ''
     const user = userMap[openid] || {}
@@ -247,14 +251,7 @@ async function feedList(openid, event) {
     if (p._id) postIds.push(p._id)
   })
 
-  let users = []
-  if (openids.length) {
-    const ur = await db.collection(COL_USERS).where({ _id: _.in(openids) }).limit(openids.length)
-      .get().catch(function () { return { data: [] } })
-    users = (ur && ur.data) || []
-  }
-  const userMap = {}
-  users.forEach(function (u) { if (u && u._id) userMap[u._id] = u })
+  const userMap = await loadUserMap(openids)
 
   let likes = []
   if (postIds.length) {
@@ -409,14 +406,7 @@ async function commentList(openid, event) {
   list.forEach(function (c) {
     if (c._openid && openids.indexOf(c._openid) < 0) openids.push(c._openid)
   })
-  let users = []
-  if (openids.length) {
-    const ur = await db.collection(COL_USERS).where({ _id: _.in(openids) }).limit(openids.length)
-      .get().catch(function () { return { data: [] } })
-    users = (ur && ur.data) || []
-  }
-  const userMap = {}
-  users.forEach(function (u) { if (u && u._id) userMap[u._id] = u })
+  const userMap = await loadUserMap(openids)
 
   const avatarMap = await resolveAvatarTempUrls(list.map(function (c) {
     const u = userMap[c._openid] || {}

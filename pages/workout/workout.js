@@ -6,7 +6,6 @@ const dateUtil = require('../../utils/date.js')
 const sessionStore = require('../../utils/workout-session.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
-const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
 
 function parseSeconds(reps) {
@@ -98,14 +97,6 @@ Page({
     const win = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
     const topInset = (win && (win.statusBarHeight || (win.safeArea && win.safeArea.top))) || 0
     if (topInset) this.setData({ statusBarHeight: topInset })
-    // 兜底守卫：必须登录后才能训练（正常入口在计划详情页已拦截，这里防直连/分享路径）。
-    if (!account.isLoggedIn()) {
-      toast.show('登录后才能训练')
-      this.defer(function () {
-        wx.navigateBack({ fail: function () { wx.switchTab({ url: '/pages/checkin/checkin' }) } })
-      }, 600)
-      return
-    }
     const source = customPlans.getById(this.planId) || plansData.getPlan(this.planId)
     if (!source || !source.exercises.length) {
       toast.show('计划不存在')
@@ -182,11 +173,23 @@ Page({
     this.startFresh()
   },
 
-  // 「上次已完成未保存」时返回，不重新开始
-  onResumeBack() {
+  // 「上次已完成未保存」时返回保存页：训练完成后必须先保存，不允许直接退出
+  onResumeSave() {
+    const session = this._resumeSession
     this.setData({ showResumeConfirm: false })
     this._resumeSession = null
-    wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/checkin/checkin' }) })
+    if (!session) return
+    this.startTs = Number(session.startedAt || Date.now())
+    this.setData({
+      current: this.groups.length,
+      completed: this.groups.length,
+      pctStyle: 'width:100%;',
+      state: 'finished',
+      running: false,
+      skippedGroups: Number(session.skippedGroups || 0),
+      costText: session.costText || '',
+      showFeedback: true
+    })
   },
 
   startFresh() {
@@ -259,6 +262,7 @@ Page({
       remainingSeconds: 0,
       restEndsAt: 0,
       skippedGroups: this.data.skippedGroups,
+      costText: this.data.costText || '',
       adjustments: adjustments.get(this.planId)
     })
   },
@@ -424,9 +428,14 @@ Page({
   onSkipRest() { this.skipRest() },
   onExtendRest() { this.extendRest() },
 
-  // 顶部返回：训练中打开退出确认弹层，完成态直接返回
+  // 顶部返回：训练中打开退出确认弹层；已完成未保存时禁止退出/返回，必须先保存
   onNavBack() {
     if (this.data.state === 'finished') {
+      // 训练已完成但尚未保存：不允许返回，避免本次成绩丢失
+      if (!this._saved) {
+        toast.show('请先保存本次训练')
+        return
+      }
       wx.navigateBack({ fail: () => wx.navigateTo({ url: '/pages/plan/plan' }) })
       return
     }
@@ -437,10 +446,54 @@ Page({
       return
     }
     this.setData({ showExitConfirm: true })
+    // 弹层显示期间冻结倒计时，避免后台继续走表/自动进入下一组
+    this.pauseForDialog()
   },
 
   onCancelExit() {
     this.setData({ showExitConfirm: false })
+    // 继续训练：恢复被打断的倒计时
+    this.resumeAfterDialog()
+  },
+
+  // 暂停倒计时（休息或计时中），记住是否处于运行态以便恢复
+  pauseForDialog() {
+    this._pausedRunning = false
+    if (this.data.state === 'rest') {
+      this.stopInterval()
+      if (this.endAt) {
+        this.setData({ restLeft: Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) })
+        this.endAt = 0
+      }
+      return
+    }
+    if (this.data.state === 'working' && this.data.running) {
+      this._pausedRunning = true
+      this.stopInterval()
+      const remain = this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : this.data.left
+      this.endAt = 0
+      this.setData({ running: false, left: remain })
+    }
+  },
+
+  // 恢复被暂停的倒计时
+  resumeAfterDialog() {
+    if (this.data.state === 'rest') {
+      if (this.data.restLeft > 0) {
+        this.endAt = Date.now() + this.data.restLeft * 1000
+        this.startInterval()
+      } else {
+        this.skipRest()
+      }
+      return
+    }
+    if (this._pausedRunning && this.data.state === 'working') {
+      const left = this.data.left > 0 ? this.data.left : ((this.groups[this.data.current] || {}).seconds || 0)
+      this.endAt = Date.now() + left * 1000
+      this.setData({ running: true })
+      this.startInterval()
+    }
+    this._pausedRunning = false
   },
 
   noop() {},

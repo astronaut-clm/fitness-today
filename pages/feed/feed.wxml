@@ -4,7 +4,7 @@
   <view class="page">
     <view class="feed-head">
       <view class="feed-title">铁友圈</view>
-      <view class="weak feed-sub">分享训练心得 · 一起坚持下去</view>
+      <view class="weak feed-sub">分享训练心得 · 一起坚持下去。</view>
     </view>
 
     <block wx:if="{{loading && !loaded}}">
@@ -61,7 +61,7 @@
       <view wx:else class="empty g-card">
         <view class="empty-icon">○</view>
         <view>还没有人发动态</view>
-        <view class="weak empty-sub">点击右下角按钮，发布第一条吧</view>
+        <view class="weak empty-sub">点击右下角按钮，发布第一条吧~</view>
       </view>
     </block>
 
@@ -71,18 +71,6 @@
 
 <!-- 发布入口 -->
 <view class="fab" hover-class="hover" hover-stay-time="100" bindtap="openPost">＋ 发布</view>
-
-<!-- 登录引导弹层 -->
-<view class="px-mask" wx:if="{{showLoginDialog}}" bindtap="onCancelLogin" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">请先登录</view>
-    <view class="px-dialog-copy">登录后才能使用铁友圈</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelLogin">暂不</view>
-      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmLogin">去登录</view>
-    </view>
-  </view>
-</view>
 
 <!-- 发布弹层 -->
 <view class="px-mask" wx:if="{{showPostDialog}}" bindtap="closePost" catchtouchmove="noop">

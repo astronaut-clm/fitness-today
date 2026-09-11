@@ -4,7 +4,6 @@ const actionsData = require('../../data/actions.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
 const sessionStore = require('../../utils/workout-session.js')
-const account = require('../../utils/account.js')
 const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
@@ -23,9 +22,7 @@ Page({
     readonly: false,
     // 已有其它计划的未完成训练时，切换到本计划的确认弹层
     showSwitchConfirm: false,
-    switchActiveName: '',
-    // 登录引导弹层（页内像素弹窗）
-    showLoginDialog: false
+    switchActiveName: ''
   },
 
   onLoad(options) {
@@ -113,7 +110,6 @@ Page({
   onWorkout() {
     if (!this.planId) return
     if (this.readonly) return
-    if (!account.requireLogin()) { this.setData({ showLoginDialog: true }); return }
     const active = sessionStore.get()
     if (active && active.planId !== this.planId) {
       // 其它计划一组都没完成时没有进度可丢，直接清掉，不再弹确认。
@@ -140,15 +136,6 @@ Page({
     this.setData({ showSwitchConfirm: false })
     sessionStore.clear()
     wx.navigateTo({ url: '/pages/workout/workout?id=' + this.planId })
-  },
-
-  onCancelLogin() {
-    this.setData({ showLoginDialog: false })
-  },
-
-  onConfirmLogin() {
-    this.setData({ showLoginDialog: false })
-    wx.switchTab({ url: '/pages/checkin/checkin' })
   },
 
   onRestoreDefault() {

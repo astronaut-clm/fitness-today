@@ -1,10 +1,7 @@
 Component({
   options: {
-    multipleSlots: true // 在组件定义时的选项中启用多slot支持
+    multipleSlots: true
   },
-  /**
-   * 组件的属性列表
-   */
   properties: {
     extClass: {
       type: String,
@@ -54,9 +51,6 @@ Component({
       value: 1
     },
   },
-  /**
-   * 组件的初始数据
-   */
   data: {
     ios: false,
     // 完整内联样式由 JS 统一拼装，避免 WXML 内多段插值产生空声明/解析告警
@@ -85,9 +79,6 @@ Component({
       this._refreshStyle()
     },
   },
-  /**
-   * 组件的方法列表
-   */
   methods: {
     // 依据属性与胶囊按钮几何信息拼装导航栏完整内联样式
     _refreshStyle() {

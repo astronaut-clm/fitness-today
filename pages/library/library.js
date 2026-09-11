@@ -1,4 +1,4 @@
-// pages/tutorial/tutorial.js
+// pages/library/library.js 动作库
 const actionsData = require('../../data/actions.js')
 const levelUtil = require('../../utils/level.js')
 
@@ -12,6 +12,14 @@ Page({
 
   onLoad() {
     this.compute()
+  },
+
+  onShow() {
+    // 自定义 tabBar 选中态：动作库为第 2 个 tab（index 1）
+    if (typeof this.getTabBar === 'function') {
+      const tabBar = this.getTabBar()
+      if (tabBar && tabBar.setData) tabBar.setData({ selected: 1 })
+    }
   },
 
   onCatTap(e) {

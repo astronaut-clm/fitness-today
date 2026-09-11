@@ -43,10 +43,11 @@
     >
       <view class="plan-top">
         <view class="row flex1">
-          <text class="tag tag-orange">{{item.sceneName}}</text>
-          <text class="tag {{item.lvClass}}">{{item.level}}</text>
+          <text wx:if="{{item.recommended}}" class="tag tag-rec">今日推荐</text>
+          <text wx:if="{{item.custom}}" class="tag tag-custom">自定义</text>
+          <text wx:else class="tag {{item.lvClass}}">{{item.level}}</text>
         </view>
-        <text class="plan-meta weak">{{item.duration}} 分钟 · {{item.calories}} kcal</text>
+        <text wx:if="{{item.doneCount}}" class="plan-meta plan-done">已完成 x{{item.doneCount}}</text>
       </view>
       <view class="plan-name">{{item.name}}</view>
       <view class="plan-summary sub">{{item.summary}}</view>
@@ -55,11 +56,11 @@
       </view>
       <view class="plan-foot">
         <text class="weak">{{item.exCount}} 个动作 · {{item.roundsText}}</text>
-        <text class="plan-more">{{pick ? '选择并开始 ›' : '查看详情 ›'}}</text>
+        <text class="plan-more {{pick && item.continuing ? 'plan-more-continue' : ''}}">{{pick ? (item.continuing ? '继续训练 ›' : '选择并开始 ›') : '查看详情 ›'}}</text>
       </view>
     </view>
 
-    <view class="tip">新朋友建议从「初级」难度开始，动作不会做可先去「动作教学」学习。</view>
+    <view class="tip">新朋友建议从「初级」难度开始，动作不会做可先去「动作库」学习。</view>
 
   </view>
 </scroll-view>

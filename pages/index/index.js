@@ -1,18 +1,10 @@
 // pages/index/index.js
-const plansData = require('../../data/plans.js')
 const store = require('../../utils/store.js')
 const dateUtil = require('../../utils/date.js')
 const profile = require('../../utils/profile.js')
 const recommend = require('../../utils/recommend.js')
 const insights = require('../../utils/insights.js')
 const account = require('../../utils/account.js')
-const toast = require('../../utils/toast.js')
-
-const sceneTabs = [
-  { value: '', name: '全部' },
-  { value: 'home', name: '居家' },
-  { value: 'gym', name: '健身房' }
-]
 
 Page({
   data: {
@@ -23,16 +15,7 @@ Page({
     goalReady: false,
     todaySummary: null,
     insight: { weekDays: 0, targetDays: 3, weekMinutes: 0, targetMinutes: 90, dayPercent: 0, minutePercent: 0, coverage: [], dayBar: '', minuteBar: '' },
-    sheetShow: false,
-    sheetScene: '',
-    sceneTabs: sceneTabs,
-    sheetDate: '',
-    sheetPlans: [],
-    startDate: '',
-    todayStr: '',
-    showLoginDialog: false,
-    freeShow: false,
-    freeMinutes: ''
+    showLoginDialog: false
   },
 
   onShow() {
@@ -42,11 +25,6 @@ Page({
       if (tabBar && tabBar.setData) tabBar.setData({ selected: 0 })
     }
     this.refresh()
-    // 手动打卡弹层依赖登录态：若已退出登录/登录态失效，切换回本 tab 时主动收起，
-    // 避免未完成的弹层残留，出现点选无响应、界面“保持”的假象。
-    if (!account.isLoggedIn() && this.data.sheetShow) {
-      this.setData({ sheetShow: false })
-    }
   },
 
   refresh() {
@@ -100,88 +78,14 @@ Page({
     wx.navigateTo({ url: '/pages/profile/profile' })
   },
 
-  goTutorial() {
-    wx.navigateTo({ url: '/pages/tutorial/tutorial' })
-  },
-
-  goPlans() {
-    wx.navigateTo({ url: '/pages/plan/plan' })
-  },
-
-  // 「已练完 · 手动打卡」：直接在主页弹出记录表单，不跳到「我的」页。
-  openSheet() {
+  goRank() {
     if (!account.requireLogin()) { this.showLogin(); return }
-    const dates = Object.keys(store.getRecords())
-    this.setData({
-      sheetShow: true,
-      sheetScene: '',
-      sheetDate: dateUtil.today(),
-      sheetPlans: this.buildSheetPlans(''),
-      startDate: dates.length ? dates.sort()[0] : new Date().getFullYear() + '-01-01',
-      todayStr: dateUtil.today()
-    })
-  },
-  closeSheet() { this.setData({ sheetShow: false }) },
-
-  buildSheetPlans(scene) {
-    const src = scene ? plansData.listByScene(scene) : plansData.plans
-    return src.map(function (plan) {
-      return { id: plan.id, name: plan.name, scene: plan.scene, sceneName: plansData.sceneName(plan.scene), duration: plan.duration, level: plan.level }
-    })
+    wx.navigateTo({ url: '/pages/rank/rank' })
   },
 
-  onSheetScene(e) {
-    const scene = e.currentTarget.dataset.scene
-    this.setData({ sheetScene: scene, sheetPlans: this.buildSheetPlans(scene) })
-  },
-  onSheetDateChange(e) { this.setData({ sheetDate: e.detail.value }) },
-
-  onChoosePlan(e) {
-    const plan = this.data.sheetPlans[e.currentTarget.dataset.idx]
-    if (!plan) return
-    this.commitSave({ type: 'plan', planId: plan.id, planName: plan.name, scene: plan.scene, sceneName: plan.sceneName, duration: plan.duration })
-  },
-
-  // 自由训练时长：页内像素输入弹层
-  onChooseFree() {
-    this.setData({ freeShow: true, freeMinutes: '' })
-  },
-
-  onFreeInput(e) {
-    this.setData({ freeMinutes: e.detail.value })
-  },
-
-  onCancelFree() {
-    this.setData({ freeShow: false, freeMinutes: '' })
-  },
-
-  onConfirmFree() {
-    const minutes = parseInt(this.data.freeMinutes, 10)
-    if (isNaN(minutes) || minutes < 1 || minutes > 600) {
-      toast.show('请输入 1-600 之间的分钟数')
-      return
-    }
-    this.setData({ freeShow: false, freeMinutes: '' })
-    this.commitSave({ type: 'free', planId: 'free', planName: '自由训练', scene: 'free', sceneName: '自由', duration: minutes })
-  },
-
-  commitSave(payload) {
-    if (!account.isLoggedIn()) {
-      // 兜底：弹层仍残留且登录态已失效时，先收起再引导重新登录，避免静默无响应。
-      this.setData({ sheetShow: false })
-      this.showLogin()
-      return
-    }
-    const todayStr = dateUtil.today()
-    const date = this.data.sheetDate
-    if (date > todayStr) {
-      toast.show('不能记录未来日期')
-      return
-    }
-    store.addRecord(Object.assign({ date: date }, payload))
-    this.setData({ sheetShow: false })
-    this.refresh()
-    toast.show(date === todayStr ? '记录成功' : '补卡成功', { success: true })
+  goFeed() {
+    if (!account.requireLogin()) { this.showLogin(); return }
+    wx.navigateTo({ url: '/pages/feed/feed' })
   },
 
   goCheckin() {

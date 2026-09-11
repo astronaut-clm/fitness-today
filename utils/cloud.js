@@ -42,15 +42,16 @@ function callable() {
   }
 }
 
-// 调用 login 云函数（本项目所有云端读写均由该函数提供）。
+// 调用云函数（默认 login，本项目大部分云端读写由它提供）。
+// name 可指定其他函数名（如 social：排行榜 + 铁友圈）。
 // - 未开启云能力 / 云初始化未就绪：resolve(null)
 // - 云函数调用失败：reject(err)，由调用方决定提示或重试
-function invoke(action, data) {
+function invoke(action, data, name) {
   if (!callable()) return Promise.resolve(null)
   return ready().then(function (ok) {
     if (!ok || !callable()) return null
     const payload = data ? Object.assign({ action: action }, data) : (action ? { action: action } : {})
-    return wx.cloud.callFunction({ name: 'login', data: payload })
+    return wx.cloud.callFunction({ name: name || 'login', data: payload })
   })
 }
 
@@ -68,10 +69,25 @@ function call(action, data) {
   })
 }
 
+// 调用指定名字的云函数并归一化结果（login 之外的函数，如 social）。
+// 与 call 的区别：失败时会把服务端返回的 code 一并带出，便于上层区分错误原因。
+function callTo(name, action, data) {
+  if (!callable()) return Promise.resolve({ ok: false })
+  return invoke(action, data, name).then(function (res) {
+    const result = (res && res.result) || {}
+    if (!result.openid) return Object.assign({ ok: false }, result)
+    return Object.assign({ ok: true }, result)
+  }).catch(function (err) {
+    console.error('[cloud] callTo', name, action, err)
+    return { ok: false }
+  })
+}
+
 module.exports = {
   init: init,
   ready: ready,
   callable: callable,
   invoke: invoke,
-  call: call
+  call: call,
+  callTo: callTo
 }

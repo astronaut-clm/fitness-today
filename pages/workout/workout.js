@@ -5,6 +5,7 @@ const store = require('../../utils/store.js')
 const dateUtil = require('../../utils/date.js')
 const sessionStore = require('../../utils/workout-session.js')
 const adjustments = require('../../utils/plan-adjustments.js')
+const customPlans = require('../../utils/custom-plans.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
 
@@ -105,7 +106,7 @@ Page({
       }, 600)
       return
     }
-    const source = plansData.getPlan(this.planId)
+    const source = customPlans.getById(this.planId) || plansData.getPlan(this.planId)
     if (!source || !source.exercises.length) {
       toast.show('计划不存在')
       this.defer(function () { wx.navigateBack() }, 800)

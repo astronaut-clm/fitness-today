@@ -81,8 +81,18 @@ page {
   justify-content: space-between;
 }
 
+.plan-top .tag {
+  margin-right: 12rpx;
+}
+
 .plan-meta {
   font-size: 22rpx;
+}
+
+.plan-done {
+  color: var(--primary);
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 .plan-name {
@@ -118,6 +128,11 @@ page {
 .plan-more {
   color: var(--ink);
   font-weight: 700;
+}
+
+/* 进行中训练的入口：红色强调 */
+.plan-more-continue {
+  color: var(--primary);
 }
 
 .hover {

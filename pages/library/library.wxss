@@ -1,4 +1,4 @@
-/* pages/tutorial/tutorial.wxss */
+/* pages/library/library.wxss 动作库 */
 page {
   height: 100vh;
   display: flex;
@@ -12,7 +12,8 @@ page {
 }
 
 .page {
-  padding: 20rpx 32rpx 48rpx;
+  /* 底部预留自定义 tabBar 高度 */
+  padding: 20rpx 32rpx calc(148rpx + env(safe-area-inset-bottom));
 }
 
 .hover {

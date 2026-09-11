@@ -2,6 +2,7 @@
 const plansData = require('../data/plans.js')
 const actionsData = require('../data/actions.js')
 const insights = require('./insights.js')
+const customPlans = require('./custom-plans.js')
 
 function planCategories(plan) {
   const out = {}
@@ -52,9 +53,20 @@ function score(plan, records, profile, recentMuscles) {
   return { value: value, reasons: reasons }
 }
 
+// 候选计划 = 内置计划 + 用户自定义计划（居家 / 健身房各一份），
+// 让自定义计划也能进入推荐打分、成为当日推荐。
+function candidates() {
+  const list = plansData.plans.slice()
+  ;['home', 'gym'].forEach(function (scene) {
+    const plan = customPlans.get(scene)
+    if (plan) list.push(plan)
+  })
+  return list
+}
+
 function pick(records, profile) {
   const recent = insights.recentMuscles(records, 2)
-  const scored = plansData.plans.map(function (plan) {
+  const scored = candidates().map(function (plan) {
     const result = score(plan, records, profile, recent)
     return { plan: plan, score: result.value, reasons: result.reasons }
   }).filter(function (item) { return item.score > -9999 })

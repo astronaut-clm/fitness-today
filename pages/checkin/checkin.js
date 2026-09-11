@@ -60,7 +60,7 @@ Page({
     // 自定义 tabBar 选中态：WebView 下 getTabBar 同步返回实例
     if (typeof this.getTabBar === 'function') {
       const tabBar = this.getTabBar()
-      if (tabBar && tabBar.setData) tabBar.setData({ selected: 1 })
+      if (tabBar && tabBar.setData) tabBar.setData({ selected: 2 })
     }
     this.reload()
     this.pullCloud()
@@ -94,7 +94,7 @@ Page({
     wx.navigateTo({ url: '/pages/account/account' })
   },
 
-  // 登录后自动与云端收敛训练偏好配置与个人计划调整：
+  // 登录后自动与云端收敛偏好配置与自定义计划：
   // 一次 userGet 往返同时拉回两者（云端较新则覆盖并刷新统计，本地较新则自动补传云端）。
   // 非强制（force）的重复 onShow 30 秒内跳过，避免频繁切回本 tab 产生多余云函数调用。
   syncPrefs(force) {
@@ -138,7 +138,7 @@ Page({
         return
       }
       // 登录成功：先收起「登录中」加载层，随后后台静默与云端同步
-      // （历史训练记录、偏好与计划调整、云端自愈），不展示任何同步提示打扰用户。
+      // （历史训练记录、偏好与自定义计划、云端自愈），不展示任何同步提示打扰用户。
       this.setData({ loginBusy: false })
       this.refreshAccount()
       // 顺带触发一次云端自愈（幂等）：收敛同 openid 可能存在的历史重复资料/订阅文档。

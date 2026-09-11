@@ -1,5 +1,5 @@
-<!--pages/tutorial/tutorial.wxml 动作教学-->
-<navigation-bar title="动作教学" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<!--pages/library/library.wxml 动作库-->
+<navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
 

@@ -88,7 +88,7 @@
 <view wx:if="{{showExitConfirm}}" class="mask" catchtouchmove="noop" bindtap="onCancelExit">
   <view class="dialog" catchtap="noop">
     <view class="dialog-title">退出训练？</view>
-    <view class="dialog-content">当前进度会自动保存，下次可从这里继续。</view>
+    <view class="dialog-content">当前进度会自动保存，下次可直接继续</view>
     <view class="dialog-btns">
       <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onCancelExit">继续训练</view>
       <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onConfirmExit">保存并退出</view>
@@ -109,7 +109,7 @@
     </block>
     <block wx:else>
       <view class="dialog-title">继续上次训练？</view>
-      <view class="dialog-content">已完成 {{resumeDone}}/{{total}} 组，可选择继续或重新开始。</view>
+      <view class="dialog-content">已完成 {{resumeDone}}/{{total}} 组，可继续或重新开始</view>
       <view class="dialog-btns">
         <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
         <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeContinue">继续训练</view>

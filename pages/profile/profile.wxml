@@ -1,10 +1,10 @@
 <!-- pages/profile/profile.wxml -->
-<navigation-bar title="训练偏好配置" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<navigation-bar title="偏好配置" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y>
   <view class="page">
     <view class="intro">
-      <view class="intro-title">让每日推荐更适合你</view>
+      <view class="intro-title">让每日推荐更懂你</view>
     </view>
 
     <view class="g-card section">

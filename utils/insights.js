@@ -2,6 +2,7 @@
 const dateUtil = require('./date.js')
 const plansData = require('../data/plans.js')
 const actionsData = require('../data/actions.js')
+const customPlans = require('./custom-plans.js')
 
 function weekStart(date) {
   const d = dateUtil.parse(date)
@@ -11,7 +12,7 @@ function weekStart(date) {
 }
 
 function addCategory(map, planId) {
-  const plan = plansData.getPlan(planId)
+  const plan = customPlans.getById(planId) || plansData.getPlan(planId)
   if (!plan) return
   plan.exercises.forEach(function (exercise) {
     const action = actionsData.getAction(exercise.actionId)

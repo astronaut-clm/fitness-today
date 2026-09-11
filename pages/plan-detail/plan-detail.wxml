@@ -6,10 +6,6 @@
 
     <!-- 计划信息 -->
     <view class="head g-card">
-      <view class="row">
-        <text class="tag tag-orange">{{plan.sceneName}}</text>
-        <text class="tag {{plan.lvClass}}">{{plan.level}}</text>
-      </view>
       <view class="name">{{plan.name}}</view>
       <view class="meta sub">{{plan.duration}} 分钟 · 约 {{plan.calories}} kcal · {{plan.exTotal}} 个动作</view>
       <view class="summary">{{plan.summary}}</view>
@@ -25,7 +21,7 @@
     <!-- 动作清单 -->
     <view class="ex-head">
       <view class="flex1">训练动作</view>
-      <text class="weak">点击可查看教学</text>
+      <text class="weak">点击动作查看教学</text>
     </view>
     <view class="adjust-tip" wx:if="{{hasAdjustments}}">
       <text>已使用个人调整</text>

@@ -1,6 +1,13 @@
 // pages/plan/plan.js
 const plansData = require('../../data/plans.js')
+const customPlans = require('../../utils/custom-plans.js')
+const store = require('../../utils/store.js')
+const account = require('../../utils/account.js')
+const dateUtil = require('../../utils/date.js')
 const levelUtil = require('../../utils/level.js')
+const recommend = require('../../utils/recommend.js')
+const profile = require('../../utils/profile.js')
+const sessionStore = require('../../utils/workout-session.js')
 
 const sceneTabs = [
   { value: 'home', name: '居家计划' },
@@ -13,6 +20,29 @@ const levelTabs = [
   { value: '中级', name: '中级' },
   { value: '高级', name: '高级' }
 ]
+
+// 把内置 / 自定义计划统一转成列表卡片数据，便于拼接展示。
+// activeId：当前有未完成训练（进行中）的计划 id，用于把底部入口文案改为「继续训练」。
+function toCard(p, done, recId, activeId) {
+  const rounds = p.loop || 1
+  return {
+    id: p.id,
+    name: p.name,
+    sceneName: plansData.sceneName(p.scene),
+    level: p.level,
+    lvClass: levelUtil.tagClass(p.level),
+    duration: p.duration,
+    calories: p.calories,
+    tags: p.tags || [],
+    summary: p.summary,
+    custom: !!p.custom,
+    recommended: !!recId && p.id === recId,
+    continuing: !!activeId && p.id === activeId,
+    exCount: (p.exercises || []).length * rounds,
+    roundsText: rounds > 1 ? rounds + ' 轮循环' : '单轮完成',
+    doneCount: Number(done || 0)
+  }
+}
 
 Page({
   data: {
@@ -29,7 +59,31 @@ Page({
     // 从首页「开始训练计划」进入时（pick=1）允许直接开始训练；默认仅供浏览。
     this.pick = !!(options && options.pick === '1')
     this.setData({ pick: this.pick })
+    // 与首页 hero 对齐：当日推荐计划若不在默认场景，首次进入时定位到其所在场景，
+    // 否则当前标签下看不到该计划的「今日推荐」标签，两处展示会不一致。
+    const recPlan = recommend.pick(store.getAllRecords(), profile.get())
+    if (recPlan && (recPlan.scene === 'home' || recPlan.scene === 'gym') && recPlan.scene !== this.data.scene) {
+      this.setData({ scene: recPlan.scene })
+    }
     this.applyFilter()
+  },
+
+  onShow() {
+    // 从自定义计划编辑页返回时刷新，保证新建/修改/删除即时生效。
+    this.applyFilter()
+    this.syncCustomPlans()
+  },
+
+  // 已登录时与云端收敛自定义计划，换机/他端改动可见；30 秒内只拉一次，避免频繁切页重复请求。
+  syncCustomPlans(force) {
+    if (!account.isLoggedIn()) return
+    const now = Date.now()
+    if (!force && this._lastCustomSyncAt && now - this._lastCustomSyncAt < 30000) return
+    this._lastCustomSyncAt = now
+    customPlans.syncFromCloud().then((res) => {
+      if (res && res.ok && res.changed) this.applyFilter()
+      if (!res || !res.ok) this._lastCustomSyncAt = 0
+    }).catch(() => { this._lastCustomSyncAt = 0 })
   },
 
   onSceneTap(e) {
@@ -45,27 +99,27 @@ Page({
   },
 
   applyFilter() {
-    const list = plansData.listByScene(this.data.scene)
+    // 统计每个计划今天的完成次数（只算当天记录，隔天自动清零）。
+    const counts = {}
+    store.getRecordsByDate(dateUtil.today()).forEach((record) => {
+      if (!record.planId) return
+      counts[record.planId] = (counts[record.planId] || 0) + 1
+    })
+    // 当日推荐计划：与首页 hero 同一套推荐算法，在列表里打「今日推荐」标签便于识别。
+    const recPlan = recommend.pick(store.getAllRecords(), profile.get())
+    const recId = recPlan && recPlan.id
+    // 进行中的训练：与计划详情页同一判断（未完成且至少完成一组），用于展示「继续训练」入口。
+    const active = sessionStore.get()
+    const activeDone = Number((active && active.completed) || 0)
+    const activeId = active && active.state !== 'finished' && activeDone > 0 ? active.planId : ''
+    // 自定义计划固定展示在对应场景最上方，不参与难度筛选，保证用户随时可见。
+    const custom = customPlans.listByScene(this.data.scene).map((p) => toCard(p, counts[p.id], recId, activeId))
+    const builtin = plansData.listByScene(this.data.scene)
       .filter((p) => {
         return !this.data.level || p.level === this.data.level
       })
-      .map((p) => {
-        const rounds = p.loop || 1
-        return {
-          id: p.id,
-          name: p.name,
-          sceneName: plansData.sceneName(p.scene),
-          level: p.level,
-          lvClass: levelUtil.tagClass(p.level),
-          duration: p.duration,
-          calories: p.calories,
-          tags: p.tags,
-          summary: p.summary,
-          exCount: p.exercises.length * rounds,
-          roundsText: rounds > 1 ? rounds + ' 轮循环' : '单轮完成'
-        }
-      })
-    this.setData({ list: list })
+      .map((p) => toCard(p, counts[p.id], recId, activeId))
+    this.setData({ list: custom.concat(builtin) })
   },
 
   goDetail(e) {

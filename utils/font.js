@@ -14,6 +14,25 @@ let loading = null
 // 单源加载超时时间；超时视为失败，继续回退下一个源。
 const TIMEOUT = 25000
 
+// ---- 字体偏好（个人设置页可选） ----
+// 两种观感：pixel=像素字体（加载 Zpix）；system=系统字体（不加载自定义字体，回退系统栈）。
+// 默认 system：不特别设置时使用系统字体。选择持久化在本机。
+// 像素字体可在运行中即时生效；关回系统字体需重启小程序
+// （wx.loadFontFace 注册后无法卸载，本会话内已加载的像素字体会一直生效）。
+const CHOICE_KEY = 'ft_font_choice_v1'
+
+function getChoice() {
+  let saved = ''
+  try { saved = wx.getStorageSync(CHOICE_KEY) || '' } catch (e) {}
+  return saved === 'pixel' ? 'pixel' : 'system'
+}
+
+function setChoice(value) {
+  const next = value === 'pixel' ? 'pixel' : 'system'
+  try { wx.setStorageSync(CHOICE_KEY, next) } catch (e) {}
+  return next
+}
+
 // 加载单个字体源；成功 resolve(true)，失败 resolve(false)
 function loadOne(url) {
   return new Promise(function (resolve) {
@@ -46,6 +65,8 @@ function loadOne(url) {
 
 // 按顺序尝试所有字体源；返回 Promise<boolean>（true=注册成功）
 function load() {
+  // 选择了系统字体：不加载自定义字体，直接回退系统字体栈。
+  if (getChoice() !== 'pixel') return Promise.resolve(false)
   if (loading) return loading
   // 本会话已成功注册过（例如热重载后的重复 onLaunch）：直接跳过，避免重复加载
   if (wx[LOADED_MARK]) return Promise.resolve(true)
@@ -70,4 +91,4 @@ function load() {
   return loading
 }
 
-module.exports = { load: load }
+module.exports = { load: load, getChoice: getChoice, setChoice: setChoice }

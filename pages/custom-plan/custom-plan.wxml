@@ -1,0 +1,93 @@
+<!--pages/custom-plan/custom-plan.wxml 自定义计划编辑-->
+<navigation-bar title="自定义计划" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<px-toast></px-toast>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page">
+
+    <!-- 归属场景 -->
+    <view class="g-card section">
+      <view class="section-title">计划归属</view>
+      <view class="seg">
+        <view class="seg-item {{scene === 'home' ? 'on' : ''}}" hover-class="hover" hover-stay-time="100" data-scene="home" bindtap="onScene">居家计划</view>
+        <view class="seg-item {{scene === 'gym' ? 'on' : ''}}" hover-class="hover" hover-stay-time="100" data-scene="gym" bindtap="onScene">健身房计划</view>
+      </view>
+      <view class="weak seg-tip">设置后将展示在计划的最上方，方便快速选择</view>
+    </view>
+
+    <!-- 计划名称 -->
+    <view class="g-card section">
+      <view class="section-title">计划名称</view>
+      <input class="name-input" value="{{name}}" maxlength="16" placeholder="给计划起个名字" placeholder-class="weak" bindinput="onName" />
+    </view>
+
+    <!-- 已选动作 -->
+    <view class="g-card section">
+      <view class="row">
+        <view class="flex1 section-title">已选动作</view>
+        <text class="weak">{{selected.length}} 个</text>
+      </view>
+      <view wx:if="{{selected.length === 0}}" class="weak empty-tip">从下方动作库点击添加动作</view>
+      <view class="sel-item" wx:for="{{selected}}" wx:key="actionId">
+        <view class="sel-top">
+          <view class="flex1">
+            <view class="sel-name">{{item.name}}</view>
+            <view class="weak sel-meta">{{item.category}} · {{item.equipment}}</view>
+          </view>
+          <text class="tag {{item.lvClass}}">{{item.level}}</text>
+          <view class="sel-del" hover-class="hover" hover-stay-time="100" data-index="{{index}}" bindtap="onRemoveAction">删除</view>
+        </view>
+        <view class="sel-config">
+          <view class="cfg-block">
+            <text class="cfg-label">组数</text>
+            <view class="stepper">
+              <text class="step-btn" data-index="{{index}}" data-delta="-1" bindtap="onSets">−</text>
+              <text class="step-value">{{item.sets}}</text>
+              <text class="step-btn" data-index="{{index}}" data-delta="1" bindtap="onSets">＋</text>
+            </view>
+          </view>
+          <view class="cfg-block cfg-reps">
+            <text class="cfg-label">目标</text>
+            <input class="reps-input" value="{{item.reps}}" maxlength="10" placeholder="如 12次 / 30秒" placeholder-class="weak" data-index="{{index}}" bindinput="onReps" />
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 动作库 -->
+    <view class="g-card section">
+      <view class="section-title">动作库</view>
+      <scroll-view scroll-x class="cat-scroll" enable-flex>
+        <view class="cat-inner">
+          <view wx:for="{{cats}}" wx:key="*this" class="cat {{cat === item ? 'on' : ''}}" hover-class="hover" hover-stay-time="100" data-cat="{{item}}" bindtap="onCat">{{item}}</view>
+        </view>
+      </scroll-view>
+      <view class="pick-list">
+        <view class="pick-item {{item.checked ? 'on' : ''}}" wx:for="{{picker}}" wx:key="id" hover-class="hover" hover-stay-time="100" data-id="{{item.id}}" bindtap="onToggleAction">
+          <view class="flex1">
+            <view class="pick-name">{{item.name}}<text wx:if="{{item.checked}}" class="pick-check">✓</text></view>
+            <view class="weak pick-meta">{{item.equipment}} · {{item.muscles}}</view>
+          </view>
+          <text class="tag {{item.lvClass}}">{{item.level}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="bottom-space"></view>
+  </view>
+</scroll-view>
+<view class="save-bar">
+  <view wx:if="{{hasSaved}}" class="btn btn-ghost del-btn" hover-class="hover" hover-stay-time="100" bindtap="onDelete">删除</view>
+  <view class="btn btn-primary save-btn" hover-class="hover" hover-stay-time="100" bindtap="onSave">保存计划</view>
+</view>
+
+<!-- 删除确认弹层 -->
+<view class="px-mask" wx:if="{{showDeleteConfirm}}" bindtap="onCancelDelete" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">删除自定义计划？</view>
+    <view class="px-dialog-copy">删除后该场景将不再显示自定义计划</view>
+    <view class="px-dialog-btns">
+      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelDelete">取消</view>
+      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmDelete">删除</view>
+    </view>
+  </view>
+</view>

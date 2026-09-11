@@ -2,10 +2,16 @@
 const plansData = require('../../data/plans.js')
 const actionsData = require('../../data/actions.js')
 const adjustments = require('../../utils/plan-adjustments.js')
+const customPlans = require('../../utils/custom-plans.js')
 const sessionStore = require('../../utils/workout-session.js')
 const account = require('../../utils/account.js')
 const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
+
+// 统一解析计划来源：先查自定义，再回落到内置计划库。
+function resolvePlan(id) {
+  return customPlans.getById(id) || plansData.getPlan(id)
+}
 
 Page({
   data: {
@@ -31,22 +37,10 @@ Page({
 
   onShow() {
     this.refreshStatus()
-    this.syncAdjustments()
-  },
-
-  // 打开计划详情时与云端收敛个人计划调整，避免另一台设备改过的组数丢失。
-  syncAdjustments() {
-    if (!account.isLoggedIn()) return
-    adjustments.syncFromCloud().then((res) => {
-      if (res && res.ok && res.changed) {
-        this.loadPlan()
-        this.refreshStatus()
-      }
-    })
   },
 
   loadPlan() {
-    const source = plansData.getPlan(this.planId)
+    const source = resolvePlan(this.planId)
     if (!source) {
       toast.back('计划不存在', { delay: 800 })
       return
@@ -76,6 +70,7 @@ Page({
         name: p.name,
         scene: p.scene,
         sceneName: plansData.sceneName(p.scene),
+        custom: !!p.custom,
         level: p.level,
         lvClass: levelUtil.tagClass(p.level),
         duration: p.duration,
@@ -93,7 +88,7 @@ Page({
   refreshStatus() {
     const active = sessionStore.belongsTo(this.planId)
     const adjustment = adjustments.get(this.planId)
-    const source = plansData.getPlan(this.planId)
+    const source = resolvePlan(this.planId)
     const hasAdjustments = !!(adjustment.exercises && Object.keys(adjustment.exercises).some(function (actionId) {
       const patch = adjustment.exercises[actionId] || {}
       const original = source && (source.exercises || []).filter(function (exercise) { return exercise.actionId === actionId })[0]
@@ -125,7 +120,7 @@ Page({
       if (Number(active.completed || 0) <= 0) {
         sessionStore.clear()
       } else {
-        const activePlan = plansData.getPlan(active.planId)
+        const activePlan = resolvePlan(active.planId)
         // 存在其它计划的未完成训练时弹页内确认层，避免点击「开始训练」无响应。
         this.setData({
           showSwitchConfirm: true,
@@ -160,8 +155,6 @@ Page({
     adjustments.clear(this.planId)
     this.loadPlan()
     this.refreshStatus()
-    if (account.isLoggedIn()) adjustments.pushToCloud()
-    toast.show('已恢复默认计划')
   },
 
   onAdjustArea() {},
@@ -178,26 +171,5 @@ Page({
     adjustments.setExercise(this.planId, actionId, { sets: sets })
     this.loadPlan()
     this.refreshStatus()
-    // 已登录时同步个人调整，换设备可恢复；连点合并推送，避免每次都发云函数请求。
-    this.pushAdjustments()
-  },
-
-  // 合并 500ms 内的连续调整，只推一次云端。
-  pushAdjustments() {
-    if (!account.isLoggedIn()) return
-    if (this._pushTimer) clearTimeout(this._pushTimer)
-    this._pushTimer = setTimeout(() => {
-      this._pushTimer = null
-      adjustments.pushToCloud()
-    }, 500)
-  },
-
-  onUnload() {
-    // 离开页面时把未推送的调整补发，避免防抖窗口内的改动丢失。
-    if (this._pushTimer) {
-      clearTimeout(this._pushTimer)
-      this._pushTimer = null
-      if (account.isLoggedIn()) adjustments.pushToCloud()
-    }
   }
 })

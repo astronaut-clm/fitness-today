@@ -89,8 +89,8 @@
   </view>
   <view wx:else class="empty g-card">
     <view class="empty-icon">○</view>
-    <view>这一天还没有训练记录</view>
-    <view class="weak">完成训练或手动补卡后会显示在这里</view>
+    <view>这一天还没有任何训练记录</view>
+    <view class="weak">完成训练后会显示在这里</view>
   </view>
 
   <view class="bottom-space"></view>

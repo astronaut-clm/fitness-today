@@ -1,6 +1,5 @@
 <!--pages/index/index.wxml 今日首页-->
 <navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
-<px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
     <view class="head">
@@ -8,8 +7,8 @@
         <view class="head-date weak">{{dateText}}</view>
       </view>
       <view class="head-actions">
-        <view wx:if="{{streak > 0}}" class="streak-chip"><text class="streak-dot"></text>连续 {{streak}} 天</view>
-        <view wx:else class="streak-chip ghost">今日开练</view>
+        <view wx:if="{{streak > 0}}" class="head-note streak">连续 {{streak}} 天</view>
+        <view wx:else class="head-note">今日开练</view>
       </view>
     </view>
 
@@ -20,8 +19,7 @@
         <view class="hero-reason" wx:if="{{recPlan && recPlan.reason}}">{{recPlan.reason}}</view>
         <view class="hero-tags" wx:if="{{recPlan}}"><text class="h-tag">{{recPlan.sceneName}}</text><text class="h-tag">{{recPlan.level}}</text></view>
         <view class="hero-btns">
-          <view class="hbtn hbtn-solid" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">开始训练计划</view>
-          <view class="hbtn hbtn-line" hover-class="hover" hover-stay-time="100" bindtap="openSheet">已练完手动补卡</view>
+          <view class="hbtn hbtn-solid hbtn-short" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">开始训练计划</view>
         </view>
       </view>
     </block>
@@ -37,11 +35,6 @@
       </view>
     </block>
 
-    <view class="quick-row">
-      <view class="quick g-card" hover-class="hover" hover-stay-time="100" bindtap="goTutorial"><view class="quick-name">动作教学</view><view class="quick-sub weak">标准动作 · 安全第一</view></view>
-      <view class="quick g-card" hover-class="hover" hover-stay-time="100" bindtap="goPlans"><view class="quick-name">训练计划</view><view class="quick-sub weak">居家 · 健身房任选</view></view>
-    </view>
-
     <block wx:if="{{goalReady}}">
       <view class="g-card goal-card">
         <view class="row"><view class="flex1 week-title">本周目标</view><text class="weak">{{insight.weekDays}}/{{insight.targetDays}} 天</text></view>
@@ -56,45 +49,35 @@
       <view class="g-card goal-guide" hover-class="hover" hover-stay-time="100" bindtap="goProfile">
         <view class="row">
           <view class="flex1">
-            <view class="goal-guide-title">设置你的本周目标</view>
-            <view class="goal-guide-sub weak">定下每周训练天数与时长，首页即可跟踪进度</view>
+            <view class="goal-guide-title">你的本周目标</view>
+            <view class="goal-guide-sub weak">定下每周目标，首页即可跟踪进度</view>
           </view>
           <view class="goal-guide-btn">去设置</view>
         </view>
       </view>
     </block>
+
+    <view class="entry-row">
+      <view class="entry-card g-card" hover-class="hover" hover-stay-time="100" bindtap="goRank">
+        <view class="entry-badge">榜</view>
+        <view class="flex1 entry-main">
+          <view class="entry-title">排行榜</view>
+          <view class="weak entry-sub">看看本月谁练得最多</view>
+        </view>
+        <view class="entry-arrow">›</view>
+      </view>
+
+      <view class="entry-card g-card" hover-class="hover" hover-stay-time="100" bindtap="goFeed">
+        <view class="entry-badge blue">圈</view>
+        <view class="flex1 entry-main">
+          <view class="entry-title">铁友圈</view>
+          <view class="weak entry-sub">分享训练心得，互相打气</view>
+        </view>
+        <view class="entry-arrow">›</view>
+      </view>
+    </view>
   </view>
 </scroll-view>
-
-<view class="mask" wx:if="{{sheetShow}}" bindtap="closeSheet"></view>
-<view class="sheet" wx:if="{{sheetShow}}">
-  <view class="sheet-handle"></view>
-  <view class="sheet-head">
-    <view class="sheet-title">记录一次训练</view>
-    <view class="sheet-close" hover-class="hover" hover-stay-time="100" bindtap="closeSheet">关闭</view>
-  </view>
-  <view class="sheet-date-row">
-    <text class="weak">训练日期</text>
-    <picker mode="date" value="{{sheetDate}}" start="{{startDate}}" end="{{todayStr}}" bindchange="onSheetDateChange">
-      <view class="sheet-date">{{sheetDate}} ›</view>
-    </picker>
-  </view>
-  <scroll-view scroll-x class="scene-tabs" enable-flex>
-    <view class="scene-tabs-inner">
-      <view wx:for="{{sceneTabs}}" wx:key="value" class="scene-tab {{sheetScene === item.value ? 'on' : ''}}" data-scene="{{item.value}}" bindtap="onSheetScene">{{item.name}}</view>
-    </view>
-  </scroll-view>
-  <scroll-view class="sheet-plans" scroll-y enable-flex>
-    <view wx:for="{{sheetPlans}}" wx:key="id" class="sheet-plan" data-idx="{{index}}" hover-class="hover" hover-stay-time="100" bindtap="onChoosePlan">
-      <view>
-        <view class="sheet-plan-name">{{item.name}}</view>
-        <view class="weak">{{item.sceneName}} · {{item.level}} · {{item.duration}} 分钟</view>
-      </view>
-      <text>›</text>
-    </view>
-  </scroll-view>
-  <view class="sheet-free" hover-class="hover" hover-stay-time="100" bindtap="onChooseFree">＋ 记录自由训练</view>
-</view>
 
 <!-- 登录引导弹层：页内像素弹窗 -->
 <view class="px-mask" wx:if="{{showLoginDialog}}" bindtap="onCancelLogin" catchtouchmove="noop">
@@ -104,19 +87,6 @@
     <view class="px-dialog-btns">
       <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelLogin">暂不</view>
       <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmLogin">去登录</view>
-    </view>
-  </view>
-</view>
-
-<!-- 自由训练时长输入弹层 -->
-<view class="px-mask" wx:if="{{freeShow}}" bindtap="onCancelFree" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">自由训练</view>
-    <view class="px-dialog-copy">请输入训练时长（分钟）</view>
-    <input class="px-dialog-input" type="number" value="{{freeMinutes}}" placeholder="1 - 600" placeholder-class="weak" bindinput="onFreeInput" />
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelFree">取消</view>
-      <view class="px-dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onConfirmFree">确定</view>
     </view>
   </view>
 </view>

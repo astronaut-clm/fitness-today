@@ -21,10 +21,28 @@
 
     <view class="g-card menu-card" hover-class="hover" hover-stay-time="100" bindtap="goPrefs">
       <view class="menu-copy">
-        <view class="menu-title">训练偏好配置</view>
+        <view class="menu-title">偏好配置</view>
         <view class="weak menu-sub">训练目标 · 场地 · 器械 · 每周目标</view>
       </view>
       <view class="menu-arrow">›</view>
+    </view>
+
+    <view class="g-card menu-card" hover-class="hover" hover-stay-time="100" bindtap="goCustomPlans">
+      <view class="menu-copy">
+        <view class="menu-title">自定义计划</view>
+        <view class="weak menu-sub">{{customHint}}</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <view class="g-card section">
+      <view class="switch-row">
+        <view class="menu-copy">
+          <view class="menu-title">使用像素字体</view>
+          <view class="weak menu-sub">开启为 8-bit 点阵，关闭使用系统字体</view>
+        </view>
+        <switch checked="{{usePixelFont}}" color="#e60012" bindchange="onTogglePixelFont" />
+      </view>
     </view>
 
     <view class="bottom-space"></view>

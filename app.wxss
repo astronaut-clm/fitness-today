@@ -24,8 +24,8 @@ page {
   color: var(--ink);
   font-size: 28rpx;
   line-height: 1.5;
-  /* 像素字体优先（运行时由 wx.loadFontFace 注册），加载失败回退系统等宽栈 */
-  font-family: "Zpix", "Press Start 2P", "Courier New", Menlo, Consolas, monospace;
+  /* 像素字体优先（运行时由 wx.loadFontFace 注册）；未加载时（未选像素字体 / 加载失败）回退系统字体栈 */
+  font-family: "Zpix", -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   /* 关闭抗锯齿，让笔画边缘生硬、带锯齿，更接近像素观感 */
   -webkit-font-smoothing: none;
   font-smooth: never;
@@ -94,8 +94,6 @@ page {
 .dialog-btn.hover,
 .logout-btn.hover,
 .switch-btn.hover,
-.sheet-free.hover,
-.scene-tab.hover,
 .goal-guide-btn.hover,
 .uc-pill.hover,
 .cal-arrow.hover,
@@ -104,7 +102,6 @@ page {
 .goal-item.hover,
 .rec-delete.hover,
 .adjust-reset.hover,
-.sheet-close.hover,
 .skip-set.hover,
 .px-dialog-btn.hover {
   transform: translate(3rpx, 3rpx);
@@ -130,6 +127,22 @@ page {
   background: var(--card2);
   color: var(--ink2);
   border-color: var(--ink);
+}
+
+/* 自定义计划标签：黄底强调，用于卡片左上角标识来源 */
+.tag-custom {
+  background: var(--primary-bg);
+  color: var(--ink);
+  border-color: var(--ink);
+  font-weight: 700;
+}
+
+/* 当日推荐计划标签：绿底强调，用于计划库标识推荐来源 */
+.tag-rec {
+  background: var(--green-bg);
+  color: var(--ink);
+  border-color: var(--ink);
+  font-weight: 700;
 }
 
 /* 文本 */

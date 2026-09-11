@@ -108,13 +108,8 @@ Page({
 
   onSave() {
     profile.save(this.current)
-    // 已登录时同步到云端（换设备可恢复）；未登录仅保存在本机。
-    if (!account.isLoggedIn()) {
-      toast.back('偏好已保存，登录后可同步到云端')
-      return
-    }
-    profile.pushToCloud().then((ok) => {
-      toast.back(ok ? '已保存并同步到云端' : '已保存，云端同步失败', { success: ok })
-    })
+    // 已登录时同步云端，换设备可恢复。
+    if (account.isLoggedIn()) profile.pushToCloud()
+    toast.back('配置已保存', { success: true })
   }
 })

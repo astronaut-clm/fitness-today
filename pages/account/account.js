@@ -6,6 +6,8 @@ const store = require('../../utils/store.js')
 const sessionStore = require('../../utils/workout-session.js')
 const profile = require('../../utils/profile.js')
 const adjustments = require('../../utils/plan-adjustments.js')
+const customPlans = require('../../utils/custom-plans.js')
+const font = require('../../utils/font.js')
 const toast = require('../../utils/toast.js')
 
 function charOf(nickname) {
@@ -18,12 +20,56 @@ Page({
     nickname: '',
     avatarUrl: '',
     avatarChar: '练',
+    customHint: '',
+    usePixelFont: false,
     showLogoutConfirm: false,
     savingShow: false
   },
 
   goPrefs() {
     wx.navigateTo({ url: '/pages/profile/profile' })
+  },
+
+  goCustomPlans() {
+    wx.navigateTo({ url: '/pages/custom-plan/custom-plan' })
+  },
+
+  // 返回个人设置时刷新自定义计划状态提示与字体选择。
+  onShow() {
+    this.refreshCustomHint()
+    this.refreshFont()
+    this.syncCustomPlans()
+  },
+
+  refreshFont() {
+    this.setData({ usePixelFont: font.getChoice() === 'pixel' })
+  },
+
+  // 像素字体开关：开启可即时生效；关闭需重启小程序（已加载的像素字体无法卸载）。
+  onTogglePixelFont(e) {
+    const on = !!(e.detail && e.detail.value)
+    font.setChoice(on ? 'pixel' : 'system')
+    this.setData({ usePixelFont: on })
+    if (on) {
+      font.load()
+    } else {
+      toast.show('重启小程序后生效')
+    }
+  },
+
+  // 已登录时与云端收敛自定义计划，换机/他端改动可见。
+  syncCustomPlans() {
+    if (!account.isLoggedIn()) return
+    customPlans.syncFromCloud().then((res) => {
+      if (res && res.ok) this.refreshCustomHint()
+    }).catch(() => {})
+  },
+
+  refreshCustomHint() {
+    const parts = []
+    if (customPlans.has('home')) parts.push('居家')
+    if (customPlans.has('gym')) parts.push('健身房')
+    this.setData({ customHint: parts.length ? '已设置：' + parts.join(' · ') : '自由组合动作，设置你的专属计划' })
   },
 
   // 退出登录：页内确认弹层。
@@ -44,6 +90,7 @@ Page({
     sessionStore.clear()
     profile.resetLocal()
     adjustments.resetLocal()
+    customPlans.resetLocal()
     toast.back('已退出，记录已清空')
   },
 

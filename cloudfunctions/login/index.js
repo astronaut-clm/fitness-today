@@ -33,27 +33,35 @@ function cleanPrefs(raw) {
   }
 }
 
-// 个人计划调整清洗：限制计划数/动作数与 sets 取值范围，防止脏数据或超大文档。
-function cleanAdjust(raw) {
+// 自定义计划清洗：仅允许 home / gym 两个场景，各限 30 个动作与 sets 取值范围。
+function cleanCustomPlans(raw) {
   const src = (raw && typeof raw === 'object') ? raw : {}
   const srcPlans = (src.plans && typeof src.plans === 'object') ? src.plans : {}
   const plans = {}
-  let planCount = 0
-  Object.keys(srcPlans).forEach(function (planId) {
-    if (planCount >= 50) return
-    const adj = (srcPlans[planId] && typeof srcPlans[planId] === 'object') ? srcPlans[planId] : {}
-    const srcEx = (adj.exercises && typeof adj.exercises === 'object') ? adj.exercises : {}
-    const exercises = {}
-    let exCount = 0
-    Object.keys(srcEx).forEach(function (actionId) {
-      if (exCount >= 30) return
-      const sets = clampNum((srcEx[actionId] || {}).sets, 1, 9, 0)
-      if (!sets) return
-      exercises[cleanText(actionId, 40)] = { sets: sets }
-      exCount++
+  Object.keys(srcPlans).forEach(function (scene) {
+    if (scene !== 'home' && scene !== 'gym') return
+    const plan = (srcPlans[scene] && typeof srcPlans[scene] === 'object') ? srcPlans[scene] : {}
+    const srcEx = Array.isArray(plan.exercises) ? plan.exercises : []
+    const exercises = []
+    srcEx.forEach(function (ex) {
+      if (exercises.length >= 30) return
+      const item = (ex && typeof ex === 'object') ? ex : {}
+      const actionId = cleanText(item.actionId, 40)
+      if (!actionId) return
+      exercises.push({
+        actionId: actionId,
+        sets: clampNum(item.sets, 1, 9, 1),
+        reps: cleanText(item.reps, 20) || '12次',
+        rest: cleanText(item.rest, 20)
+      })
     })
-    plans[cleanText(planId, 40)] = { exercises: exercises }
-    planCount++
+    if (!exercises.length) return
+    plans[scene] = {
+      name: cleanText(plan.name, 30),
+      scene: scene,
+      exercises: exercises,
+      updatedAt: Number(plan.updatedAt || 0)
+    }
   })
   return { plans: plans, updatedAt: Number(src.updatedAt || 0) }
 }
@@ -79,7 +87,7 @@ async function writeFields(openid, fields) {
       nickname: '',
       avatar: '',
       prefs: cleanPrefs({}),
-      planAdjustments: cleanAdjust({}),
+      customPlans: cleanCustomPlans({}),
       updatedAt: Date.now()
     }, fields)
   }).catch(function () {})
@@ -110,8 +118,8 @@ exports.main = async (event) => {
   if (action === 'profileSet') {
     const incoming = (event && event.profile) || {}
     const now = Date.now()
-    // 先取旧头像用于替换清理；写入只作用于昵称/头像字段，保留训练偏好与计划调整，
-    // 避免与并发的偏好/计划调整写入互相整篇覆盖。
+    // 先取旧头像用于替换清理；写入只作用于昵称/头像字段，保留训练偏好等其他字段，
+    // 避免与并发的偏好写入互相整篇覆盖。
     const old = await db.collection(COL_USERS).doc(OPENID).get().catch(function () { return { data: {} } })
     const oldDoc = (old && old.data) || {}
     const prevAvatar = cleanText(oldDoc.avatar, 200)
@@ -126,14 +134,14 @@ exports.main = async (event) => {
     return { openid: OPENID, nickname: nickname, avatar: nextAvatar, prefs: cleanPrefs(oldDoc.prefs), updatedAt: now }
   }
 
-  // 偏好 + 个人计划调整一次取回：两字段同存于 ft_users，供 checkin 页一次往返完成双向收敛。
+  // 偏好 + 自定义计划一次取回：同存于 ft_users，供 checkin 页一次往返完成双向收敛。
   if (action === 'userGet') {
     const r = await db.collection(COL_USERS).doc(OPENID).get().catch(function () { return { data: null } })
     const doc = (r && r.data) || {}
     return {
       openid: OPENID,
       prefs: cleanPrefs(doc.prefs),
-      planAdjustments: cleanAdjust(doc.planAdjustments)
+      customPlans: cleanCustomPlans(doc.customPlans)
     }
   }
 
@@ -148,31 +156,31 @@ exports.main = async (event) => {
     const now = Date.now()
     const prefs = cleanPrefs((event && event.prefs) || {})
     prefs.updatedAt = now
-    // 只写偏好字段，保留头像昵称与计划调整，避免并发整篇覆盖。
+    // 只写偏好字段，保留头像昵称与自定义计划，避免并发整篇覆盖。
     await writeFields(OPENID, { prefs: prefs, updatedAt: now })
     return { openid: OPENID, prefs: prefs, updatedAt: now }
   }
 
-  // 个人计划调整云端读写：独立动作，与头像昵称、训练偏好互不覆盖。
-  if (action === 'adjGet') {
+  // 自定义计划云端读写：独立动作，与头像昵称、训练偏好互不覆盖。
+  if (action === 'cpGet') {
     const r = await db.collection(COL_USERS).doc(OPENID).get().catch(function () { return { data: null } })
     const doc = (r && r.data) || {}
-    return { openid: OPENID, planAdjustments: cleanAdjust(doc.planAdjustments) }
+    return { openid: OPENID, customPlans: cleanCustomPlans(doc.customPlans) }
   }
 
-  if (action === 'adjSet') {
+  if (action === 'cpSet') {
     const now = Date.now()
-    const adj = cleanAdjust((event && event.planAdjustments) || {})
-    adj.updatedAt = now
-    // 只写计划调整字段，保留头像昵称与偏好，避免并发整篇覆盖。
-    await writeFields(OPENID, { planAdjustments: adj, updatedAt: now })
-    return { openid: OPENID, planAdjustments: adj, updatedAt: now }
+    const cp = cleanCustomPlans((event && event.customPlans) || {})
+    cp.updatedAt = now
+    // 只写自定义计划字段，保留头像昵称与偏好，避免并发整篇覆盖。
+    await writeFields(OPENID, { customPlans: cp, updatedAt: now })
+    return { openid: OPENID, customPlans: cp, updatedAt: now }
   }
 
   // 数据自愈（幂等兜底）：把当前 openid 的历史遗留重复文档收敛为唯一一份。
   // 正常写入路径都使用 doc(_id = openid) 定点写入，不会产生重复；
   // 此动作仅用于修复早期控制台/调试误建的多余文档：头像昵称取整篇最新，
-  // 偏好与计划调整各自取最新一份，多余文档及其引用的头像文件一并清理。
+  // 偏好与自定义计划各自取最新一份，多余文档及其引用的头像文件一并清理。
   if (action === 'selfRepair') {
     const summary = { openid: OPENID, userDocs: 0, avatarCleaned: 0 }
 
@@ -201,13 +209,13 @@ exports.main = async (event) => {
       const sorted = users.slice().sort(function (a, b) { return (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0) })
       const newest = sorted[0]
       const mergedPrefs = newestOf(users, 'prefs')
-      const mergedAdj = newestOf(users, 'planAdjustments')
+      const mergedCustom = newestOf(users, 'customPlans')
       const data = {
         openid: OPENID,
         nickname: cleanText(newest.nickname, 30),
         avatar: cleanText(newest.avatar, 200),
         prefs: cleanPrefs(mergedPrefs || newest.prefs),
-        planAdjustments: cleanAdjust(mergedAdj || newest.planAdjustments),
+        customPlans: cleanCustomPlans(mergedCustom || newest.customPlans),
         updatedAt: Math.max(Number(newest.updatedAt || 0), Date.now())
       }
       await db.collection(COL_USERS).doc(OPENID).set({ data: data })

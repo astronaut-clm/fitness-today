@@ -55,6 +55,11 @@ page { height: 100vh; display: flex; flex-direction: column; background: var(--b
 .menu-sub { margin-top: 6rpx; font-size: 21rpx; }
 .menu-arrow { color: var(--ink3); font-size: 40rpx; line-height: 1; }
 
+/* 字体选择：像素字体开关 */
+.section { margin-top: 22rpx; }
+.switch-row { display: flex; align-items: center; gap: 18rpx; }
+.switch-row switch { flex: none; }
+
 .save-bar { position: fixed; right: 0; bottom: 0; left: 0; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: var(--px) solid var(--ink); background: var(--card); }
 .logout-save-btn { background: #e60012; color: #ffffff; }
 .bottom-space { height: 24rpx; }

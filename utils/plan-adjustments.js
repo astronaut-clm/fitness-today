@@ -1,21 +1,16 @@
 // utils/plan-adjustments.js 个人计划调整，绝不修改内置计划数据。
-// 调整按 openid 存于云端 ft_users 的 planAdjustments 字段，可与偏好、头像昵称互不覆盖，
-// 登录后双向同步（updatedAt 收敛），换机/他端改动可恢复。
-const cloud = require('./cloud.js')
-
+// 调整仅保存于本机，所有计划（内置与自定义）都不参与云端同步。
 const KEY = 'ft_plan_adjustments_v1'
 
 function emptyStore() {
-  return { plans: {}, updatedAt: 0 }
+  return { plans: {} }
 }
 
-// 兼容旧版本直接存储「planId -> adjustment」的结构，自动包裹成 { plans, updatedAt }。
+// 兼容旧版本 { plans, updatedAt } 与直接存储「planId -> adjustment」的结构。
 function normalizeStore(raw) {
   if (!raw || typeof raw !== 'object') return emptyStore()
-  if (raw.plans && typeof raw.plans === 'object') {
-    return { plans: raw.plans, updatedAt: Number(raw.updatedAt || 0) }
-  }
-  return { plans: raw, updatedAt: 0 }
+  if (raw.plans && typeof raw.plans === 'object') return { plans: raw.plans }
+  return { plans: raw }
 }
 
 function getStore() {
@@ -23,10 +18,7 @@ function getStore() {
 }
 
 function saveStore(store) {
-  const safe = {
-    plans: (store && store.plans) || {},
-    updatedAt: Number((store && store.updatedAt) || 0)
-  }
+  const safe = { plans: (store && store.plans) || {} }
   try { wx.setStorageSync(KEY, safe) } catch (e) {}
   return safe
 }
@@ -42,7 +34,6 @@ function get(planId) {
 function save(planId, adjustment) {
   const store = getStore()
   store.plans[planId] = adjustment || { exercises: {} }
-  store.updatedAt = Date.now()
   saveStore(store)
   return store.plans[planId]
 }
@@ -59,72 +50,32 @@ function setExercise(planId, actionId, patch) {
 function clear(planId) {
   const store = getStore()
   delete store.plans[planId]
-  store.updatedAt = Date.now()
   saveStore(store)
 }
 
+// 应用本机调整：覆盖各动作组数；组数变化时按总组数比例重算时长与热量，
+// 让计划详情、跟练记录跟随个人调整（未调整时保持内置计划的原始数值）。
 function apply(plan) {
   const adjustment = get(plan.id)
   const copy = Object.assign({}, plan)
+  let originalSets = 0
+  let adjustedSets = 0
   copy.exercises = (plan.exercises || []).map(function (exercise) {
     const patch = (adjustment.exercises && adjustment.exercises[exercise.actionId]) || {}
-    return Object.assign({}, exercise, patch)
+    const merged = Object.assign({}, exercise, patch)
+    originalSets += Math.max(1, Number(exercise.sets) || 1)
+    adjustedSets += Math.max(1, Number(merged.sets) || 1)
+    return merged
   })
+  if (originalSets > 0 && adjustedSets > 0 && adjustedSets !== originalSets) {
+    const factor = adjustedSets / originalSets
+    copy.duration = Math.max(1, Math.round(Number(plan.duration || 0) * factor))
+    copy.calories = Math.max(1, Math.round(Number(plan.calories || 0) * factor))
+  }
   return copy
 }
 
-// 从云端取回个人计划调整（云端无记录时返回空，updatedAt = 0）。
-function pullFromCloud() {
-  return cloud.call('adjGet').then(function (res) {
-    if (!res || !res.ok) return { ok: false, data: null }
-    const data = (res.planAdjustments && typeof res.planAdjustments === 'object') ? res.planAdjustments : {}
-    return { ok: true, data: data, updatedAt: Number(data.updatedAt || 0) }
-  })
-}
-
-// 把本机个人计划调整上传云端（login 云函数落库并刷新 updatedAt）。
-function pushToCloud() {
-  const store = getStore()
-  return cloud.call('adjSet', { planAdjustments: { plans: store.plans, updatedAt: store.updatedAt } }).then(function (res) {
-    return !!(res && res.ok)
-  })
-}
-
-// 用云端内容整体覆盖本地（不存在的字段保持为空）。
-function applyFromCloud(data) {
-  const src = (data && typeof data === 'object') ? data : {}
-  const store = {
-    plans: (src.plans && typeof src.plans === 'object') ? src.plans : {},
-    updatedAt: Number(src.updatedAt || 0)
-  }
-  saveStore(store)
-  return store
-}
-
-// 双向收敛（调用方需保证已登录）：
-// - 云端较新：拉取覆盖本地（换机 / 他端改动恢复）
-// - 本地较新：本地上传（首次启用云端 / 刚改过未同步）
-// 返回 { ok, changed }，changed 表示本次本机调整被云端覆盖。
-function syncFromCloud() {
-  return pullFromCloud().then(function (remote) {
-    if (!remote || !remote.ok) return { ok: false, changed: false }
-    const localTs = Number(getStore().updatedAt || 0)
-    const remoteTs = remote.updatedAt
-    if (remoteTs === 0 && localTs === 0) return { ok: true, changed: false }
-    if (remoteTs > localTs) {
-      applyFromCloud(remote.data)
-      return { ok: true, changed: true }
-    }
-    if (localTs > remoteTs) {
-      return pushToCloud().then(function (ok) {
-        return { ok: ok, changed: false }
-      })
-    }
-    return { ok: true, changed: false }
-  })
-}
-
-// 退出登录时清空本机调整（云端保留，重新登录后按账号拉回），避免下一账号误用/误推上一账号的数据。
+// 退出登录时清空本机调整（纯本机数据，重新登录不会拉回）。
 function resetLocal() {
   saveStore(emptyStore())
 }
@@ -135,8 +86,5 @@ module.exports = {
   setExercise: setExercise,
   clear: clear,
   apply: apply,
-  pushToCloud: pushToCloud,
-  applyFromCloud: applyFromCloud,
-  syncFromCloud: syncFromCloud,
   resetLocal: resetLocal
 }

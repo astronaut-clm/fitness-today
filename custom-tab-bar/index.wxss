@@ -122,6 +122,43 @@
     42rpx 42rpx 0 0 var(--c);
 }
 
+/* ===== 像素图标：dumbbell（8x8 哑铃）===== */
+.icon-dumbbell {
+  box-shadow:
+    0 6rpx 0 0 var(--c),
+    6rpx 6rpx 0 0 var(--c),
+    36rpx 6rpx 0 0 var(--c),
+    42rpx 6rpx 0 0 var(--c),
+    0 12rpx 0 0 var(--c),
+    6rpx 12rpx 0 0 var(--c),
+    36rpx 12rpx 0 0 var(--c),
+    42rpx 12rpx 0 0 var(--c),
+    0 18rpx 0 0 var(--c),
+    6rpx 18rpx 0 0 var(--c),
+    12rpx 18rpx 0 0 var(--c),
+    18rpx 18rpx 0 0 var(--c),
+    24rpx 18rpx 0 0 var(--c),
+    30rpx 18rpx 0 0 var(--c),
+    36rpx 18rpx 0 0 var(--c),
+    42rpx 18rpx 0 0 var(--c),
+    0 24rpx 0 0 var(--c),
+    6rpx 24rpx 0 0 var(--c),
+    12rpx 24rpx 0 0 var(--c),
+    18rpx 24rpx 0 0 var(--c),
+    24rpx 24rpx 0 0 var(--c),
+    30rpx 24rpx 0 0 var(--c),
+    36rpx 24rpx 0 0 var(--c),
+    42rpx 24rpx 0 0 var(--c),
+    0 30rpx 0 0 var(--c),
+    6rpx 30rpx 0 0 var(--c),
+    36rpx 30rpx 0 0 var(--c),
+    42rpx 30rpx 0 0 var(--c),
+    0 36rpx 0 0 var(--c),
+    6rpx 36rpx 0 0 var(--c),
+    36rpx 36rpx 0 0 var(--c),
+    42rpx 36rpx 0 0 var(--c);
+}
+
 /* ===== 像素图标：user（8x8 人像）===== */
 .icon-user {
   box-shadow:

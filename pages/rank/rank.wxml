@@ -1,0 +1,77 @@
+<!-- pages/rank/rank.wxml 排行榜（按月累计训练时长排名） -->
+<navigation-bar back="{{true}}" title="排行榜" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page">
+    <view class="rank-head">
+      <view class="rank-month">{{monthLabel}}</view>
+      <view class="weak rank-sub">按本月累计训练时长排名 · 每月 1 日重新开始</view>
+    </view>
+
+    <block wx:if="{{loading && !loaded}}">
+      <view class="g-card loading-box">
+        <view class="px-loading">
+          <view class="px-loading-dot"></view>
+          <text>加载中…</text>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{error}}">
+      <view class="empty g-card">
+        <view class="empty-icon">!</view>
+        <view>榜单加载失败</view>
+        <view class="weak empty-sub">请检查网络，或确认 social 云函数已部署</view>
+        <view class="retry-btn" hover-class="hover" hover-stay-time="100" bindtap="onRetry">重新加载</view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="me-card g-card">
+        <view class="me-rank">
+          <view class="me-rank-num">{{me.rank > 0 ? me.rank : '—'}}</view>
+          <view class="weak me-rank-label">我的名次</view>
+        </view>
+        <view class="me-line"></view>
+        <view class="flex1 me-main">
+          <view class="me-minutes">{{me.minutes}}<text class="me-unit"> 分钟</text></view>
+          <view class="weak me-sub">{{me.days > 0 ? '本月已训练 ' + me.days + ' 天' : '本月还没有训练记录'}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{rows.length}}" class="rank-list">
+        <view wx:for="{{rows}}" wx:key="rank" class="rank-row g-card {{item.isMe ? 'me' : ''}}">
+          <view class="rank-no {{item.noClass}}">{{item.rank}}</view>
+          <view class="rank-avatar-box">
+            <image wx:if="{{item.avatar}}" class="rank-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+            <view wx:else class="rank-avatar rank-avatar-fallback">{{item.char}}</view>
+          </view>
+          <view class="flex1 rank-info">
+            <view class="rank-name">{{item.nickname}}<text wx:if="{{item.isMe}}" class="rank-me-tag">我</text></view>
+            <view class="weak rank-meta">训练 {{item.days}} 天</view>
+          </view>
+          <view class="rank-minutes">{{item.minutes}}<text class="rank-unit">分</text></view>
+        </view>
+      </view>
+
+      <view wx:else class="empty g-card">
+        <view class="empty-icon">○</view>
+        <view>本月还没有人上榜</view>
+        <view class="weak empty-sub">完成一次训练就能出现在这里</view>
+      </view>
+    </block>
+
+    <view class="bottom-space"></view>
+  </view>
+</scroll-view>
+
+<!-- 登录引导弹层：页内像素弹窗 -->
+<view class="px-mask" wx:if="{{showLoginDialog}}" bindtap="onCancelLogin" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">请先登录</view>
+    <view class="px-dialog-copy">登录后才能查看训练排行榜</view>
+    <view class="px-dialog-btns">
+      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelLogin">暂不</view>
+      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmLogin">去登录</view>
+    </view>
+  </view>
+</view>

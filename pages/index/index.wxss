@@ -32,30 +32,69 @@ page {
   gap: 12rpx;
 }
 
-.streak-chip {
-  display: flex;
-  align-items: center;
-  background: var(--primary-bg);
-  color: var(--ink);
+.head-note {
   font-size: 24rpx;
   font-weight: 700;
-  padding: 10rpx 22rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-}
-
-.streak-chip.ghost {
-  background: var(--card);
   color: var(--ink2);
-  border: var(--pxs) solid var(--ink);
 }
 
-.streak-dot {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 0;
-  background: var(--ink);
-  margin-right: 10rpx;
+.head-note.streak {
+  color: #b26a00;
+}
+
+/* 功能入口（本周目标下方） */
+.entry-row {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-top: 28rpx;
+  margin-bottom: 28rpx;
+}
+
+.entry-card {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 28rpx;
+}
+
+.entry-badge {
+  flex: none;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 22rpx;
+  border: var(--pxs) solid var(--ink);
+  background: var(--primary-bg);
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.entry-badge.blue {
+  background: var(--card2);
+}
+
+.entry-main {
+  min-width: 0;
+}
+
+.entry-title {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.entry-sub {
+  font-size: 23rpx;
+  margin-top: 6rpx;
+}
+
+.entry-arrow {
+  flex: none;
+  margin-left: 16rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--ink3);
 }
 
 /* Hero 卡片 */
@@ -110,6 +149,7 @@ page {
 
 .hero-btns {
   display: flex;
+  justify-content: center;
   margin-top: 36rpx;
 }
 
@@ -130,6 +170,12 @@ page {
   color: var(--ink);
 }
 
+/* 单独成行时按钮不拉满整行宽度，保持短一些 */
+.hbtn-short {
+  flex: none;
+  padding: 0 96rpx;
+}
+
 .hbtn-line {
   background: #0058f8;
   color: #ffffff;
@@ -145,51 +191,6 @@ page {
 
 .hover {
   opacity: 0.86;
-}
-
-/* 快捷入口 */
-.quick-row {
-  display: flex;
-  margin-top: 28rpx;
-}
-
-/* 手动打卡弹层（复用「我的」页打卡表单样式） */
-.mask { position: fixed; z-index: 20; top: 0; right: 0; bottom: 0; left: 0; background: rgba(26,26,26,.5); }
-.sheet { position: fixed; z-index: 21; right: 0; bottom: 0; left: 0; height: 82vh; display: flex; flex-direction: column; overflow: hidden; border-top: var(--px) solid var(--ink); border-radius: 0; background: var(--card); }
-.sheet-handle { width: 64rpx; height: 8rpx; margin: 16rpx auto 8rpx; border-radius: 0; background: var(--ink3); }
-.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 4rpx 28rpx 20rpx; }
-.sheet-title { color: var(--ink); font-size: 34rpx; font-weight: 750; }
-.sheet-close { padding: 10rpx 4rpx 10rpx 24rpx; color: var(--ink2); font-size: 24rpx; }
-.sheet-date-row { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 28rpx; border-top: var(--pxs) solid var(--line); border-bottom: var(--pxs) solid var(--line); font-size: 25rpx; }
-.sheet-date { color: var(--ink); font-weight: 700; }
-.scene-tabs { display: block; flex: none; height: 92rpx; box-sizing: border-box; white-space: nowrap; }
-.scene-tabs-inner { display: inline-flex; height: 92rpx; box-sizing: border-box; align-items: center; gap: 14rpx; padding: 0 28rpx; }
-.scene-tab { box-sizing: border-box; flex: none; padding: 12rpx 24rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink2); background: var(--card2); font-size: 24rpx; line-height: 1.4; }
-.scene-tab.on { color: var(--card); background: var(--primary); }
-.sheet-plans { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 0 28rpx; }
-.sheet-plan { display: flex; align-items: center; justify-content: space-between; gap: 24rpx; padding: 22rpx 4rpx; border-bottom: var(--pxs) solid var(--line); color: var(--ink3); font-size: 38rpx; }
-.sheet-plan > view { flex: 1; min-width: 0; }
-.sheet-plan-name { margin-bottom: 8rpx; color: var(--ink); font-size: 27rpx; font-weight: 650; }
-.sheet-plan .weak { font-size: 21rpx; }
-.sheet-free { flex: none; margin: 20rpx 28rpx calc(24rpx + env(safe-area-inset-bottom)); padding: 23rpx; border: var(--px) solid var(--ink); border-radius: 0; color: var(--card); background: var(--primary); font-size: 27rpx; font-weight: 700; text-align: center; }
-
-.quick {
-  flex: 1;
-  padding: 30rpx 28rpx;
-}
-
-.quick + .quick {
-  margin-left: 24rpx;
-}
-
-.quick-name {
-  font-size: 32rpx;
-  font-weight: 700;
-}
-
-.quick-sub {
-  font-size: 22rpx;
-  margin-top: 8rpx;
 }
 
 /* 本周目标 */

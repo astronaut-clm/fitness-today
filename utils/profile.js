@@ -1,8 +1,8 @@
-// utils/profile.js 用户训练偏好配置与目标
+// utils/profile.js 用户偏好配置与目标
 // 偏好平时保存在本机；登录后可与云端（login 云函数写 ft_users 的 prefs 字段）按 openid 双向同步，
 // 换设备登录可自动恢复，多端以 updatedAt 时间戳收敛。
 const cloud = require('./cloud.js')
-const adjustments = require('./plan-adjustments.js')
+const customPlans = require('./custom-plans.js')
 
 const KEY = 'ft_user_profile_v1'
 
@@ -42,7 +42,7 @@ function completed(profile) {
   return !!((p.scenes && p.scenes.length) || (p.equipment && p.equipment.length) || p.updatedAt)
 }
 
-// 从云端取回训练偏好配置（云端无记录时返回默认值，updatedAt = 0）。
+// 从云端取回偏好配置（云端无记录时返回默认值，updatedAt = 0）。
 function pullFromCloud() {
   return cloud.call('prefsGet').then(function (res) {
     if (!res || !res.ok) return { ok: false, prefs: null }
@@ -103,9 +103,10 @@ function syncFromCloud() {
   })
 }
 
-// 偏好 + 个人计划调整的一次往返收敛（checkin 页 onShow / 登录成功后调用）。
-// 两字段同存于 ft_users，userGet 一次返回，比分别 syncFromCloud 少一次云函数请求；
+// 偏好 + 自定义计划的一次往返收敛（checkin 页 onShow / 登录成功后调用）。
+// 两字段同存于 ft_users，userGet 一次返回，比分别 syncFromCloud 少云函数请求；
 // 本机较新的一方仍各自 push 补传，两端同为空或相同时不产生写入。
+// 注意：个人计划调整仅存本机，不参与云端同步。
 function syncFromCloudAll() {
   return cloud.call('userGet').then(function (res) {
     if (!res || !res.ok) return { ok: false, changed: false }
@@ -126,16 +127,16 @@ function syncFromCloudAll() {
       }
     }
 
-    // —— 个人计划调整 ——
-    const remoteAdj = (res.planAdjustments && typeof res.planAdjustments === 'object') ? res.planAdjustments : {}
-    const remoteAdjTs = Number(remoteAdj.updatedAt || 0)
-    const localAdjTs = Number(adjustments.getStore().updatedAt || 0)
-    if (remoteAdjTs !== 0 || localAdjTs !== 0) {
-      if (remoteAdjTs > localAdjTs) {
-        adjustments.applyFromCloud(remoteAdj)
+    // —— 自定义计划 ——
+    const remoteCustom = (res.customPlans && typeof res.customPlans === 'object') ? res.customPlans : {}
+    const remoteCustomTs = Number(remoteCustom.updatedAt || 0)
+    const localCustomTs = Number(customPlans.getStore().updatedAt || 0)
+    if (remoteCustomTs !== 0 || localCustomTs !== 0) {
+      if (remoteCustomTs > localCustomTs) {
+        customPlans.applyFromCloud(remoteCustom)
         changed = true
-      } else if (localAdjTs > remoteAdjTs) {
-        pushTasks.push(adjustments.pushToCloud())
+      } else if (localCustomTs > remoteCustomTs) {
+        pushTasks.push(customPlans.pushToCloud())
       }
     }
 

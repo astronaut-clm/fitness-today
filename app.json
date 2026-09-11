@@ -6,9 +6,12 @@
     "pages/profile/profile",
     "pages/plan-detail/plan-detail",
     "pages/workout/workout",
-    "pages/tutorial/tutorial",
+    "pages/library/library",
     "pages/tutorial-detail/tutorial-detail",
-    "pages/account/account"
+    "pages/account/account",
+    "pages/custom-plan/custom-plan",
+    "pages/rank/rank",
+    "pages/feed/feed"
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -24,6 +27,10 @@
       {
         "pagePath": "pages/index/index",
         "text": "主页"
+      },
+      {
+        "pagePath": "pages/library/library",
+        "text": "动作库"
       },
       {
         "pagePath": "pages/checkin/checkin",

@@ -14,6 +14,12 @@
     "pages/feed/feed",
     "pages/onboarding/onboarding"
   ],
+  "plugins": {
+    "WechatSI": {
+      "version": "0.3.10",
+      "provider": "wx069ba97219f66d99"
+    }
+  },
   "window": {
     "navigationBarTextStyle": "black",
     "navigationStyle": "custom"

@@ -118,7 +118,11 @@ function compute(records, profile) {
 
 // 当日推荐：同一天内保持稳定，避免练完当日推荐后记录变化（近期部位/未练过加分）导致改选。
 // 命中缓存（同一天且偏好内容未变）直接返回原计划；用户真正改了偏好才重新推荐。
-function pick(records, profile) {
+//
+// opts.noCache：只算不写缓存。用于「数据尚未同步完成」的过渡态——登录成功那一刻本地是
+// 登出时重置过的偏好 + 清空的记录 / 自定义计划，此时算出的结果与账号真实数据无关，
+// 一旦落进当日缓存就会在偏好签名不变时被反复命中，表现为「重新登录后今日推荐会变」。
+function pick(records, profile, opts) {
   const today = dateUtil.today()
   const sig = prefsSignature(profile)
   const cache = readCache()
@@ -127,8 +131,16 @@ function pick(records, profile) {
     if (cached) return decorate(cached, cache.reason)
   }
   const plan = compute(records, profile)
-  writeCache({ date: today, sig: sig, planId: plan.id, reason: plan.reason })
+  if (!(opts && opts.noCache)) {
+    writeCache({ date: today, sig: sig, planId: plan.id, reason: plan.reason })
+  }
   return plan
 }
 
-module.exports = { pick: pick }
+// 退出登录时清空当日推荐缓存：本机记录 / 偏好 / 自定义计划都会被重置，
+// 缓存里的计划已不再对应当前账号的完整数据，留着会造成「旧缓存 + 新数据」的错配。
+function resetCache() {
+  try { wx.removeStorageSync(CACHE_KEY) } catch (e) {}
+}
+
+module.exports = { pick: pick, resetCache: resetCache }

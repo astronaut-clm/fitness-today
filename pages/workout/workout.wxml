@@ -13,13 +13,18 @@
   <view class="page" wx:if="{{loaded}}">
     <view class="top">
       <view class="flex1">
-        <view class="plan">{{planName}}</view>
+        <view class="plan-row">
+          <view class="plan">{{planName}}</view>
+          <view wx:if="{{voiceSupported}}" class="plan-voice" hover-class="hover" hover-stay-time="100" bindtap="onToggleVoice" aria-role="button" aria-label="{{voiceOn ? '关闭语音播报' : '开启语音播报'}}">
+            <text class="plan-voice-txt {{voiceOn ? 'on' : ''}}">{{voiceOn ? '语音开' : '语音关'}}</text>
+          </view>
+        </view>
         <view class="plan-sub weak">{{sceneName}} · 共 {{total}} 组动作</view>
       </view>
     </view>
 
     <block wx:if="{{state === 'finished'}}">
-      <view class="panel done">
+      <view class="g-card panel done">
         <view class="done-ico">✓</view>
         <view class="done-title">训练完成！</view>
         <view class="done-sub sub">{{planName}} · {{total - skippedGroups}}/{{total}} 组完成 · 用时 {{costText}}</view>
@@ -43,7 +48,7 @@
         </view>
       </view>
 
-      <view wx:if="{{state === 'rest'}}" class="panel rest">
+      <view wx:if="{{state === 'rest'}}" class="g-card panel rest">
         <view class="panel-label">休息一下</view>
         <view class="big-num">{{restLeft}}</view>
         <view class="big-unit weak">秒</view>
@@ -54,7 +59,7 @@
         </view>
       </view>
 
-      <view wx:elif="{{state === 'working' && group}}" class="panel">
+      <view wx:elif="{{state === 'working' && group}}" class="g-card panel">
         <view class="g-tags">
           <text class="g-tag">{{group.category}}</text>
           <text class="g-tag" wx:if="{{group.equipment}}">{{group.equipment}}</text>

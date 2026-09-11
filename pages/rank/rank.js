@@ -57,7 +57,5 @@ Page({
     const index = e.currentTarget.dataset.index
     if (index == null) return
     this.setData({ ['rows[' + index + '].avatar']: '' })
-  },
-
-  noop() {}
+  }
 })

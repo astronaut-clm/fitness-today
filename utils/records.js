@@ -50,7 +50,7 @@ function migrateLegacy() {
   return store
 }
 
-// 进程内缓存：getStore 只克隆缓存对象，不再每次读存储并整体 clone；
+// 进程内缓存：读路径直接遍历缓存对象、写路径才克隆整表；
 // 每次写入都会经 saveStore 刷新缓存（写后失效）。
 let cacheStore = null
 
@@ -64,7 +64,8 @@ function readStored() {
   return null
 }
 
-function getStore() {
+// 确保缓存已就绪（含 v1 迁移），返回缓存原对象，供只读路径直接使用。
+function ensureStore() {
   if (!cacheStore) {
     cacheStore = readStored()
     if (!cacheStore) {
@@ -76,8 +77,12 @@ function getStore() {
       } catch (e) {}
     }
   }
-  // 仍返回浅拷贝包装，保持「外部拿到的 store 可安全当作独立对象」的原语义。
-  return { version: VERSION, records: clone(cacheStore.records) }
+  return cacheStore
+}
+
+// 写路径：返回 records 浅拷贝，调用方可安全增删键而不污染缓存。
+function getStore() {
+  return { version: VERSION, records: clone(ensureStore().records) }
 }
 
 function saveStore(store) {
@@ -92,7 +97,8 @@ function saveStore(store) {
 
 function getAll(options) {
   const opts = options || {}
-  const records = getStore().records
+  // 只读遍历缓存原对象；normalize 会逐条 clone，调用方拿到的仍是独立副本。
+  const records = ensureStore().records
   return Object.keys(records).map(function (id) {
     return normalize(records[id], '', id)
   }).filter(function (record) {
@@ -105,18 +111,10 @@ function getAll(options) {
 }
 
 function getById(id, includeDeleted) {
-  const record = getStore().records[id]
+  const record = ensureStore().records[id]
   const normalized = normalize(record, '', id)
   if (!normalized || (!includeDeleted && normalized.deletedAt)) return null
   return normalized
-}
-
-function getByDate(date, includeDeleted) {
-  return getAll({ includeDeleted: includeDeleted }).filter(function (record) {
-    return record.date === date
-  }).sort(function (a, b) {
-    return Number(a.createdAt) - Number(b.createdAt)
-  })
 }
 
 // 从已读取的记录数组派生「日期 -> 记录」映射，供调用方一次读取后复用同一份快照。
@@ -127,10 +125,6 @@ function getDateMapFrom(list) {
     out[record.date].push(record)
   })
   return out
-}
-
-function getDateMap() {
-  return getDateMapFrom(getAll())
 }
 
 function add(record) {
@@ -196,27 +190,28 @@ function replaceAll(records) {
 }
 
 function mergeRemote(remoteRecords) {
-  const local = getStore()
+  // 只读缓存原对象（不修改 local.records），合并结果写入独立副本。
+  const local = ensureStore()
   const merged = clone(local.records)
+  let changed = false
   ;(remoteRecords || []).forEach(function (remote) {
     const r = normalize(remote, '', remote && remote.id)
     if (!r) return
     const localRecord = normalize(merged[r.id], '', r.id)
     if (!localRecord || Number(r.updatedAt || r.ts) > Number(localRecord.updatedAt || localRecord.ts)) {
       merged[r.id] = r
+      changed = true
     }
   })
+  // 云端没有更新的记录时直接返回，避免每轮同步都全量重写本地存储（同步 I/O）。
+  if (!changed) return { version: VERSION, records: clone(merged) }
   return replaceAll(merged)
 }
 
 // 只对快照做一次读取，避免同一轮统计里反复 getAll（重复读存储、排序、clone）。
 // computeStatsFrom 接收已读取的记录数组，供调用方一次读取后派生统计。
 function computeStatsFrom(list) {
-  const dateMap = {}
-  ;(list || []).forEach(function (record) {
-    if (!dateMap[record.date]) dateMap[record.date] = []
-    dateMap[record.date].push(record)
-  })
+  const dateMap = getDateMapFrom(list)
   const dates = Object.keys(dateMap).sort()
   const { today, yesterday } = dateUtil.todayAndYesterday()
   let streak = 0
@@ -249,8 +244,6 @@ function computeStatsFrom(list) {
 module.exports = {
   getAll: getAll,
   getById: getById,
-  getByDate: getByDate,
-  getDateMap: getDateMap,
   add: add,
   remove: remove,
   drop: drop,

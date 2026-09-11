@@ -61,11 +61,13 @@ Page({
     this.setData({ pick: this.pick })
     // 与首页 hero 对齐：当日推荐计划若不在默认场景，首次进入时定位到其所在场景，
     // 否则当前标签下看不到该计划的「今日推荐」标签，两处展示会不一致。
-    const recPlan = recommend.pick(store.getAllRecords(), profile.get())
+    // 一次读取记录快照，推荐与列表统计共用，避免重复全量读取。
+    const allRecords = store.getAllRecords()
+    const recPlan = recommend.pick(allRecords, profile.get())
     if (recPlan && (recPlan.scene === 'home' || recPlan.scene === 'gym') && recPlan.scene !== this.data.scene) {
       this.setData({ scene: recPlan.scene })
     }
-    this.applyFilter()
+    this.applyFilter(allRecords)
   },
 
   onShow() {
@@ -98,15 +100,18 @@ Page({
     this.applyFilter()
   },
 
-  applyFilter() {
+  // records：可选记录快照。传入时复用同一份，避免调用方已读取后此处再次全量读取。
+  applyFilter(records) {
+    const allRecords = records || store.getAllRecords()
     // 统计每个计划今天的完成次数（只算当天记录，隔天自动清零）。
+    const today = dateUtil.today()
     const counts = {}
-    store.getRecordsByDate(dateUtil.today()).forEach((record) => {
-      if (!record.planId) return
+    allRecords.forEach((record) => {
+      if (!record.planId || record.date !== today) return
       counts[record.planId] = (counts[record.planId] || 0) + 1
     })
     // 当日推荐计划：与首页 hero 同一套推荐算法，在列表里打「今日推荐」标签便于识别。
-    const recPlan = recommend.pick(store.getAllRecords(), profile.get())
+    const recPlan = recommend.pick(allRecords, profile.get())
     const recId = recPlan && recPlan.id
     // 进行中的训练：与计划详情页同一判断（未完成且至少完成一组），用于展示「继续训练」入口。
     const active = sessionStore.get()

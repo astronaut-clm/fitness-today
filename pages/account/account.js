@@ -8,6 +8,7 @@ const profile = require('../../utils/profile.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
 const onboarding = require('../../utils/onboarding.js')
+const recommend = require('../../utils/recommend.js')
 const font = require('../../utils/font.js')
 const toast = require('../../utils/toast.js')
 
@@ -93,6 +94,8 @@ Page({
     adjustments.resetLocal()
     customPlans.resetLocal()
     onboarding.resetLocal()
+    // 推荐依赖记录 / 偏好 / 自定义计划，这些都已被重置，当日推荐缓存同步清掉
+    recommend.resetCache()
     toast.back('已退出，记录已清空')
   },
 

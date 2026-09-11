@@ -67,6 +67,27 @@ page {
   color: var(--ink);
 }
 
+/* 语音播报开关：与计划名同一行，右侧对齐（插件可用时才展示） */
+.plan-voice {
+  flex: none;
+  margin-left: 16rpx;
+}
+
+.plan-voice-txt {
+  display: inline-block;
+  font-size: 22rpx;
+  line-height: 1;
+  color: var(--ink2);
+  background: var(--card2);
+  border: var(--pxs) solid var(--ink);
+  padding: 10rpx 16rpx;
+}
+
+.plan-voice-txt.on {
+  color: var(--card);
+  background: var(--green);
+}
+
 /* 顶部计划信息 */
 .top {
   display: flex;
@@ -74,7 +95,16 @@ page {
   padding: 8rpx;
 }
 
+/* 计划名与语音开关同一行：开关与计划名顶部对齐 */
+.plan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .plan {
+  flex: 1;
+  min-width: 0;
   font-size: 38rpx;
   font-weight: 800;
 }
@@ -116,22 +146,11 @@ page {
   font-weight: 700;
 }
 
-/* 面板 */
+/* 面板：复用全局 .g-card 的描边 / 硬阴影 / 抖动网点，仅覆盖间距与对齐 */
 .panel {
-  background: var(--card);
-  /* 抖动网点：与全局 .g-card 一致的 4x4 棋盘颗粒 */
-  background-image:
-    linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%),
-    linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%);
-  background-size: 8rpx 8rpx;
-  background-position: 0 0, 4rpx 4rpx;
-  border: var(--px) solid var(--ink);
-  box-shadow: var(--shadow);
-  border-radius: 0;
   padding: 64rpx 40rpx 48rpx;
   margin-top: 32rpx;
   text-align: center;
-  box-sizing: border-box;
 }
 
 .panel-label {
@@ -142,12 +161,8 @@ page {
 
 .panel.rest {
   padding-top: 72rpx;
-  background: var(--card2);
-  background-image:
-    linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%),
-    linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%);
-  background-size: 8rpx 8rpx;
-  background-position: 0 0, 4rpx 4rpx;
+  /* 只改底色，保留 .g-card 的网点纹理 */
+  background-color: var(--card2);
 }
 
 .big-num {

@@ -21,15 +21,10 @@ function saveSyncMeta(meta) {
   return safe
 }
 
-// 兼容层：对外保留原有 store API，内部使用支持多次训练的 v2 记录模型。
-function getRecords() {
-  return records.getDateMap()
-}
-
 function addRecord(record) {
   const saved = records.add(record)
   if (account.isLoggedIn()) sync.pushOne(saved)
-  return getRecords()
+  return saved
 }
 
 function removeRecord(id) {
@@ -41,7 +36,7 @@ function removeRecord(id) {
       if (ok) records.drop(id)
     }).catch(function () {})
   }
-  return getRecords()
+  return removed
 }
 
 function getRecord(id) {
@@ -53,11 +48,6 @@ function clearLocal() {
   records.replaceAll({})
   // 记录清空后把同步水位归零：下次登录会按「首次同步」全量拉回云端记录。
   saveSyncMeta({ lastSyncAt: 0, lastFullPullAt: 0 })
-  return getRecords()
-}
-
-function getRecordsByDate(date) {
-  return records.getByDate(date)
 }
 
 // 从已读取的记录数组派生「日期 -> 记录」映射，供调用方一次读取后复用同一份快照。
@@ -132,9 +122,7 @@ function syncFromCloud() {
 }
 
 module.exports = {
-  getRecords: getRecords,
   getAllRecords: getAllRecords,
-  getRecordsByDate: getRecordsByDate,
   getDateMapFrom: getDateMapFrom,
   getRecord: getRecord,
   addRecord: addRecord,

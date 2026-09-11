@@ -51,7 +51,7 @@ Page({
     this.refresh()
   },
 
-  refresh() {
+  refresh(opts) {
     // 一次读取记录快照，统计与当日汇总都从同一份派生，避免重复遍历/排序。
     const records = store.getAllRecords()
     const stats = store.computeStatsFrom(records)
@@ -82,7 +82,7 @@ Page({
     this.setData({
       dateText: dateText,
       streak: stats.streak,
-      recPlan: recommend.pick(records, currentProfile),
+      recPlan: recommend.pick(records, currentProfile, opts),
       isLogged: todayRecords.length > 0,
       goalReady: profile.completed(currentProfile),
       todaySummary: todaySummary,
@@ -129,8 +129,11 @@ Page({
       // 登录成功：收起加载层并展示首页内容，随后拉回历史记录与偏好；
       // 仅全新账号的首次登录（res.newUser）才引导补全偏好与自定义计划，老用户不打扰。
       this.setData({ loginBusy: false, loggedIn: true })
-      this.refresh()
+      // 此刻云端数据（训练记录 / 偏好 / 自定义计划）还没拉回来，本地还是登出时重置过的空状态，
+      // 这次刷新只做即时展示、不写当日推荐缓存，避免用不完整数据污染缓存。
+      this.refresh({ noCache: true })
       login.syncAfterLogin().then((ok) => {
+        // 同步完成后重算并落缓存：此后当天推荐固定，不会因重新登录而改变。
         if (ok) this.refresh()
         if (res.newUser && !onboarding.isDone()) {
           wx.navigateTo({ url: '/pages/onboarding/onboarding' })

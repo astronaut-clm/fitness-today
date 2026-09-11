@@ -7,6 +7,7 @@ const sessionStore = require('../../utils/workout-session.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
 const toast = require('../../utils/toast.js')
+const voice = require('../../utils/voice.js')
 
 function parseSeconds(reps) {
   const m = /^(\d+)\s*秒/.exec(String(reps || '').trim())
@@ -16,6 +17,33 @@ function parseSeconds(reps) {
 function parseRest(text) {
   const m = /^组间(\d+)\s*秒/.exec(String(text || '').trim())
   return m ? +m[1] : 0
+}
+
+// 语音文案：微信同声传译插件的音色固定、且不支持调节语速/情感，
+// 「激情」只能靠文案与随机化实现，避免同一句话反复播报显得机械。
+const CHEERS = [
+  '加油，你可以的！',
+  '燃起来，别停下！',
+  '坚持住，就快到了！',
+  '全力以赴，干就完了！',
+  '再来一组，冲！'
+]
+const FINISH_LINES = [
+  '训练完成，你太强了！',
+  '全部搞定，太牛了！',
+  '今天这波，满分收官！'
+]
+
+function pickVoiceLine(list) {
+  return list[Math.floor(Math.random() * list.length)]
+}
+
+function setVoiceText(group) {
+  return group.name + '，' + group.targetText
+}
+
+function restVoiceText(seconds) {
+  return '休息 ' + seconds + ' 秒，深呼吸，马上继续！'
 }
 
 function buildGroups(plan) {
@@ -81,6 +109,9 @@ Page({
     effort: 0,
     isSaving: false,
     effortOptions: [1, 2, 3, 4, 5],
+    // 语音播报开关（本地持久化）；voiceSupported 仅插件可用时展示开关
+    voiceOn: true,
+    voiceSupported: false,
     // 自绘导航：状态栏高度（px），用于顶部留白
     statusBarHeight: 0,
     // 退出确认弹层是否可见
@@ -109,8 +140,11 @@ Page({
       loaded: true,
       planName: this.plan.name,
       sceneName: plansData.sceneName(this.plan.scene),
-      total: this.groups.length
+      total: this.groups.length,
+      voiceOn: voice.enabled(),
+      voiceSupported: voice.available
     })
+    this.warmupVoice()
     this.restoreOrStart()
   },
 
@@ -124,6 +158,7 @@ Page({
 
   onHide() {
     this.stopInterval()
+    voice.stop()
     if (this.data.state === 'working' && this.data.running) {
       const remain = this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : this.data.left
       this.endAt = 0
@@ -135,6 +170,7 @@ Page({
   onUnload() {
     this.stopInterval()
     this.clearTimers()
+    voice.destroy()
     if (this.data.state !== 'finished') this.persistSession()
   },
 
@@ -221,6 +257,14 @@ Page({
       timeStarted: !!session.timeStarted,
       skippedGroups: Number(session.skippedGroups || 0)
     })
+    this._countPhase = ''
+    this._countValue = 0
+    // 恢复后同样播报当前所处阶段，保证每一组都有语音
+    if (state === 'working') {
+      this.announceGroup(this.groups[index])
+    } else if (restLeft > 0) {
+      voice.speak(restVoiceText(restLeft))
+    }
     if (state === 'rest') {
       if (restLeft <= 0) this.skipRest()
       else this.startInterval()
@@ -302,12 +346,54 @@ Page({
 
   tick() {
     if (this.data.state === 'rest') {
-      if (!this.endAt || this.refreshRemain() <= 0) this.skipRest()
+      if (!this.endAt) { this.skipRest(); return }
+      const remain = this.refreshRemain()
+      if (remain <= 0) this.skipRest()
+      else this.announceCountdown(remain, 'rest')
       return
     }
-    if (this.data.state === 'working' && this.data.running && this.endAt && this.refreshRemain() <= 0) {
-      this.finishSet(false)
+    if (this.data.state === 'working' && this.data.running && this.endAt) {
+      const remain = this.refreshRemain()
+      if (remain <= 0) this.finishSet(false)
+      else this.announceCountdown(remain, 'work')
     }
+  },
+
+  // 语音播报：提前合成本次训练会用到的语句，避免每次播报都等网络合成
+  warmupVoice() {
+    if (!voice.available || !voice.enabled()) return
+    const phrases = ['3', '2', '1'].concat(CHEERS).concat(FINISH_LINES)
+    const seen = {}
+    this.groups.forEach(function (group) {
+      const setText = setVoiceText(group)
+      if (!seen[setText]) { seen[setText] = 1; phrases.push(setText) }
+      const restText = restVoiceText(group.rest || 20)
+      if (!seen[restText]) { seen[restText] = 1; phrases.push(restText) }
+    })
+    voice.warmup(phrases)
+  },
+
+  announceGroup(group) {
+    if (!group) return
+    // 动作名与口号按顺序合成后一次入队，避免未预热时合成回调乱序导致口号先播。
+    voice.speakAll([setVoiceText(group), pickVoiceLine(CHEERS)])
+  },
+
+  // 倒数 3/2/1：仅最后 3 秒播报，同一数值不重复
+  announceCountdown(remain, phase) {
+    if (remain > 3) { this._countPhase = ''; this._countValue = 0; return }
+    if (remain < 1) return
+    if (this._countPhase === phase && this._countValue === remain) return
+    this._countPhase = phase
+    this._countValue = remain
+    voice.speak(String(remain), { interrupt: true })
+  },
+
+  onToggleVoice() {
+    const on = !this.data.voiceOn
+    voice.setEnabled(on)
+    this.setData({ voiceOn: on })
+    if (on) voice.speak('语音已开启，准备开练！')
   },
 
   activate(index) {
@@ -326,6 +412,9 @@ Page({
       timeStarted: false,
       pctStyle: 'width:' + pct + '%;'
     })
+    this._countPhase = ''
+    this._countValue = 0
+    this.announceGroup(group)
     this.persistSession()
   },
 
@@ -347,6 +436,7 @@ Page({
         costText: this.calcCost(),
         showFeedback: true
       })
+      voice.speak(pickVoiceLine(FINISH_LINES))
       this.vibrate('long')
       this.persistFinished()
       return
@@ -367,6 +457,9 @@ Page({
       timeStarted: false,
       skippedGroups: skippedGroups
     })
+    this._countPhase = ''
+    this._countValue = 0
+    voice.speak(restVoiceText(rest))
     this.vibrate('short')
     this.persistSession()
     this.startInterval()

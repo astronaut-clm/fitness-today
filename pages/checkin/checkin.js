@@ -75,19 +75,33 @@ Page({
       this.setData({ accountInfo: { nickname: '', avatar: '', char: '练' } })
       return
     }
-    const build = (src) => {
-      const nickname = (src && src.nickname) || ''
-      return { nickname: nickname, avatar: (src && src.avatar) || '', char: nickname ? nickname.slice(0, 1) : '练' }
-    }
-    this.setData({ accountInfo: build(account.get()) })
+    this.renderAccount(account.get())
     // 云端资料短时间（15 秒）内只拉一次：频繁切回本 tab 不再重复发起云函数请求；失败则允许下次重试。
     const now = Date.now()
     if (this._lastProfileFetchAt && now - this._lastProfileFetchAt < 15000) return
     this._lastProfileFetchAt = now
     account.fetchProfile().then((res) => {
-      if (res && res.ok) this.setData({ accountInfo: build(res) })
+      if (res && res.ok) this.renderAccount(res)
       if (!res || !res.ok) this._lastProfileFetchAt = 0
     })
+  },
+
+  // 头像存的是云文件 ID（cloud://），部分环境 image 组件无法直接加载，
+  // 统一换成临时 https 链接再渲染；换不到就保持空值，回退文字头像。
+  renderAccount(src) {
+    const nickname = (src && src.nickname) || ''
+    const fileID = (src && src.avatar) || ''
+    const seq = (this._avatarSeq || 0) + 1
+    this._avatarSeq = seq
+    this.setData({
+      accountInfo: { nickname: nickname, avatar: '', char: nickname ? nickname.slice(0, 1) : '练' }
+    })
+    if (!fileID) return
+    account.resolveAvatar(fileID).then((url) => {
+      // 换链期间资料可能已更新，丢弃过期结果，避免覆盖新头像。
+      if (!url || seq !== this._avatarSeq) return
+      this.setData({ 'accountInfo.avatar': url })
+    }).catch(() => {})
   },
 
   goAccount() {
@@ -272,6 +286,12 @@ Page({
 
   onCloseLoginFail() {
     this.setData({ loginFailShow: false })
+  },
+
+  // 头像链接失效（如临时链接过期）：回退为文字头像，避免破图。
+  onAvatarError() {
+    this._avatarSeq = (this._avatarSeq || 0) + 1
+    this.setData({ 'accountInfo.avatar': '' })
   },
 
   noop() {},

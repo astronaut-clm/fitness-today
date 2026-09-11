@@ -103,9 +103,9 @@ Page({
     this._avatarChanged = false
     this.setData({
       nickname: info.nickname,
-      avatarUrl: info.avatar,
       avatarChar: charOf(info.nickname)
     })
+    this.showAvatar(info.avatar)
     // 进入时从云端刷新一次，换机场景也能取回资料。
     account.fetchProfile().then((res) => {
       if (!res || !res.ok) return
@@ -113,17 +113,41 @@ Page({
       this._savedNickname = res.nickname
       this.setData({
         nickname: res.nickname,
-        avatarUrl: res.avatar,
         avatarChar: charOf(res.nickname)
       })
+      this.showAvatar(res.avatar)
     })
+  },
+
+  // 云头像存的是文件 ID（cloud://），部分环境 image 组件无法直接加载，
+  // 统一换成临时 https 链接再渲染；非云文件（用户刚选的本地临时图）直接用。
+  showAvatar(fileID) {
+    const id = String(fileID || '')
+    const seq = (this._avatarSeq || 0) + 1
+    this._avatarSeq = seq
+    if (id.indexOf('cloud://') !== 0) {
+      this.setData({ avatarUrl: id })
+      return
+    }
+    this.setData({ avatarUrl: '' })
+    account.resolveAvatar(id).then((url) => {
+      // 换链期间可能已选新头像，丢弃过期结果。
+      if (!url || seq !== this._avatarSeq) return
+      this.setData({ avatarUrl: url })
+    }).catch(() => {})
+  },
+
+  // 头像加载失败（如临时链接过期）：回退文字头像，避免破图。
+  onAvatarError() {
+    this._avatarSeq = (this._avatarSeq || 0) + 1
+    this.setData({ avatarUrl: '' })
   },
 
   onChooseAvatar(e) {
     const tempUrl = (e.detail && e.detail.avatarUrl) || ''
     if (!tempUrl) return
     this._avatarChanged = true
-    this.setData({ avatarUrl: tempUrl })
+    this.showAvatar(tempUrl)
     this.autoSave()
   },
 

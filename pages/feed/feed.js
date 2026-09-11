@@ -3,6 +3,10 @@ const feed = require('../../utils/feed.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
 
+// 已加载过的列表超过该时长后重进页面，静默刷新首页：
+// 既能看到新动态，也顺带更换过期的头像临时链接（有效期约 2 小时）。
+const FEED_REFRESH_INTERVAL = 10 * 60 * 1000
+
 Page({
   data: {
     rows: [],
@@ -43,15 +47,24 @@ Page({
       if (!this.data.showLoginDialog) this.setData({ showLoginDialog: true })
       return
     }
-    if (!this.data.loaded) this.load()
+    if (!this.data.loaded) {
+      this.load()
+      return
+    }
+    // 已加载过：距上次加载超过阈值才重进刷新，避免频繁切页重复请求。
+    const now = Date.now()
+    if (this._lastLoad && now - this._lastLoad < FEED_REFRESH_INTERVAL) return
+    this.load(true)
   },
 
-  load() {
+  // silent：后台静默刷新，失败时保留原列表，不回退到整页错误态。
+  load(silent) {
     if (this.data.loading) return Promise.resolve()
+    this._lastLoad = Date.now()
     this.setData({ loading: true, error: false })
     return feed.list(0).then((res) => {
       if (!res || !res.ok) {
-        this.setData({ loading: false, loaded: true, error: true })
+        this.setData(silent ? { loading: false } : { loading: false, loaded: true, error: true })
         return
       }
       this.setData({
@@ -62,7 +75,7 @@ Page({
         error: false
       })
     }).catch(() => {
-      this.setData({ loading: false, loaded: true, error: true })
+      this.setData(silent ? { loading: false } : { loading: false, loaded: true, error: true })
     })
   },
 
@@ -87,6 +100,20 @@ Page({
 
   onRetry() {
     this.load()
+  },
+
+  // 头像临时链接失效（或云端换链失败回退了 cloud://）：清空该行头像，
+  // 落到已有的文字头像兜底，避免破图。
+  onAvatarError(e) {
+    const index = e.currentTarget.dataset.index
+    if (index == null) return
+    this.setData({ ['rows[' + index + '].avatar']: '' })
+  },
+
+  onCommentAvatarError(e) {
+    const index = e.currentTarget.dataset.index
+    if (index == null) return
+    this.setData({ ['comments[' + index + '].avatar']: '' })
   },
 
   // ---- 发布 ----

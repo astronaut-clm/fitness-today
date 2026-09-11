@@ -42,7 +42,7 @@
         <view wx:for="{{rows}}" wx:key="rank" class="rank-row g-card {{item.isMe ? 'me' : ''}}">
           <view class="rank-no {{item.noClass}}">{{item.rank}}</view>
           <view class="rank-avatar-box">
-            <image wx:if="{{item.avatar}}" class="rank-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+            <image wx:if="{{item.avatar}}" class="rank-avatar" src="{{item.avatar}}" mode="aspectFill" data-index="{{index}}" binderror="onAvatarError"></image>
             <view wx:else class="rank-avatar rank-avatar-fallback">{{item.char}}</view>
           </view>
           <view class="flex1 rank-info">

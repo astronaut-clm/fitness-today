@@ -5,7 +5,7 @@
   <view class="page">
   <view wx:if="{{accountInfo.nickname}}" class="user-card g-card" hover-class="hover" hover-stay-time="100" bindtap="goAccount">
     <view wx:if="{{accountInfo.avatar}}" class="uc-avatar-box">
-      <image class="uc-avatar-img" src="{{accountInfo.avatar}}" mode="aspectFill"></image>
+      <image class="uc-avatar-img" src="{{accountInfo.avatar}}" mode="aspectFill" binderror="onAvatarError"></image>
     </view>
     <view wx:else class="uc-avatar uc-fallback">{{accountInfo.char}}</view>
     <view class="flex1 uc-main">

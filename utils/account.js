@@ -192,6 +192,39 @@ function deleteFile(fileID) {
   return wx.cloud.deleteFile({ fileList: [fileID] }).catch(function () {})
 }
 
+// 云头像 fileID -> 可直接用于 image 组件的 https 临时链接。
+// 部分环境无法直接加载 cloud:// 文件 ID（会当成相对路径请求而失败），统一换链。
+// 临时链接有效期约 2 小时，这里内存缓存 90 分钟，避免反复换取；
+// 换取失败时回退到已过期的旧链接（聊胜于无），彻底拿不到则返回空串，由页面落到文字头像。
+const AVATAR_CACHE = {}
+const AVATAR_TTL = 90 * 60 * 1000
+
+function resolveAvatar(fileID) {
+  const id = String(fileID || '')
+  if (!id) return Promise.resolve('')
+  // 已是普通 URL / 本地临时文件：直接使用。
+  if (id.indexOf('cloud://') !== 0) return Promise.resolve(id)
+  if (!enabled()) return Promise.resolve('')
+
+  const cached = AVATAR_CACHE[id]
+  if (cached && cached.expireAt > Date.now()) return Promise.resolve(cached.url)
+
+  const fallback = (cached && cached.url) || ''
+  return cloud.ready().then(function (ok) {
+    if (!ok || !wx.cloud.getTempFileURL) return fallback
+    return wx.cloud.getTempFileURL({ fileList: [id] }).then(function (res) {
+      const item = (res && res.fileList && res.fileList[0]) || {}
+      const url = item.tempFileURL || ''
+      if (url) AVATAR_CACHE[id] = { url: url, expireAt: Date.now() + AVATAR_TTL }
+      return url || fallback
+    }).catch(function () {
+      return fallback
+    })
+  }).catch(function () {
+    return fallback
+  })
+}
+
 // 云端数据自愈：让 login 云函数把当前 openid 的重复资料/订阅收敛为唯一一份。
 // 服务端幂等，无重复时几乎零成本；登录成功后调用一次即可长期兜底。
 function repair() {
@@ -216,5 +249,6 @@ module.exports = {
   uploadAvatar: uploadAvatar,
   cloudAvatar: cloudAvatar,
   repair: repair,
-  deleteFile: deleteFile
+  deleteFile: deleteFile,
+  resolveAvatar: resolveAvatar
 }

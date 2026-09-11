@@ -55,6 +55,14 @@ Page({
     this.load()
   },
 
+  // 头像临时链接失效（或云函数换链失败回退了 cloud://）：清空该行头像，
+  // 落到已有的文字头像兜底，避免破图。
+  onAvatarError(e) {
+    const index = e.currentTarget.dataset.index
+    if (index == null) return
+    this.setData({ ['rows[' + index + '].avatar']: '' })
+  },
+
   onCancelLogin() {
     this.setData({ showLoginDialog: false })
     wx.navigateBack({ fail: function () {} })

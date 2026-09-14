@@ -21,7 +21,7 @@
         <view class="hero-reason" wx:if="{{recPlan && recPlan.reason}}">{{recPlan.reason}}</view>
         <view class="hero-tags" wx:if="{{recPlan}}"><text class="h-tag">{{recPlan.sceneName}}</text><text class="h-tag">{{recPlan.level}}</text></view>
         <view class="hero-btns">
-          <view class="hbtn hbtn-solid hbtn-short" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">开始训练计划</view>
+          <view class="hbtn hbtn-solid hbtn-short" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">开始今日训练</view>
         </view>
       </view>
     </block>
@@ -31,8 +31,7 @@
         <view class="hero-sub">今天完成 {{todaySummary.count}} 次训练 · 共 {{todaySummary.minutes}} 分钟</view>
         <view class="hero-reason" wx:if="{{todaySummary.latestName}}">最近完成：{{todaySummary.latestName}}</view>
         <view class="hero-btns">
-          <view class="hbtn hbtn-solid" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">再练一次</view>
-          <view class="hbtn hbtn-line" hover-class="hover" hover-stay-time="100" bindtap="goCheckin">查看打卡记录</view>
+          <view class="hbtn hbtn-solid hbtn-short" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">再练一次 Bro!</view>
         </view>
       </view>
     </block>

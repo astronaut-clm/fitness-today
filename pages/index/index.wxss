@@ -100,7 +100,7 @@ page {
 /* Hero 卡片 */
 .hero {
   background: #0058f8;
-  /* 彩色底叠加反白网点（halftone），增强复古网点质感 */
+  /* 彩色底叠加反白网点（halftone），增强复古质感 */
   background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5rpx, transparent 1.6rpx);
   background-size: 8rpx 8rpx;
   border: var(--px) solid var(--ink);
@@ -174,19 +174,6 @@ page {
 .hbtn-short {
   flex: none;
   padding: 0 96rpx;
-}
-
-.hbtn-line {
-  background: #0058f8;
-  color: #ffffff;
-  margin-left: 20rpx;
-  border: var(--pxs) solid #ffffff;
-}
-
-/* 今日已有记录（hero 转绿）后，右侧按钮描边与文字转为黑色 */
-.hero-done .hbtn-line {
-  border-color: var(--ink);
-  color: var(--ink);
 }
 
 .hover {

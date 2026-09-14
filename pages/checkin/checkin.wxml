@@ -71,10 +71,9 @@
         <view class="rec-delete" data-id="{{item.id}}" hover-class="hover" hover-stay-time="100" bindtap="onDeleteRecord">删除</view>
       </view>
       <view class="rec-detail">{{item.detailText}}</view>
-      <view class="rec-meta" wx:if="{{item.groupsText || item.skippedText || item.effortText}}">
+      <view class="rec-meta" wx:if="{{item.groupsText || item.skippedText}}">
         <text wx:if="{{item.groupsText}}">{{item.groupsText}}</text>
         <text wx:if="{{item.skippedText}}">{{item.skippedText}}</text>
-        <text wx:if="{{item.effortText}}">{{item.effortText}}</text>
       </view>
     </view>
   </view>

@@ -1,8 +1,6 @@
 // utils/custom-plans.js 自定义训练计划
-// 每个场景（居家 / 健身房）各保留一份自定义计划，用户自由组合动作库里的动作。
-// 读取时统一「装饰」成与 data/plans.js 内置计划完全一致的结构，
-// 因此计划库列表、计划详情、跟练页都能直接复用，无需区分来源。
-// 登录后按 openid 与云端 ft_users 的 customPlans 字段双向同步（updatedAt 收敛），换机可恢复。
+// 每个场景各一份，读取时装饰成与内置计划一致的结构供各页面复用；
+// 登录后按 openid 与云端双向同步（updatedAt 收敛），换机可恢复。
 const cloud = require('./cloud.js')
 const actionsData = require('../data/actions.js')
 const plansData = require('../data/plans.js')
@@ -34,7 +32,7 @@ function saveStore(store) {
   return safe
 }
 
-// 依据所选动作估算时长 / 消耗 / 难度，避免让用户额外填写这些数值。
+// 依据所选动作估算时长/消耗/难度，免去用户填写
 function estimate(exercises, scene) {
   const gym = scene === 'gym'
   const restPerSet = gym ? 60 : 30
@@ -59,7 +57,7 @@ function planId(scene) {
   return 'custom_' + scene
 }
 
-// 把本地存储的原始计划补全为可渲染的完整计划结构。
+// 把本地原始计划补全为可渲染的完整结构
 function decorate(stored) {
   if (!stored || !stored.scene) return null
   const exercises = (stored.exercises || []).map(function (ex) {
@@ -99,29 +97,29 @@ function decorate(stored) {
   }
 }
 
-// 读取某个场景的自定义计划（无则返回 null）。
+// 读取某场景的自定义计划（无则 null）
 function get(scene) {
   return decorate(getStore().plans[scene])
 }
 
-// 按 id 读取自定义计划（'custom_home' / 'custom_gym'），供详情页 / 跟练页统一解析。
+// 按 id 读取（'custom_home'/'custom_gym'），供详情页/跟练页统一解析
 function getById(id) {
   if (typeof id !== 'string' || id.indexOf('custom_') !== 0) return null
   return get(id.slice(7))
 }
 
-// 某个场景是否有自定义计划。
+// 某场景是否有自定义计划
 function has(scene) {
   return !!get(scene)
 }
 
-// 场景下的自定义计划列表（0 或 1 个），便于计划库统一拼接。
+// 某场景的自定义计划列表（0 或 1 个）
 function listByScene(scene) {
   const plan = get(scene)
   return plan ? [plan] : []
 }
 
-// 保存（新增或覆盖）某场景的自定义计划。
+// 保存（新增或覆盖）某场景自定义计划
 function save(scene, data) {
   if (scene !== 'home' && scene !== 'gym') return null
   const store = getStore()
@@ -150,12 +148,12 @@ function remove(scene) {
   saveStore(store)
 }
 
-// 退出登录时清空本机自定义计划，避免下一账号误用。
+// 退出登录时清空本机自定义计划
 function resetLocal() {
   saveStore(emptyStore())
 }
 
-// 从云端取回自定义计划（云端无记录时返回空，updatedAt = 0）。
+// 从云端取回自定义计划（无记录时 updatedAt=0）
 function pullFromCloud() {
   return cloud.call('cpGet').then(function (res) {
     if (!res || !res.ok) return { ok: false, data: null }
@@ -164,7 +162,7 @@ function pullFromCloud() {
   })
 }
 
-// 把本机自定义计划上传云端（login 云函数落库并刷新 updatedAt）。
+// 上传本机自定义计划到云端
 function pushToCloud() {
   const store = getStore()
   return cloud.call('cpSet', { customPlans: { plans: store.plans, updatedAt: store.updatedAt } }).then(function (res) {
@@ -172,7 +170,7 @@ function pushToCloud() {
   })
 }
 
-// 用云端内容整体覆盖本地（不存在的字段保持为空）。
+// 用云端内容整体覆盖本地
 function applyFromCloud(data) {
   const src = (data && typeof data === 'object') ? data : {}
   const store = {
@@ -183,10 +181,7 @@ function applyFromCloud(data) {
   return store
 }
 
-// 双向收敛（调用方需保证已登录）：
-// - 云端较新：拉取覆盖本地（换机 / 他端改动恢复）
-// - 本地较新：本地上传（首次启用云端 / 刚改过未同步）
-// 返回 { ok, changed }，changed 表示本次本机自定义计划被云端覆盖。
+// 双向收敛（调用方需保证已登录）：云端较新则覆盖本地，本地较新则上传；changed 表示本地被云端覆盖
 function syncFromCloud() {
   return pullFromCloud().then(function (remote) {
     if (!remote || !remote.ok) return { ok: false, changed: false }

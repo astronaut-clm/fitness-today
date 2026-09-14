@@ -3,8 +3,7 @@ const actionsData = require('../../data/actions.js')
 const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
-// 教学指导以动作数据为主（data/actions.js 各动作自带的 tempo / mistakes / regression / alternative）；
-// 未配置专属指导的动作统一回落到这里给出通用建议。
+// 教学指导以动作自带数据为主，未配置的动作回落到这里给出通用建议。
 function defaultGuide() {
   return {
     tempo: '发力阶段平稳呼气，还原阶段控制 2 秒。',

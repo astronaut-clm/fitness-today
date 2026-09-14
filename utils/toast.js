@@ -1,7 +1,5 @@
-// utils/toast.js 页内像素提示（替代原生 wx.showToast）
-// 原生 wx.showToast 由微信客户端渲染，无法使用 wx.loadFontFace 注册的像素字体；
-// 这里改为驱动页内 <px-toast> 组件绘制，保证字体与整体像素风一致。
-// 用法：const toast = require('../../utils/toast.js'); toast.show('已保存', { success: true })
+// utils/toast.js 页内像素提示（替代原生 wx.showToast，以使用像素字体）
+// 用法：toast.show('已保存', { success: true })
 const registry = []
 
 function register(comp) {
@@ -13,7 +11,7 @@ function unregister(comp) {
   if (i >= 0) registry.splice(i, 1)
 }
 
-// 取当前栈顶页面挂载的组件实例，保证提示只出现在用户正在看的页面
+// 取栈顶页面的组件实例，避免提示出现在非当前页
 function currentComponent() {
   const pages = getCurrentPages()
   const current = pages[pages.length - 1]
@@ -29,12 +27,11 @@ function show(text, opts) {
     comp.play(text, opts)
     return
   }
-  // 兜底：当前页未挂载 <px-toast> 时退回原生提示，避免提示丢失
+  // 当前页未挂载 px-toast 时退回原生提示
   wx.showToast({ title: text, icon: (opts && opts.success) ? 'success' : 'none' })
 }
 
-// 提示后延时返回上一页：仅当触发时仍停留在原页面才返回，
-// 避免用户已手动返回/跳转后定时器再触发，导致多退一层。
+// 提示后延时返回上一页；若期间已跳转则不再返回，避免多退一层
 function back(text, opts) {
   show(text, opts)
   const pages = getCurrentPages()

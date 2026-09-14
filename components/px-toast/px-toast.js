@@ -1,6 +1,4 @@
-// components/px-toast/px-toast.js 页内像素提示
-// 原生 wx.showToast 由微信客户端渲染，无法使用 wx.loadFontFace 注册的像素字体；
-// 本组件由 utils/toast.js 统一驱动，在页内绘制以保证字体与整体一致。
+// components/px-toast 页内像素提示（由 utils/toast.js 驱动，以支持像素字体）
 const toast = require('../../utils/toast.js')
 
 Component({
@@ -12,7 +10,7 @@ Component({
 
   lifetimes: {
     attached() {
-      // 记录所属页面，供 utils/toast.js 匹配栈顶页面，避免提示出现在非当前页
+      // 记录所属页面，供 toast 匹配栈顶页
       const pages = getCurrentPages()
       this._page = pages[pages.length - 1]
       toast.register(this)
@@ -25,7 +23,7 @@ Component({
 
   methods: {
     play(text, opts) {
-      // 仅栈顶页面的实例响应，多页叠加时不会重复弹提示
+      // 仅栈顶页实例响应，避免多页重复弹提示
       const pages = getCurrentPages()
       if (pages[pages.length - 1] !== this._page) return
       if (this._timer) clearTimeout(this._timer)

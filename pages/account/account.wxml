@@ -62,7 +62,7 @@
   </view>
 </view>
 
-<!-- 保存中：页内像素加载层（原生 wx.showLoading 无法使用自定义像素字体） -->
+<!-- 保存中：页内像素加载层（原生 showLoading 无法用自定义字体） -->
 <view class="px-loading-mask" wx:if="{{savingShow}}" catchtouchmove="noop">
   <view class="px-loading">
     <view class="px-loading-dot"></view>

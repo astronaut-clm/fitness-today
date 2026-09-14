@@ -1,6 +1,5 @@
-/* custom-tab-bar/index.wxss —— 8-bit NES 多彩像素风底部导航
-   图标为 box-shadow 硬像素绘制（无模糊），不依赖任何图片资源。
-   所有变量均带兜底值，避免组件根节点取不到 app.wxss 的设计令牌。 */
+/* custom-tab-bar/index.wxss 像素风底部导航。图标用 box-shadow 硬像素绘制，
+   变量带兜底值以防组件根节点取不到 app.wxss 令牌。 */
 .tabbar {
   position: fixed;
   left: 0;

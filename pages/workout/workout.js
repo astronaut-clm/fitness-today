@@ -19,8 +19,7 @@ function parseRest(text) {
   return m ? +m[1] : 0
 }
 
-// 语音文案：微信同声传译插件的音色固定、且不支持调节语速/情感，
-// 「激情」只能靠文案与随机化实现，避免同一句话反复播报显得机械。
+// 语音文案：插件音色固定、不支持调速，靠文案与随机化避免反复播报显得机械
 const CHEERS = [
   '加油，你可以的！',
   '燃起来，别停下！',
@@ -56,7 +55,6 @@ function buildGroups(plan) {
       for (let set = 1; set <= (exercise.sets || 1); set++) {
         const seconds = parseSeconds(exercise.reps)
         groups.push({
-          actionId: exercise.actionId,
           name: action.name || exercise.actionId,
           category: action.category || '训练',
           equipment: action.equipment || '',
@@ -105,27 +103,20 @@ Page({
     restLeft: 0,
     costText: '',
     skippedGroups: 0,
-    showFeedback: false,
-    effort: 0,
-    isSaving: false,
-    effortOptions: [1, 2, 3, 4, 5],
-    // 语音播报开关（本地持久化）；voiceSupported 仅插件可用时展示开关
+    // 语音开关（本地持久化）；voiceSupported 仅在插件可用时展示
     voiceOn: true,
     voiceSupported: false,
-    // 自绘导航：状态栏高度（px），用于顶部留白
+    // 自绘导航状态栏高度（px）
     statusBarHeight: 0,
-    // 退出确认弹层是否可见
-    showExitConfirm: false,
     // 恢复上次训练弹层
     showResumeConfirm: false,
-    resumeFinished: false,
     resumeDone: 0
   },
 
   onLoad(options) {
     this.planId = options.id || ''
-    // 全局面板 navigationStyle: custom，需自行预留状态栏高度
-    const win = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
+    // navigationStyle: custom，需自行预留状态栏高度
+    const win = wx.getWindowInfo()
     const topInset = (win && (win.statusBarHeight || (win.safeArea && win.safeArea.top))) || 0
     if (topInset) this.setData({ statusBarHeight: topInset })
     const source = customPlans.getById(this.planId) || plansData.getPlan(this.planId)
@@ -151,7 +142,7 @@ Page({
   onShow() {
     if (this.data.state === 'rest' && this.endAt) {
       this.startInterval()
-      // 回到前台立即校正一次，避免最多 1 秒的倒计时显示延迟
+      // 回前台立即校正，避免最多 1 秒显示延迟
       this.tick()
     }
   },
@@ -176,18 +167,16 @@ Page({
 
   restoreOrStart() {
     const session = sessionStore.belongsTo(this.planId)
-    // 一组都没完成时没有进度可恢复，直接从头开始，不弹「继续上次训练？」。
-    // （finished 态表示已完成未保存，仍需提示，故单独排除）
-    if (!session || (session.state !== 'finished' && Number(session.completed || 0) <= 0)) {
+    // 无已完成组则没有可恢复进度，直接从头开始
+    if (!session || Number(session.completed || 0) <= 0) {
       sessionStore.clear()
       this.startFresh()
       return
     }
-    // 恢复/重开的选择用页内弹层，避免存在未完成训练时页面无响应。
+    // 恢复/重开用页内弹层确认
     this._resumeSession = session
     this.setData({
       showResumeConfirm: true,
-      resumeFinished: session.state === 'finished',
       resumeDone: Number(session.completed || 0)
     })
   },
@@ -197,7 +186,7 @@ Page({
     const session = this._resumeSession
     this.setData({ showResumeConfirm: false })
     this._resumeSession = null
-    if (!session || session.state === 'finished') return
+    if (!session) return
     this.restoreSession(session)
   },
 
@@ -207,25 +196,6 @@ Page({
     this._resumeSession = null
     sessionStore.clear()
     this.startFresh()
-  },
-
-  // 「上次已完成未保存」时返回保存页：训练完成后必须先保存，不允许直接退出
-  onResumeSave() {
-    const session = this._resumeSession
-    this.setData({ showResumeConfirm: false })
-    this._resumeSession = null
-    if (!session) return
-    this.startTs = Number(session.startedAt || Date.now())
-    this.setData({
-      current: this.groups.length,
-      completed: this.groups.length,
-      pctStyle: 'width:100%;',
-      state: 'finished',
-      running: false,
-      skippedGroups: Number(session.skippedGroups || 0),
-      costText: session.costText || '',
-      showFeedback: true
-    })
   },
 
   startFresh() {
@@ -259,7 +229,7 @@ Page({
     })
     this._countPhase = ''
     this._countValue = 0
-    // 恢复后同样播报当前所处阶段，保证每一组都有语音
+    // 恢复后播报当前阶段，保证每组都有语音
     if (state === 'working') {
       this.announceGroup(this.groups[index])
     } else if (restLeft > 0) {
@@ -273,9 +243,9 @@ Page({
 
   persistSession() {
     if (!this.plan || this.data.state === 'finished') return
-    // 恢复弹层尚未选择时不要落盘：此时 data 仍是初始态，覆盖会丢失已存进度。
+    // 恢复弹层未选择时不落盘，避免初始态覆盖已存进度
     if (this.data.showResumeConfirm) return
-    // 一组都没完成时无需保存，避免留下无意义的空进度。
+    // 无已完成组则不保存
     if (Number(this.data.completed || 0) <= 0) return
     sessionStore.save({
       planId: this.planId,
@@ -292,24 +262,34 @@ Page({
     })
   },
 
-  // 进入 finished 态时单独落盘：已完成但未点保存就退出也能被识别，且不会在保存后被 onHide 复活。
-  persistFinished() {
+  // 进入 finished 态时落库为训练记录并清理本地进度
+  finalizeWorkout() {
     if (!this.plan) return
-    sessionStore.save({
-      planId: this.planId,
-      startedAt: this.startTs || Date.now(),
-      current: this.data.current,
-      completed: this.data.completed,
-      state: 'finished',
-      running: false,
-      timeStarted: false,
-      remainingSeconds: 0,
-      restEndsAt: 0,
-      skippedGroups: this.data.skippedGroups,
-      costText: this.data.costText || '',
-      adjustments: adjustments.get(this.planId)
-    })
+    const plan = this.plan
+    const actualSeconds = Math.max(0, Math.round((Date.now() - this.startTs) / 1000))
+    try {
+      store.addRecord({
+        date: dateUtil.today(),
+        type: 'plan',
+        planId: plan.id,
+        planName: plan.name,
+        scene: plan.scene,
+        sceneName: plansData.sceneName(plan.scene),
+        duration: plan.duration,
+        actualSeconds: actualSeconds,
+        actualMinutes: Math.max(1, Math.round(actualSeconds / 60)),
+        completedGroups: this.data.completed - this.data.skippedGroups,
+        totalGroups: this.data.total,
+        skippedGroups: this.data.skippedGroups,
+        adjustmentsSnapshot: adjustments.get(this.planId)
+      })
+      sessionStore.clear()
+    } catch (e) {
+      toast.show('保存失败，请重试')
+    }
   },
+
+
 
   startInterval() {
     if (!this.timer) this.timer = setInterval(() => this.tick(), 1000)
@@ -322,7 +302,7 @@ Page({
     }
   },
 
-  // 页面内延迟任务统一登记，onUnload 时清理，避免返回后回调再触发多退一层/误跳转。
+  // 页面延迟任务统一登记，onUnload 清理，避免返回后回调误触发
   defer(fn, ms) {
     if (!this._timers) this._timers = []
     const id = setTimeout(fn, ms)
@@ -359,7 +339,7 @@ Page({
     }
   },
 
-  // 语音播报：提前合成本次训练会用到的语句，避免每次播报都等网络合成
+  // 提前合成本次训练用到的语句，避免播报时等网络合成
   warmupVoice() {
     if (!voice.available || !voice.enabled()) return
     const phrases = ['3', '2', '1'].concat(CHEERS).concat(FINISH_LINES)
@@ -375,11 +355,11 @@ Page({
 
   announceGroup(group) {
     if (!group) return
-    // 动作名与口号按顺序合成后一次入队，避免未预热时合成回调乱序导致口号先播。
+    // 动作名与口号按序合成后一次入队，避免回调乱序导致口号先播
     voice.speakAll([setVoiceText(group), pickVoiceLine(CHEERS)])
   },
 
-  // 倒数 3/2/1：仅最后 3 秒播报，同一数值不重复
+  // 倒数 3/2/1：仅最后 3 秒播报，同值不重复
   announceCountdown(remain, phase) {
     if (remain > 3) { this._countPhase = ''; this._countValue = 0; return }
     if (remain < 1) return
@@ -433,12 +413,11 @@ Page({
         state: 'finished',
         running: false,
         skippedGroups: skippedGroups,
-        costText: this.calcCost(),
-        showFeedback: true
+        costText: this.calcCost()
       })
       voice.speak(pickVoiceLine(FINISH_LINES))
       this.vibrate('long')
-      this.persistFinished()
+      this.finalizeWorkout()
       return
     }
 
@@ -521,118 +500,15 @@ Page({
   onSkipRest() { this.skipRest() },
   onExtendRest() { this.extendRest() },
 
-  // 顶部返回：训练中打开退出确认弹层；已完成未保存时禁止退出/返回，必须先保存
+  // 顶部返回：与系统右滑返回一致
   onNavBack() {
-    if (this.data.state === 'finished') {
-      // 训练已完成但尚未保存：不允许返回，避免本次成绩丢失
-      if (!this._saved) {
-        toast.show('请先保存本次训练')
-        return
-      }
-      wx.navigateBack({ fail: () => wx.navigateTo({ url: '/pages/plan/plan' }) })
-      return
+    if (this.data.state !== 'finished') {
+      // 训练中：完成过组则保存进度，否则清空
+      if (Number(this.data.completed || 0) > 0) this.persistSession()
+      else sessionStore.clear()
     }
-    // 一组都没完成时没有进度需要保存，直接退出，不弹「退出训练？」。
-    if (Number(this.data.completed || 0) <= 0) {
-      sessionStore.clear()
-      wx.navigateBack({ fail: () => wx.navigateTo({ url: '/pages/plan/plan' }) })
-      return
-    }
-    this.setData({ showExitConfirm: true })
-    // 弹层显示期间冻结倒计时，避免后台继续走表/自动进入下一组
-    this.pauseForDialog()
-  },
-
-  onCancelExit() {
-    this.setData({ showExitConfirm: false })
-    // 继续训练：恢复被打断的倒计时
-    this.resumeAfterDialog()
-  },
-
-  // 暂停倒计时（休息或计时中），记住是否处于运行态以便恢复
-  pauseForDialog() {
-    this._pausedRunning = false
-    if (this.data.state === 'rest') {
-      this.stopInterval()
-      if (this.endAt) {
-        this.setData({ restLeft: Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) })
-        this.endAt = 0
-      }
-      return
-    }
-    if (this.data.state === 'working' && this.data.running) {
-      this._pausedRunning = true
-      this.stopInterval()
-      const remain = this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : this.data.left
-      this.endAt = 0
-      this.setData({ running: false, left: remain })
-    }
-  },
-
-  // 恢复被暂停的倒计时
-  resumeAfterDialog() {
-    if (this.data.state === 'rest') {
-      if (this.data.restLeft > 0) {
-        this.endAt = Date.now() + this.data.restLeft * 1000
-        this.startInterval()
-      } else {
-        this.skipRest()
-      }
-      return
-    }
-    if (this._pausedRunning && this.data.state === 'working') {
-      const left = this.data.left > 0 ? this.data.left : ((this.groups[this.data.current] || {}).seconds || 0)
-      this.endAt = Date.now() + left * 1000
-      this.setData({ running: true })
-      this.startInterval()
-    }
-    this._pausedRunning = false
-  },
-
-  noop() {},
-
-  onConfirmExit() {
-    this.setData({ showExitConfirm: false })
-    this.persistSession()
     wx.navigateBack({ fail: () => wx.navigateTo({ url: '/pages/plan/plan' }) })
   },
 
-  onChooseEffort(e) {
-    this.setData({ effort: Number(e.currentTarget.dataset.value || 0) })
-  },
-
-  onFinishCheckin() {
-    if (this._saving || this._saved) return
-    this._saving = true
-    this.setData({ isSaving: true })
-    const plan = this.plan
-    const actualSeconds = Math.max(0, Math.round((Date.now() - this.startTs) / 1000))
-    try {
-      store.addRecord({
-        date: dateUtil.today(),
-        type: 'plan',
-        planId: plan.id,
-        planName: plan.name,
-        scene: plan.scene,
-        sceneName: plansData.sceneName(plan.scene),
-        duration: plan.duration,
-        actualSeconds: actualSeconds,
-        actualMinutes: Math.max(1, Math.round(actualSeconds / 60)),
-        completedGroups: this.data.completed - this.data.skippedGroups,
-        totalGroups: this.data.total,
-        skippedGroups: this.data.skippedGroups,
-        effort: this.data.effort,
-        adjustmentsSnapshot: adjustments.get(this.planId)
-      })
-      this._saved = true
-      sessionStore.clear()
-      this.setData({ showFeedback: false, isSaving: false })
-      toast.show('训练已保存', { success: true })
-      this.defer(function () { wx.switchTab({ url: '/pages/checkin/checkin' }) }, 700)
-    } catch (e) {
-      this._saving = false
-      this.setData({ isSaving: false })
-      toast.show('保存失败，请重试')
-    }
-  }
+  noop() {},
 })

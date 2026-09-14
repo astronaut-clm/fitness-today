@@ -1,6 +1,7 @@
 <!--pages/workout/workout.wxml 训练跟练-->
 <px-toast></px-toast>
-<!-- 自绘顶部导航：不依赖导航组件的事件链路，返回点击直接绑定页面方法 -->
+<!-- 自绘顶部导航：返回点击直接绑定页面方法 -->
+
   <view class="workout-nav" style="padding-top: {{statusBarHeight}}px;">
     <view class="workout-nav-inner">
       <view class="workout-nav-back" hover-class="hover" hover-stay-time="100" bindtap="onNavBack" aria-role="button" aria-label="返回">
@@ -26,16 +27,8 @@
     <block wx:if="{{state === 'finished'}}">
       <view class="g-card panel done">
         <view class="done-ico">✓</view>
-        <view class="done-title">训练完成！</view>
+        <view class="done-title">训练完成，真棒！</view>
         <view class="done-sub sub">{{planName}} · {{total - skippedGroups}}/{{total}} 组完成 · 用时 {{costText}}</view>
-        <view class="feedback" wx:if="{{showFeedback}}">
-          <view class="feedback-title">这次训练感觉如何？</view>
-          <view class="efforts">
-            <view class="effort {{effort === item ? 'on' : ''}}" wx:for="{{effortOptions}}" wx:key="*this" data-value="{{item}}" bindtap="onChooseEffort">{{item}}</view>
-          </view>
-          <view class="feedback-sub weak">1 很轻松 · 5 很吃力</view>
-        </view>
-        <view class="btn done-btn {{isSaving ? 'plain' : ''}}" hover-class="hover" hover-stay-time="100" bindtap="onFinishCheckin">{{isSaving ? '保存中…' : '保存本次训练'}}</view>
       </view>
     </block>
 
@@ -89,36 +82,14 @@
   </view>
 </scroll-view>
 
-<!-- 退出确认弹层 -->
-<view wx:if="{{showExitConfirm}}" class="mask" catchtouchmove="noop" bindtap="onCancelExit">
-  <view class="dialog" catchtap="noop">
-    <view class="dialog-title">退出训练？</view>
-    <view class="dialog-content">当前进度会自动保存，下次可直接继续</view>
-    <view class="dialog-btns">
-      <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onCancelExit">继续训练</view>
-      <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onConfirmExit">保存并退出</view>
-    </view>
-  </view>
-</view>
-
 <!-- 恢复上次训练弹层 -->
 <view wx:if="{{showResumeConfirm}}" class="mask" catchtouchmove="noop">
   <view class="dialog" catchtap="noop">
-    <block wx:if="{{resumeFinished}}">
-      <view class="dialog-title">上次训练未保存</view>
-      <view class="dialog-content">上次已完成全部训练但未保存</view>
-      <view class="dialog-btns">
-        <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
-        <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeSave">去保存</view>
-      </view>
-    </block>
-    <block wx:else>
-      <view class="dialog-title">继续上次训练？</view>
-      <view class="dialog-content">已完成 {{resumeDone}}/{{total}} 组，可继续或重新开始</view>
-      <view class="dialog-btns">
-        <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
-        <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeContinue">继续训练</view>
-      </view>
-    </block>
+    <view class="dialog-title">继续上次训练？</view>
+    <view class="dialog-content">已完成 {{resumeDone}}/{{total}} 组，可继续或重新开始</view>
+    <view class="dialog-btns">
+      <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
+      <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeContinue">继续训练</view>
+    </view>
   </view>
 </view>

@@ -9,7 +9,7 @@ const login = require('../../utils/login.js')
 const onboarding = require('../../utils/onboarding.js')
 const toast = require('../../utils/toast.js')
 
-// 未登录 / 无数据时首页的默认目标统计，供初始 data 与登出清空复用。
+// 未登录/无数据时的默认目标统计
 const EMPTY_INSIGHT = { weekDays: 0, targetDays: 3, weekMinutes: 0, targetMinutes: 90, dayPercent: 0, minutePercent: 0, coverage: [], dayBar: '', minuteBar: '' }
 
 Page({
@@ -27,13 +27,12 @@ Page({
   },
 
   onShow() {
-    // 自定义 tabBar 选中态：WebView 下 getTabBar 同步返回实例
+    // 自定义 tabBar 选中态（WebView 下 getTabBar 同步返回实例）
     if (typeof this.getTabBar === 'function') {
       const tabBar = this.getTabBar()
       if (tabBar && tabBar.setData) tabBar.setData({ selected: 0 })
     }
-    // 未登录：首页只展示登录入口，不做需要 openid 的拉取与统计，
-    // 并清空上次登录时渲染的统计/打卡数据，避免退出后残留旧数据。
+    // 未登录：只展示登录入口，并清空上次登录残留的统计/打卡数据
     const loggedIn = account.isLoggedIn()
     if (!loggedIn) {
       this.setData({
@@ -49,10 +48,35 @@ Page({
     }
     this.setData({ loggedIn: true })
     this.refresh()
+    this.verifyAccount()
+  },
+
+  // 云端账号校验：文档被清除（清库/删号）时清理本地数据并切回未登录视图
+  verifyAccount() {
+    const now = Date.now()
+    if (this._lastVerifyAt && now - this._lastVerifyAt < 15000) return
+    this._lastVerifyAt = now
+    account.fetchProfile().then((res) => {
+      if (res && res.code === 'no_account') {
+        login.resetLocalData()
+        this.setData({
+          loggedIn: false,
+          streak: 0,
+          recPlan: null,
+          isLogged: false,
+          goalReady: false,
+          todaySummary: null,
+          insight: EMPTY_INSIGHT
+        })
+        return
+      }
+      // 无法判定账号状态时保留登录态，下次 onShow 重试
+      if (!res || !res.ok) this._lastVerifyAt = 0
+    })
   },
 
   refresh(opts) {
-    // 一次读取记录快照，统计与当日汇总都从同一份派生，避免重复遍历/排序。
+    // 一次读取记录快照，统计与当日汇总都从同一份派生
     const records = store.getAllRecords()
     const stats = store.computeStatsFrom(records)
     const currentProfile = profile.get()
@@ -67,7 +91,7 @@ Page({
     const dateText = (now.getMonth() + 1) + '月' + now.getDate() + '日 周' + dateUtil.WEEK_LABELS[now.getDay()]
 
     const minutes = todayRecords.reduce(function (total, record) {
-      return total + Number(record.actualMinutes || record.duration || 0)
+      return total + Number(record.actualMinutes || 0)
     }, 0)
     const latest = todayRecords[todayRecords.length - 1]
     const todaySummary = todayRecords.length ? {
@@ -91,8 +115,7 @@ Page({
   },
 
   goRecPlan() {
-    // 进入计划库挑选任意计划（pick=1），挑中后进入可开始训练的详情页；
-    // 推荐计划仍在首页 hero 文案中展示。
+    // 进入计划库挑选计划（pick=1），挑中后进入详情页
     wx.navigateTo({ url: '/pages/plan/plan?pick=1' })
   },
 
@@ -108,12 +131,7 @@ Page({
     wx.navigateTo({ url: '/pages/feed/feed' })
   },
 
-  goCheckin() {
-    wx.switchTab({ url: '/pages/checkin/checkin' })
-  },
-
-  // 首页一键登录逻辑（utils/login.js）：
-  // 点击「点击登录」按钮选择微信头像即完成登录，昵称默认取 openid 后六位。
+  // 一键登录：选择微信头像即完成登录，昵称默认取 openid 后六位
   onLoginOneTap(e) {
     if (this.data.loginBusy) return
     const tempUrl = (e.detail && e.detail.avatarUrl) || ''
@@ -126,19 +144,19 @@ Page({
         else toast.show('登录失败，请重试')
         return
       }
-      // 登录成功：收起加载层并展示首页内容，随后拉回历史记录与偏好；
-      // 仅全新账号的首次登录（res.newUser）才引导补全偏好与自定义计划，老用户不打扰。
+      // 登录成功：收起加载层并展示首页
       this.setData({ loginBusy: false, loggedIn: true })
-      // 此刻云端数据（训练记录 / 偏好 / 自定义计划）还没拉回来，本地还是登出时重置过的空状态，
-      // 这次刷新只做即时展示、不写当日推荐缓存，避免用不完整数据污染缓存。
+      // 云端数据尚未拉回，本地仍为空态：只做即时展示、不写推荐缓存，避免污染
       this.refresh({ noCache: true })
+      // 云端同步后台执行，不阻塞引导跳转；完成后回填首页并落推荐缓存
       login.syncAfterLogin().then((ok) => {
-        // 同步完成后重算并落缓存：此后当天推荐固定，不会因重新登录而改变。
+        // 同步完成后重算并落缓存，当天推荐固定
         if (ok) this.refresh()
-        if (res.newUser && !onboarding.isDone()) {
-          wx.navigateTo({ url: '/pages/onboarding/onboarding' })
-        }
       })
+      // 仅全新账号首次登录才引导补全资料
+      if (res.newUser && !onboarding.isDone()) {
+        wx.navigateTo({ url: '/pages/onboarding/onboarding' })
+      }
     })
   },
 

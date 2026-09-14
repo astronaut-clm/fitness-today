@@ -83,9 +83,14 @@ page {
   margin: 32rpx 8rpx 16rpx;
 }
 
-.ex-head .weak {
+.ex-head .adjust-reset {
   font-size: 22rpx;
-  font-weight: 400;
+  font-weight: 700;
+  color: var(--card);
+  background: var(--green);
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  padding: 6rpx 18rpx;
 }
 
 .ex-list {
@@ -175,22 +180,6 @@ page {
   margin-left: 12rpx;
 }
 
-.adjust-tip {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 8rpx 16rpx;
-  padding: 16rpx 20rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  background: var(--primary-bg);
-  color: var(--ink);
-  font-size: 24rpx;
-}
-
-.adjust-reset {
-  font-weight: 700;
-}
 
 .bar {
   position: fixed;

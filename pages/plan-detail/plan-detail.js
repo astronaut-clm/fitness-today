@@ -1,4 +1,4 @@
-// pages/plan-detail/plan-detail.js
+// pages/plan-detail/plan-detail.js 计划详情
 const plansData = require('../../data/plans.js')
 const actionsData = require('../../data/actions.js')
 const adjustments = require('../../utils/plan-adjustments.js')
@@ -91,8 +91,7 @@ Page({
       const original = source && (source.exercises || []).filter(function (exercise) { return exercise.actionId === actionId })[0]
       return original && Object.keys(patch).some(function (key) { return patch[key] !== original[key] })
     }))
-    // 已「完成未保存」的 finished 会话不占入口按钮（进入跟练页后再提示重新开始）；
-    // 一组都没完成的会话同样不算进度，按钮显示「开始训练」。
+    // finished 会话、以及一组都没完成的会话都不算进度，按钮显示「开始训练」。
     const activeDone = Number((active && active.completed) || 0)
     this.setData({
       hasActiveSession: !!(active && active.state !== 'finished' && activeDone > 0),

@@ -1,9 +1,7 @@
-// utils/feed.js 铁友圈（帖子列表 / 发布 / 点赞 / 删除 / 举报）
-// 跨用户数据客户端读不到（集合权限为「仅创建者可读写」），
-// 全部经 social 云函数以管理员权限读写。
+// utils/feed.js 铁友圈（列表/发布/点赞/删除/举报，均经 social 云函数以管理员权限读写）
 const cloud = require('./cloud.js')
 
-// 时间戳 -> 相对时间文案（超过一周显示具体日期）。
+// 相对时间文案（超一周显示日期）
 function timeText(ts) {
   const t = Number(ts) || 0
   if (!t) return ''
@@ -16,8 +14,7 @@ function timeText(ts) {
   return (d.getMonth() + 1) + '月' + d.getDate() + '日'
 }
 
-// 拉取列表：cursor 为上一页最后一条的 createdAt（0 表示首页）。
-// 成功 { ok:true, rows, hasMore, nextCursor }，失败 { ok:false }。
+// 拉取列表：cursor 为上一页最后一条 createdAt（0=首页）
 function list(cursor) {
   const data = cursor ? { cursor: cursor } : {}
   return cloud.callTo('social', 'feedList', data).then(function (res) {
@@ -34,7 +31,7 @@ function list(cursor) {
   })
 }
 
-// 发布动态：成功 { ok:true }；失败带 code（empty/too_fast/risky/review/db_error）。
+// 发布动态（失败 code：empty/too_fast/risky/review/db_error）
 function create(content) {
   return cloud.callTo('social', 'feedCreate', { content: content }).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
@@ -42,7 +39,7 @@ function create(content) {
   })
 }
 
-// 点赞 / 取消点赞：成功返回最终态 { ok:true, liked, likeCount }。
+// 点赞/取消点赞，返回最终态
 function like(postId) {
   return cloud.callTo('social', 'feedLike', { postId: postId }).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
@@ -66,8 +63,7 @@ function report(postId, reason) {
   })
 }
 
-// 拉取某帖评论：cursor 为上一页最后一条的 createdAt（0 表示首页）。
-// 成功 { ok:true, rows, hasMore, nextCursor }，失败 { ok:false }。
+// 拉取某帖评论：cursor 为上一页最后一条 createdAt（0=首页）
 function comments(postId, cursor) {
   const data = cursor ? { postId: postId, cursor: cursor } : { postId: postId }
   return cloud.callTo('social', 'commentList', data).then(function (res) {
@@ -84,7 +80,7 @@ function comments(postId, cursor) {
   })
 }
 
-// 发表评论：成功 { ok:true, id, createdAt }；失败带 code（empty/too_fast/risky/review/not_found/db_error）。
+// 发表评论（失败 code：empty/too_fast/risky/review/not_found/db_error）
 function comment(postId, content) {
   return cloud.callTo('social', 'commentCreate', { postId: postId, content: content }).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }

@@ -3,8 +3,7 @@ const feed = require('../../utils/feed.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
 
-// 已加载过的列表超过该时长后重进页面，静默刷新首页：
-// 既能看到新动态，也顺带更换过期的头像临时链接（有效期约 2 小时）。
+// 超过该时长后重进页面静默刷新首页，顺带更新过期的头像临时链接（约 2 小时）。
 const FEED_REFRESH_INTERVAL = 10 * 60 * 1000
 
 Page({
@@ -98,8 +97,7 @@ Page({
     this.load()
   },
 
-  // 头像临时链接失效（或云端换链失败回退了 cloud://）：清空该行头像，
-  // 落到已有的文字头像兜底，避免破图。
+  // 头像链接失效时清空该行头像，落到文字头像兜底，避免破图。
   onAvatarError(e) {
     const index = e.currentTarget.dataset.index
     if (index == null) return

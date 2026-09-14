@@ -1,5 +1,4 @@
-// 难度等级公共常量：内置计划与动作库的 level 字段共用同一套中文文案。
-// tagClass 生成 app.wxss 中的 tag-lv1/2/3 类名；新增等级时同步维护这里即可。
+// 难度等级常量：level 文案与 app.wxss 的 tag-lv1/2/3 类名共用，新增等级在此维护
 const LEVEL_MAP = { 初级: 1, 中级: 2, 高级: 3 }
 
 function tagClass(level) {

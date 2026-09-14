@@ -1,6 +1,5 @@
-// 云函数 social：跨用户内容（排行榜 + 铁友圈）。
-// 客户端读不到别人的数据（集合权限为「仅创建者可读写」），
-// 所有跨用户读写在服务端以管理员权限完成，绕过客户端权限规则。
+// 云函数 social：排行榜 + 铁友圈。跨用户内容客户端读不到（集合仅创建者可读写），
+// 统一在服务端以管理员权限完成读写。
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -39,8 +38,7 @@ function clampNum(value, min, max, fallback) {
 }
 
 // ---- 排行榜（月榜） ----
-// 客户端按本机时区算出自然月 'YYYY-MM' 传入，服务端只做格式校验并换算成
-// [当月1日, 次月1日) 的字符串区间（date 字段为 'YYYY-MM-DD'，字典序即时间序）。
+// 客户端传入本机时区的 'YYYY-MM'，服务端校验后换算成 [当月1日, 次月1日) 的区间。
 function monthRange(month) {
   const m = /^(\d{4})-(\d{2})$/.exec(String(month || ''))
   if (!m) return null
@@ -72,10 +70,10 @@ async function loadUserMap(ids) {
   return map
 }
 
-// 按 _openid 聚合当月累计训练分钟；actualMinutes 缺失时回退 duration。
+// 按 _openid 聚合当月累计训练分钟。
 function rankMinutesExpr() {
   const $ = db.command.aggregate
-  return $.sum($.ifNull(['$actualMinutes', '$duration']))
+  return $.sum('$actualMinutes')
 }
 
 // 取出当月累计分钟前 RANK_TOP 名（原始行，含 openid，仅服务端使用/缓存）。
@@ -143,9 +141,7 @@ function writeRankCache(month, rows, now) {
   }).catch(function () {})
 }
 
-// 免费版云存储默认/锁定为「仅创建者可读写」，客户端无法直接加载别人的头像。
-// 云函数可用管理员权限生成临时 HTTPS 链接，供客户端展示任意用户的头像。
-// 临时链接有效期约 2 小时，榜单缓存只有 60 秒，足够用。
+// 客户端读不到别人的云存储文件，这里用管理员权限批量换临时链接（有效期约 2 小时）。
 async function resolveAvatarTempUrls(rows) {
   const fileIDs = []
   const indexMap = {}
@@ -176,8 +172,7 @@ async function resolveAvatarTempUrls(rows) {
   return out
 }
 
-// 排行榜（月榜）：按月累计训练时长排名。
-// 榜单前 N 名走 60 秒缓存（服务端共享），「我的名次」按当前 openid 实时计算。
+// 排行榜（月榜）：前 N 名走 60 秒共享缓存，「我的名次」按当前 openid 实时计算。
 async function rankMonth(openid, event) {
   const range = monthRange(event && event.month)
   if (!range) return { openid: openid, ok: false, code: 'bad_month' }
@@ -190,8 +185,7 @@ async function rankMonth(openid, event) {
     await writeRankCache(month, raw, now)
   }
 
-  // 免费版云存储锁定「仅创建者可读写」，直接返回 fileID 客户端显示不了。
-  // 用管理员权限批量换临时链接；失败时仍保留原值，由前端 fallback 兜底。
+  // 换临时链接以便客户端展示；失败时保留原值由前端兜底。
   const avatarMap = await resolveAvatarTempUrls(raw)
   const rows = raw.map(function (row, index) {
     return {
@@ -209,10 +203,8 @@ async function rankMonth(openid, event) {
 
 // ---- 铁友圈 ----
 
-// 发布前内容安全检测（v2）。
-// 返回 'pass'（放行）/ 'review'（需人工复核）/ 'risky'（违规）。
-// 注意：若接口本身不可用（如未在 config.json 声明 openapi 权限），这里保守放行并告警，
-// 以免因配置问题导致整个发布功能不可用；上线前请确认权限已配置生效。
+// 发布前内容安全检测（v2）：返回 pass / review / risky。
+// 接口不可用（如未声明 openapi 权限）时保守放行并告警，避免发布功能整体不可用。
 async function checkContent(content, openid) {
   try {
     const res = await cloud.openapi.security.msgSecCheck({

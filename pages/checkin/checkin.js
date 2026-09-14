@@ -3,21 +3,19 @@ const store = require('../../utils/store.js')
 const dateUtil = require('../../utils/date.js')
 const profile = require('../../utils/profile.js')
 const account = require('../../utils/account.js')
+const login = require('../../utils/login.js')
 const toast = require('../../utils/toast.js')
 
 function recordView(record) {
-  const time = new Date(record.createdAt || record.ts)
+  const time = new Date(record.createdAt)
   return {
     id: record.id,
     planName: record.planName,
     sceneName: record.sceneName,
     timeText: dateUtil.pad(time.getHours()) + ':' + dateUtil.pad(time.getMinutes()),
-    detailText: record.actualMinutes
-      ? '实际训练 ' + record.actualMinutes + ' 分钟'
-      : (record.type === 'free' ? '时长 ' + record.duration + ' 分钟' : '训练 ' + record.duration + ' 分钟'),
+    detailText: '实际训练 ' + record.actualMinutes + ' 分钟',
     groupsText: record.completedGroups ? '完成 ' + record.completedGroups + '/' + record.totalGroups + ' 组' : '',
-    skippedText: record.skippedGroups ? '跳过 ' + record.skippedGroups + ' 组' : '',
-    effortText: record.effort ? '主观强度 ' + record.effort + '/5' : ''
+    skippedText: record.skippedGroups ? '跳过 ' + record.skippedGroups + ' 组' : ''
   }
 }
 
@@ -35,7 +33,7 @@ Page({
     selected: '',
     selectedLabel: '',
     selectedRecords: [],
-    // 删除记录确认弹层（页内像素弹窗）
+    // 删除记录确认弹层
     deleteConfirm: { show: false, id: '', name: '' }
   },
 
@@ -50,7 +48,7 @@ Page({
   },
 
   onShow() {
-    // 自定义 tabBar 选中态：WebView 下 getTabBar 同步返回实例
+    // 自定义 tabBar 选中态（WebView 下 getTabBar 同步返回实例）
     if (typeof this.getTabBar === 'function') {
       const tabBar = this.getTabBar()
       if (tabBar && tabBar.setData) tabBar.setData({ selected: 2 })
@@ -62,25 +60,30 @@ Page({
   },
 
   refreshAccount() {
-    // 登录态以「是否完成过登录」为准：未登录一律显示登录卡片，
-    // 避免把云端自动拉回的缓存资料误当成"已登录"而放行训练。
+    // 登录态以「是否完成过登录」为准，未登录一律显示登录卡片
     if (!account.isLoggedIn()) {
       this.setData({ accountInfo: { nickname: '', avatar: '', char: '练' } })
       return
     }
     this.renderAccount(account.get())
-    // 云端资料短时间（15 秒）内只拉一次：频繁切回本 tab 不再重复发起云函数请求；失败则允许下次重试。
+    // 云端资料 15 秒内只拉一次，失败允许下次重试
     const now = Date.now()
     if (this._lastProfileFetchAt && now - this._lastProfileFetchAt < 15000) return
     this._lastProfileFetchAt = now
     account.fetchProfile().then((res) => {
       if (res && res.ok) this.renderAccount(res)
+      // 账号已不存在：清理本地数据并切回未登录视图
+      if (res && res.code === 'no_account') {
+        login.resetLocalData()
+        this.setData({ accountInfo: { nickname: '', avatar: '', char: '练' } })
+        this.reload()
+        return
+      }
       if (!res || !res.ok) this._lastProfileFetchAt = 0
     })
   },
 
-  // 头像存的是云文件 ID（cloud://），部分环境 image 组件无法直接加载，
-  // 统一换成临时 https 链接再渲染；换不到就保持空值，回退文字头像。
+  // 头像存的是 cloud:// 文件 ID，统一换临时 https 链接再渲染，换不到则回退文字头像
   renderAccount(src) {
     const nickname = (src && src.nickname) || ''
     const fileID = (src && src.avatar) || ''
@@ -91,7 +94,7 @@ Page({
     })
     if (!fileID) return
     account.resolveAvatar(fileID).then((url) => {
-      // 换链期间资料可能已更新，丢弃过期结果，避免覆盖新头像。
+      // 换链期间资料可能已更新，丢弃过期结果
       if (!url || seq !== this._avatarSeq) return
       this.setData({ 'accountInfo.avatar': url })
     }).catch(() => {})
@@ -101,9 +104,7 @@ Page({
     wx.navigateTo({ url: '/pages/account/account' })
   },
 
-  // 登录后自动与云端收敛偏好配置与自定义计划：
-  // 一次 userGet 往返同时拉回两者（云端较新则覆盖并刷新统计，本地较新则自动补传云端）。
-  // 非强制（force）的重复 onShow 30 秒内跳过，避免频繁切回本 tab 产生多余云函数调用。
+  // 登录后与云端收敛偏好与自定义计划（一次 userGet 拉回两者）；非 force 的重复 onShow 30 秒内跳过
   syncPrefs(force) {
     if (!account.isLoggedIn()) return Promise.resolve(false)
     const now = Date.now()
@@ -125,7 +126,7 @@ Page({
   },
 
   reload() {
-    // 一次读取记录快照，统计、日历与当日明细都从同一份派生，避免一轮内多次全量读取。
+    // 一次读取记录快照，统计/日历/明细都从同一份派生
     this._records = store.getAllRecords()
     this.setData({ stats: store.computeStatsFrom(this._records) })
     this.renderCalendar()
@@ -136,7 +137,7 @@ Page({
     const records = store.getDateMapFrom(this._records || store.getAllRecords())
     const selected = this.data.selected
     const today = this.data.todayStr
-    // 每周行改为 { key, cells }：key 取该行首个格子的稳定标识，供 WXML 外层 wx:key 使用
+    // 每周行 { key, cells }：key 取该行首格标识，供 WXML wx:key 使用
     const weeks = dateUtil.monthGrid(this.data.year, this.data.month).map(function (week) {
       return {
         key: week[0].key,
@@ -207,7 +208,7 @@ Page({
     this.refreshSelected()
   },
 
-  // 删除记录：页内像素确认弹层
+  // 删除记录确认弹层
   onDeleteRecord(e) {
     const id = e.currentTarget.dataset.id
     const record = store.getRecord(id)
@@ -228,7 +229,7 @@ Page({
     toast.show('已删除')
   },
 
-  // 头像链接失效（如临时链接过期）：回退为文字头像，避免破图。
+  // 头像链接失效（临时链接过期）时回退文字头像
   onAvatarError() {
     this._avatarSeq = (this._avatarSeq || 0) + 1
     this.setData({ 'accountInfo.avatar': '' })

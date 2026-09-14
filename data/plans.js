@@ -1,6 +1,5 @@
-// 训练计划库（内置演示数据）
-// scene: home=居家 / gym=健身房；level: 初级/中级/高级
-// exercises 内为完成一组循环所需的动作；loop>1 表示整组循环重复轮数
+// 训练计划库（内置演示数据）。scene: home / gym；loop>1 表示整组循环重复轮数。
+
 
 const scenes = [
   { value: 'home', name: '居家' },

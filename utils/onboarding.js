@@ -1,6 +1,4 @@
-// utils/onboarding.js 登录后「完善资料」引导的完成标记
-// 首次登录后引导用户补全训练偏好与自定义计划；完成或跳过后写入标记，避免重复打扰。
-// 退出登录时清除，保证同一设备上换账号后仍会被引导。
+// utils/onboarding.js 登录后「完善资料」引导标记（完成/跳过后写入，退出登录时清除）
 const KEY = 'ft_onboarding_v1'
 
 function isDone() {

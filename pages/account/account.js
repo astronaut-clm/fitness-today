@@ -1,14 +1,7 @@
-// pages/account/account.js 个人设置（头像昵称）
-// 使用微信「头像昵称填写能力」：头像走 chooseAvatar、昵称走 nickname 输入框。
-// 资料最终按 openid 写入云端 ft_users（经 login 云函数），保证换机可恢复。
+// pages/account/account.js 个人设置：头像走 chooseAvatar、昵称走 nickname 输入框，资料按 openid 写入云端 ft_users。
 const account = require('../../utils/account.js')
-const store = require('../../utils/store.js')
-const sessionStore = require('../../utils/workout-session.js')
-const profile = require('../../utils/profile.js')
-const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
-const onboarding = require('../../utils/onboarding.js')
-const recommend = require('../../utils/recommend.js')
+const login = require('../../utils/login.js')
 const font = require('../../utils/font.js')
 const toast = require('../../utils/toast.js')
 
@@ -36,7 +29,7 @@ Page({
     wx.navigateTo({ url: '/pages/custom-plan/custom-plan' })
   },
 
-  // 返回个人设置时刷新自定义计划状态提示与字体选择。
+  // 返回本页时刷新自定义计划提示与字体选择。
   onShow() {
     this.refreshCustomHint()
     this.refreshFont()
@@ -47,7 +40,7 @@ Page({
     this.setData({ usePixelFont: font.getChoice() === 'pixel' })
   },
 
-  // 像素字体开关：开启可即时生效；关闭需重启小程序（已加载的像素字体无法卸载）。
+  // 像素字体开启即时生效；关闭需重启小程序（已加载字体无法卸载）。
   onTogglePixelFont(e) {
     const on = !!(e.detail && e.detail.value)
     font.setChoice(on ? 'pixel' : 'system')
@@ -74,7 +67,7 @@ Page({
     this.setData({ customHint: parts.length ? '已设置：' + parts.join(' · ') : '自由组合动作，设置你的专属计划' })
   },
 
-  // 退出登录：页内确认弹层。
+  // 退出登录：页内确认弹层
   onLogout() {
     this.setData({ showLogoutConfirm: true })
   },
@@ -83,19 +76,10 @@ Page({
     this.setData({ showLogoutConfirm: false })
   },
 
-  // 确认后清空本机训练记录与个人偏好/调整并暂停云端同步；
-  // 云端数据保留，同一微信再次登录时自动拉回。
+  // 清空本机数据并暂停同步，云端保留，同一微信再登录时自动拉回。
   onConfirmLogout() {
     this.setData({ showLogoutConfirm: false })
-    account.logout()
-    store.clearLocal()
-    sessionStore.clear()
-    profile.resetLocal()
-    adjustments.resetLocal()
-    customPlans.resetLocal()
-    onboarding.resetLocal()
-    // 推荐依赖记录 / 偏好 / 自定义计划，这些都已被重置，当日推荐缓存同步清掉
-    recommend.resetCache()
+    login.resetSession()
     toast.back('已退出，记录已清空')
   },
 
@@ -113,6 +97,12 @@ Page({
     this.showAvatar(info.avatar)
     // 进入时从云端刷新一次，换机场景也能取回资料。
     account.fetchProfile().then((res) => {
+      // 云端账号不存在（清库/删号）：清理本地数据并退回上一页。
+      if (res && res.code === 'no_account') {
+        login.resetLocalData()
+        toast.back('账号已失效，请重新登录')
+        return
+      }
       if (!res || !res.ok) return
       this._remoteAvatar = res.avatar
       this._savedNickname = res.nickname
@@ -124,8 +114,7 @@ Page({
     })
   },
 
-  // 云头像存的是文件 ID（cloud://），部分环境 image 组件无法直接加载，
-  // 统一换成临时 https 链接再渲染；非云文件（用户刚选的本地临时图）直接用。
+  // 云头像存的是 fileID（cloud://），统一换临时 https 链接再渲染；本地临时图直接用。
   showAvatar(fileID) {
     const id = String(fileID || '')
     const seq = (this._avatarSeq || 0) + 1

@@ -19,7 +19,7 @@ page {
   opacity: 0.86;
 }
 
-/* 自绘顶部导航（页面树内元素，返回点击与动作按钮同一套事件机制） */
+/* 自绘顶部导航：返回与动作按钮用同一套事件机制 */
 .workout-nav {
   width: 100%;
   box-sizing: border-box;
@@ -49,7 +49,7 @@ page {
   z-index: 10;
 }
 
-/* 与系统导航默认返回箭头同款：‹ 宽12px 高24px 字号20px */
+/* 与系统导航返回箭头同款：‹ 12x24px、字号 20px */
 .workout-nav-arrow {
   width: 12px;
   height: 24px;
@@ -67,7 +67,7 @@ page {
   color: var(--ink);
 }
 
-/* 语音播报开关：与计划名同一行，右侧对齐（插件可用时才展示） */
+/* 语音开关：与计划名同行右对齐（插件可用时展示） */
 .plan-voice {
   flex: none;
   margin-left: 16rpx;
@@ -95,7 +95,7 @@ page {
   padding: 8rpx;
 }
 
-/* 计划名与语音开关同一行：开关与计划名顶部对齐 */
+/* 计划名与语音开关同行、顶部对齐 */
 .plan-row {
   display: flex;
   align-items: center;
@@ -146,7 +146,7 @@ page {
   font-weight: 700;
 }
 
-/* 面板：复用全局 .g-card 的描边 / 硬阴影 / 抖动网点，仅覆盖间距与对齐 */
+/* 复用全局 .g-card 样式，仅覆盖间距与对齐 */
 .panel {
   padding: 64rpx 40rpx 48rpx;
   margin-top: 32rpx;
@@ -279,12 +279,6 @@ page {
   margin-top: 10rpx;
 }
 
-.done-btn {
-  margin-top: 40rpx;
-  background: var(--primary);
-  color: var(--card);
-}
-
 .next-preview {
   font-size: 22rpx;
   margin-top: 18rpx;
@@ -365,45 +359,4 @@ page {
 .dialog-btn.primary {
   background: var(--primary);
   color: var(--card);
-}
-
-.feedback {
-  margin-top: 38rpx;
-  padding: 24rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  background: var(--card2);
-}
-
-.feedback-title {
-  font-size: 26rpx;
-  font-weight: 700;
-}
-
-.efforts {
-  display: flex;
-  justify-content: center;
-  margin-top: 18rpx;
-}
-
-.effort {
-  width: 48rpx;
-  height: 48rpx;
-  line-height: 48rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  color: var(--ink2);
-  background: var(--card);
-  margin: 0 8rpx;
-  font-size: 24rpx;
-}
-
-.effort.on {
-  color: var(--card);
-  background: var(--primary);
-}
-
-.feedback-sub {
-  margin-top: 12rpx;
-  font-size: 22rpx;
 }

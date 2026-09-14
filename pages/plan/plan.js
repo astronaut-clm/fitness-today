@@ -1,4 +1,4 @@
-// pages/plan/plan.js
+// pages/plan/plan.js 训练计划库
 const plansData = require('../../data/plans.js')
 const customPlans = require('../../utils/custom-plans.js')
 const store = require('../../utils/store.js')
@@ -21,8 +21,7 @@ const levelTabs = [
   { value: '高级', name: '高级' }
 ]
 
-// 把内置 / 自定义计划统一转成列表卡片数据，便于拼接展示。
-// activeId：当前有未完成训练（进行中）的计划 id，用于把底部入口文案改为「继续训练」。
+// 把内置/自定义计划统一转成列表卡片数据。activeId 为进行中的计划 id，用于展示「继续训练」。
 function toCard(p, done, recId, activeId) {
   const rounds = p.loop || 1
   return {
@@ -51,17 +50,16 @@ Page({
     scene: 'home',
     level: '',
     list: [],
-    // 挑选模式：从首页「开始训练计划」进入，选中计划即可开始训练
+    // 挑选模式：从首页「开始今日训练」进入，选中计划即可开始训练
     pick: false
   },
 
   onLoad(options) {
-    // 从首页「开始训练计划」进入时（pick=1）允许直接开始训练；默认仅供浏览。
+    // 从首页「开始今日训练」进入时（pick=1）允许直接开始训练；默认仅供浏览。
     this.pick = !!(options && options.pick === '1')
     this.setData({ pick: this.pick })
-    // 与首页 hero 对齐：当日推荐计划若不在默认场景，首次进入时定位到其所在场景，
-    // 否则当前标签下看不到该计划的「今日推荐」标签，两处展示会不一致。
-    // 一次读取记录快照，推荐与列表统计共用，避免重复全量读取。
+    // 与首页 hero 对齐：推荐计划不在默认场景时定位过去，避免两处展示不一致。
+    // 记录快照供推荐与列表统计共用，避免重复全量读取。
     const allRecords = store.getAllRecords()
     const recPlan = recommend.pick(allRecords, profile.get())
     if (recPlan && (recPlan.scene === 'home' || recPlan.scene === 'gym') && recPlan.scene !== this.data.scene) {
@@ -129,8 +127,7 @@ Page({
 
   goDetail(e) {
     const id = e.currentTarget.dataset.id
-    // 计划库默认仅用于浏览：进入只读详情页。
-    // 从首页「开始训练计划」进入的 pick 模式下，进入可开始训练的详情页。
+    // 默认仅浏览（只读详情）；首页「开始今日训练」的 pick 模式才可开始训练。
     wx.navigateTo({ url: '/pages/plan-detail/plan-detail?id=' + id + (this.pick ? '' : '&readonly=1') })
   }
 })

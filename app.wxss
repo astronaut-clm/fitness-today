@@ -1,7 +1,6 @@
 /**app.wxss 全局样式与设计变量 —— 8-bit NES 多彩像素主题**/
 page {
-  /* ===== NES 多彩（红黄蓝） + 白色画布 =====
-     描边/文字用黑，强调色取自红黄蓝，成功用绿；页面与卡片底为白 */
+  /* NES 多彩（红黄蓝）+ 白色画布：描边/文字用黑，强调色红黄蓝，成功用绿，底色为白 */
   --ink: #1a1a1a;        /* 黑：主文字 / 描边 */
   --ink2: #4a4a4a;       /* 灰：次级文字 */
   --ink3: #7a7a7a;       /* 中灰：弱化文字（提升白底对比度） */
@@ -24,9 +23,9 @@ page {
   color: var(--ink);
   font-size: 28rpx;
   line-height: 1.5;
-  /* 像素字体优先（运行时由 wx.loadFontFace 注册）；未加载时（未选像素字体 / 加载失败）回退系统字体栈 */
+  /* 像素字体优先（运行时注册），未加载时回退系统字体栈 */
   font-family: "Zpix", -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
-  /* 关闭抗锯齿，让笔画边缘生硬、带锯齿，更接近像素观感 */
+  /* 关闭抗锯齿，保留生硬锯齿，更接近像素观感 */
   -webkit-font-smoothing: none;
   font-smooth: never;
   letter-spacing: 1rpx;
@@ -35,7 +34,7 @@ page {
 /* 通用卡片：直角 + 深色描边 + 像素硬阴影 + 抖动网点纹理 */
 .g-card {
   background: var(--card);
-  /* 抖动网点：4x4 像素棋盘格，叠在卡片底色上形成颗粒质感 */
+  /* 抖动网点：4x4 棋盘格叠在底色上形成颗粒质感 */
   background-image:
     linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%),
     linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%);
@@ -78,10 +77,8 @@ page {
   border: var(--px) solid var(--ink);
 }
 
-/* 像素按键反馈（配合 hover-class="hover"）
-   有硬阴影的元素：按下时阴影收合、整体沉入阴影位置；
-   无硬阴影的按键：轻微下沉并压暗，模拟物理按键被按下。
-   注意：无 transition，保持像素风的「瞬切」手感。 */
+/* 像素按键反馈（配合 hover-class="hover"）：有硬阴影的收合阴影下沉，无阴影的轻微下沉压暗；
+   不用 transition，保持像素风的瞬切手感。 */
 .btn.btn-primary.hover,
 .g-card.hover {
   box-shadow: none;
@@ -96,7 +93,6 @@ page {
 .switch-btn.hover,
 .goal-guide-btn.hover,
 .cal-arrow.hover,
-.effort.hover,
 .chip.hover,
 .goal-item.hover,
 .rec-delete.hover,
@@ -167,11 +163,9 @@ page {
   min-width: 0;
 }
 
-/* ===================================================================
-   复古屏幕增强：像素转角
-   =================================================================== */
+/* ===== 复古屏幕增强：像素转角 ===== */
 
-/* --- 像素转角：强制全站直角，清除组件默认圆角的最后残留 --- */
+/* 像素转角：强制全站直角，清除组件默认圆角 */
 button,
 input,
 textarea,
@@ -193,10 +187,7 @@ input::after {
   border-radius: 0;
 }
 
-/* ===================================================================
-   统一像素弹窗，跟随全局像素字体
-   用法：.px-mask（遮罩）> .px-dialog（卡片）> 标题/正文/输入/按钮
-   =================================================================== */
+/* 统一像素弹窗，跟随全局像素字体。用法：.px-mask > .px-dialog > 标题/正文/输入/按钮 */
 .px-mask {
   position: fixed;
   left: 0;
@@ -269,8 +260,7 @@ input::after {
   color: var(--card);
 }
 
-/* 统一像素加载提示：替代原生 wx.showLoading（原生层无法使用自定义像素字体）
-   用法：.px-loading-mask（遮罩）> .px-loading（卡片）> 闪烁方块 + 文案 */
+/* 统一像素加载提示，替代原生 wx.showLoading。用法：.px-loading-mask > .px-loading > 方块 + 文案 */
 .px-loading-mask {
   position: fixed;
   left: 0;

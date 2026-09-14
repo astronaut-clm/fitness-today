@@ -18,14 +18,10 @@
       <view class="notice-round">{{plan.roundsText}}</view>
     </view>
 
-    <!-- 动作清单 -->
+    <!-- 动作清单：修改组数后右上角提供「恢复默认」 -->
     <view class="ex-head">
       <view class="flex1">训练动作</view>
-      <text class="weak">点击动作查看教学</text>
-    </view>
-    <view class="adjust-tip" wx:if="{{hasAdjustments}}">
-      <text>已使用个人调整</text>
-      <text wx:if="{{!readonly}}" class="adjust-reset" hover-class="hover" hover-stay-time="100" bindtap="onRestoreDefault">恢复默认</text>
+      <text wx:if="{{!readonly && hasAdjustments}}" class="adjust-reset" hover-class="hover" hover-stay-time="100" bindtap="onRestoreDefault">恢复默认</text>
     </view>
 
     <view class="g-card ex-list">
@@ -55,7 +51,7 @@
   </view>
 </scroll-view>
 
-<!-- 底部操作栏：只读模式（计划库浏览）不提供开始训练入口 -->
+<!-- 底部操作栏：只读模式不提供开始训练入口 -->
 <view class="bar" wx:if="{{plan && !readonly}}">
   <view class="bar-info">
     <view class="bar-time num">{{plan.duration}} 分钟</view>

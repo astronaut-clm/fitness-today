@@ -1,4 +1,4 @@
-// custom-tab-bar/index.js —— 8-bit NES 像素风自定义 tabBar
+// custom-tab-bar 像素风 tabBar
 Component({
   data: {
     selected: 0,

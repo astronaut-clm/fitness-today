@@ -5,7 +5,7 @@ const account = require('../../utils/account.js')
 const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
-// 新加入动作时的默认组数与目标：时长类动作给秒数，其余给次数。
+// 新加入动作的默认目标：时长类动作给秒数，其余给次数。
 function defaultReps(action) {
   if (!action) return '12次'
   if (action.category === '有氧') return '30秒'
@@ -34,7 +34,7 @@ Page({
     this.loadScene(scene)
   },
 
-  // 载入某场景已有计划；没有则给出默认名称与空动作列表。
+  // 载入某场景已有计划，没有则用默认名称与空动作列表。
   loadScene(scene) {
     const existing = customPlans.get(scene)
     const selected = existing ? existing.exercises.map(function (ex) {
@@ -97,7 +97,7 @@ Page({
     this.buildPicker()
   },
 
-  // 点击动作库条目：未选则加入，已选则移除。
+  // 点击动作库条目：未选加入，已选移除
   onToggleAction(e) {
     const actionId = e.currentTarget.dataset.id
     const index = this.data.selected.map(function (item) { return item.actionId }).indexOf(actionId)

@@ -29,22 +29,21 @@ function todayAndYesterday() {
   return { today: t, yesterday: addDays(t, -1) }
 }
 
-// 一周中文星期标签（下标与 getDay() 对齐：0 = 周日），供各处周几文案复用
+// 中文星期标签（下标对齐 getDay()，0 = 周日）
 const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
-// 月历表头标签：monthGrid 每行以周一为起始，故按「一 二 三 四 五 六 日」排列；由 WEEK_LABELS 派生避免重复维护
+// 月历表头（周一开头，由 WEEK_LABELS 派生）
 const WEEK_HEAD_LABELS = WEEK_LABELS.slice(1).concat(WEEK_LABELS.slice(0, 1))
 
-// 某年某月共多少天（month: 1-12）
+// 某年某月天数（month: 1-12）
 function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate()
 }
 
-// 生成月历网格（每周一为起始，不足补空）
-// cells: { key, date, day, inMonth }
+// 生成月历网格（周一开头，首尾补空格）
 function monthGrid(year, month) {
   const first = new Date(year, month - 1, 1)
-  const offset = (first.getDay() + 6) % 7 // 周一为一周开始
+  const offset = (first.getDay() + 6) % 7 // 周一开头
   const total = daysInMonth(year, month)
   const weeks = []
   const days = []

@@ -55,8 +55,7 @@ function score(plan, records, profile, recentMuscles) {
   return { value: value, reasons: reasons }
 }
 
-// 候选计划 = 内置计划 + 用户自定义计划（居家 / 健身房各一份），
-// 让自定义计划也能进入推荐打分、成为当日推荐。
+// 候选 = 内置计划 + 用户自定义计划（各场景一份）
 function candidates() {
   const list = plansData.plans.slice()
   ;['home', 'gym'].forEach(function (scene) {
@@ -66,7 +65,7 @@ function candidates() {
   return list
 }
 
-// 给原始计划补展示字段（场景名 / 推荐理由），不改动原始数据
+// 补展示字段（场景名/推荐理由），不改原始数据
 function decorate(rawPlan, reason) {
   const plan = Object.assign({}, rawPlan)
   plan.sceneName = plansData.sceneName(plan.scene)
@@ -93,9 +92,7 @@ function writeCache(data) {
   try { wx.setStorageSync(CACHE_KEY, data) } catch (e) {}
 }
 
-// 影响推荐打分的偏好内容签名（场景 / 经验 / 目标 / 器械）。
-// 不能用 profile.updatedAt 当缓存键：云端同步会刷新该时间戳（内容其实没变），
-// 会造成「偏好已改」的误判，导致当天推荐莫名重选。
+// 影响打分的偏好内容签名（场景/经验/目标/器械）；不能用 updatedAt 当键，云端同步会刷新它导致误判重选
 function prefsSignature(profile) {
   const p = profile || {}
   const scenes = (p.scenes || []).slice().sort()
@@ -103,7 +100,7 @@ function prefsSignature(profile) {
   return [p.goal || '', scenes.join(','), p.experience || '', equipment.join(',')].join('|')
 }
 
-// 纯算法：按记录 + 偏好打分选出最优计划
+// 按记录 + 偏好打分选出最优计划
 function compute(records, profile) {
   const recent = insights.recentMuscles(records, 2)
   const scored = candidates().map(function (plan) {
@@ -116,12 +113,8 @@ function compute(records, profile) {
   return decorate(best.plan, best.reasons[0])
 }
 
-// 当日推荐：同一天内保持稳定，避免练完当日推荐后记录变化（近期部位/未练过加分）导致改选。
-// 命中缓存（同一天且偏好内容未变）直接返回原计划；用户真正改了偏好才重新推荐。
-//
-// opts.noCache：只算不写缓存。用于「数据尚未同步完成」的过渡态——登录成功那一刻本地是
-// 登出时重置过的偏好 + 清空的记录 / 自定义计划，此时算出的结果与账号真实数据无关，
-// 一旦落进当日缓存就会在偏好签名不变时被反复命中，表现为「重新登录后今日推荐会变」。
+// 当日推荐：当天内稳定，命中缓存（同日且偏好未变）直接返回，改偏好才重选。
+// opts.noCache：只算不写，用于登录后数据尚未同步的过渡态，避免污染缓存
 function pick(records, profile, opts) {
   const today = dateUtil.today()
   const sig = prefsSignature(profile)
@@ -137,8 +130,7 @@ function pick(records, profile, opts) {
   return plan
 }
 
-// 退出登录时清空当日推荐缓存：本机记录 / 偏好 / 自定义计划都会被重置，
-// 缓存里的计划已不再对应当前账号的完整数据，留着会造成「旧缓存 + 新数据」的错配。
+// 退出登录时清空当日推荐缓存，避免旧缓存与新账号数据错配
 function resetCache() {
   try { wx.removeStorageSync(CACHE_KEY) } catch (e) {}
 }

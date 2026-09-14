@@ -31,7 +31,7 @@ function build(records, profile) {
   const coverage = {}
   weekRecords.forEach(function (record) {
     dateSet[record.date] = true
-    minutes += Number(record.actualMinutes || record.duration || 0)
+    minutes += Number(record.actualMinutes || 0)
     if (record.type === 'plan') addCategory(coverage, record.planId)
   })
 

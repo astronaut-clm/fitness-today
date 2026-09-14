@@ -1,16 +1,13 @@
-// utils/plan-adjustments.js 个人计划调整，绝不修改内置计划数据。
-// 调整仅保存于本机，所有计划（内置与自定义）都不参与云端同步。
+// utils/plan-adjustments.js 个人计划调整（仅存本机，不参与云端同步，不改内置计划数据）
 const KEY = 'ft_plan_adjustments_v1'
 
 function emptyStore() {
   return { plans: {} }
 }
 
-// 兼容旧版本 { plans, updatedAt } 与直接存储「planId -> adjustment」的结构。
 function normalizeStore(raw) {
   if (!raw || typeof raw !== 'object') return emptyStore()
-  if (raw.plans && typeof raw.plans === 'object') return { plans: raw.plans }
-  return { plans: raw }
+  return { plans: (raw.plans && typeof raw.plans === 'object') ? raw.plans : {} }
 }
 
 function getStore() {
@@ -53,8 +50,7 @@ function clear(planId) {
   saveStore(store)
 }
 
-// 应用本机调整：覆盖各动作组数；组数变化时按总组数比例重算时长与热量，
-// 让计划详情、跟练记录跟随个人调整（未调整时保持内置计划的原始数值）。
+// 应用本机调整：覆盖各动作组数，组数变化时按比例重算时长与热量
 function apply(plan) {
   const adjustment = get(plan.id)
   const copy = Object.assign({}, plan)
@@ -75,7 +71,7 @@ function apply(plan) {
   return copy
 }
 
-// 退出登录时清空本机调整（纯本机数据，重新登录不会拉回）。
+// 退出登录时清空本机调整
 function resetLocal() {
   saveStore(emptyStore())
 }

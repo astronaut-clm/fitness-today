@@ -1,10 +1,8 @@
-// utils/records.js 训练记录仓库（v2）
-// v2 以记录 ID 为主键，支持同一天多次训练。
-// 单设备语义：删除即物理删除——本地墓碑仅用于「离线删除后等待同步确认」的临时缓冲。
+// utils/records.js 训练记录仓库（以记录 ID 为主键，支持一天多次训练）
+// 单设备语义：删除即物理删除，本地墓碑仅作离线删除待同步的临时缓冲
 const dateUtil = require('./date.js')
 
 const KEY = 'ft_checkin_records_v2'
-const LEGACY_KEY = 'ft_checkin_records_v1'
 const VERSION = 2
 
 function emptyStore() {
@@ -18,7 +16,7 @@ function clone(obj) {
 }
 
 function makeId(date, ts, index) {
-  // 末尾追加随机段，避免同设备同毫秒、本地记录数相同时生成的 ID 冲突。
+  // 末尾随机段避免 ID 冲突
   const random = Math.random().toString(36).slice(2, 6)
   return 'r_' + String(date || '').replace(/-/g, '') + '_' + String(ts || Date.now()) + '_' + String(index || 0) + '_' + random
 }
@@ -26,32 +24,19 @@ function makeId(date, ts, index) {
 function normalize(record, fallbackDate, index) {
   if (!record) return null
   const date = record.date || fallbackDate || dateUtil.today()
-  const createdAt = Number(record.createdAt || record.ts || Date.now())
-  const updatedAt = Number(record.updatedAt || record.ts || createdAt)
+  const createdAt = Number(record.createdAt || Date.now())
+  const updatedAt = Number(record.updatedAt || createdAt)
   const id = record.id || makeId(date, createdAt, index)
   const next = clone(record)
   next.id = id
   next.date = date
   next.createdAt = createdAt
   next.updatedAt = updatedAt
-  next.ts = updatedAt
   next.deletedAt = Number(next.deletedAt || 0)
   return next
 }
 
-function migrateLegacy() {
-  let legacy = {}
-  try { legacy = wx.getStorageSync(LEGACY_KEY) || {} } catch (e) {}
-  const store = emptyStore()
-  Object.keys(legacy).forEach(function (date, index) {
-    const rec = normalize(legacy[date], date, index)
-    if (rec) store.records[rec.id] = rec
-  })
-  return store
-}
-
-// 进程内缓存：读路径直接遍历缓存对象、写路径才克隆整表；
-// 每次写入都会经 saveStore 刷新缓存（写后失效）。
+// 进程内缓存：读写都基于缓存，写入后经 saveStore 刷新
 let cacheStore = null
 
 function readStored() {
@@ -64,23 +49,15 @@ function readStored() {
   return null
 }
 
-// 确保缓存已就绪（含 v1 迁移），返回缓存原对象，供只读路径直接使用。
+// 确保缓存就绪，返回缓存原对象供只读路径使用
 function ensureStore() {
   if (!cacheStore) {
-    cacheStore = readStored()
-    if (!cacheStore) {
-      cacheStore = migrateLegacy()
-      try {
-        wx.setStorageSync(KEY, { version: VERSION, records: clone(cacheStore.records) })
-        // 迁移成功后再清理 v1 存储：若 v2 写入失败则保留旧数据，避免丢失。
-        wx.removeStorageSync(LEGACY_KEY)
-      } catch (e) {}
-    }
+    cacheStore = readStored() || emptyStore()
   }
   return cacheStore
 }
 
-// 写路径：返回 records 浅拷贝，调用方可安全增删键而不污染缓存。
+// 写路径：返回 records 浅拷贝，避免污染缓存
 function getStore() {
   return { version: VERSION, records: clone(ensureStore().records) }
 }
@@ -97,7 +74,7 @@ function saveStore(store) {
 
 function getAll(options) {
   const opts = options || {}
-  // 只读遍历缓存原对象；normalize 会逐条 clone，调用方拿到的仍是独立副本。
+  // 只读遍历缓存原对象；normalize 逐条 clone，调用方拿到独立副本
   const records = ensureStore().records
   return Object.keys(records).map(function (id) {
     return normalize(records[id], '', id)
@@ -117,7 +94,7 @@ function getById(id, includeDeleted) {
   return normalized
 }
 
-// 从已读取的记录数组派生「日期 -> 记录」映射，供调用方一次读取后复用同一份快照。
+// 从记录数组派生「日期 → 记录」映射
 function getDateMapFrom(list) {
   const out = {}
   ;(list || []).forEach(function (record) {
@@ -134,7 +111,6 @@ function add(record) {
   next.id = (record && record.id) || makeId(next.date, now, Object.keys(store.records).length)
   next.createdAt = Number((record && record.createdAt) || now)
   next.updatedAt = now
-  next.ts = now
   next.deletedAt = 0
   store.records[next.id] = next
   saveStore(store)
@@ -148,13 +124,12 @@ function remove(id) {
   const now = Date.now()
   current.deletedAt = now
   current.updatedAt = now
-  current.ts = now
   store.records[id] = current
   saveStore(store)
   return current
 }
 
-// 硬删除：直接把某条记录从本机移除（云端已确认物理删除后调用）。
+// 硬删除：从本机移除某条记录（云端已确认物理删除后调用）
 function drop(id) {
   const store = getStore()
   if (!store.records[id]) return null
@@ -164,7 +139,7 @@ function drop(id) {
   return rec
 }
 
-// 清理本机已同步的墓碑记录（deletedAt > 0）：云端已物理删除，本地不再保留删除标记。
+// 清理本机已同步的墓碑记录（deletedAt > 0）
 function purgeDeleted() {
   const store = getStore()
   let count = 0
@@ -198,18 +173,17 @@ function mergeRemote(remoteRecords) {
     const r = normalize(remote, '', remote && remote.id)
     if (!r) return
     const localRecord = normalize(merged[r.id], '', r.id)
-    if (!localRecord || Number(r.updatedAt || r.ts) > Number(localRecord.updatedAt || localRecord.ts)) {
+    if (!localRecord || Number(r.updatedAt) > Number(localRecord.updatedAt)) {
       merged[r.id] = r
       changed = true
     }
   })
-  // 云端没有更新的记录时直接返回，避免每轮同步都全量重写本地存储（同步 I/O）。
+  // 无更新则直接返回，避免每轮同步全量重写本地存储
   if (!changed) return { version: VERSION, records: clone(merged) }
   return replaceAll(merged)
 }
 
-// 只对快照做一次读取，避免同一轮统计里反复 getAll（重复读存储、排序、clone）。
-// computeStatsFrom 接收已读取的记录数组，供调用方一次读取后派生统计。
+// 从已读取的记录数组派生统计，避免同一轮反复 getAll
 function computeStatsFrom(list) {
   const dateMap = getDateMapFrom(list)
   const dates = Object.keys(dateMap).sort()
@@ -229,7 +203,7 @@ function computeStatsFrom(list) {
     if (date.indexOf(ym) !== 0) return
     monthCount++
     dateMap[date].forEach(function (record) {
-      monthMinutes += Number(record.actualMinutes || record.duration || 0)
+      monthMinutes += Number(record.actualMinutes || 0)
     })
   })
 

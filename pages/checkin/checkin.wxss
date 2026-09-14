@@ -1,7 +1,7 @@
 /* pages/checkin/checkin.wxss */
 /* 自定义导航栏与内容区共用视口，避免底部内容被页面边界裁切。 */
 page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-/* 滚动条归属 scroll-view：padding 必须放在内层容器，否则会把内层滚动层挤窄，滚动条内缩不贴右。 */
+/* padding 必须放内层容器，否则内层滚动层被挤窄、滚动条不贴右。 */
 .scrollarea { flex: 1; min-height: 0; overflow-y: hidden; background: var(--bg, #ffffff); }
 .page { box-sizing: border-box; padding: 24rpx 28rpx 0; }
 .user-card { display: flex; align-items: center; gap: 18rpx; padding: 22rpx 24rpx; margin-bottom: 20rpx; }

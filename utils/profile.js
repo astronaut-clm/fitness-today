@@ -1,6 +1,4 @@
-// utils/profile.js 用户偏好配置与目标
-// 偏好平时保存在本机；登录后可与云端（login 云函数写 ft_users 的 prefs 字段）按 openid 双向同步，
-// 换设备登录可自动恢复，多端以 updatedAt 时间戳收敛。
+// utils/profile.js 用户偏好配置与目标（本机存储，登录后按 openid 与云端双向同步，updatedAt 收敛）
 const cloud = require('./cloud.js')
 const customPlans = require('./custom-plans.js')
 
@@ -17,7 +15,7 @@ const defaults = {
   updatedAt: 0
 }
 
-// 训练偏好选项与表单渲染：个人设置页与登录后引导页共用，保证两处选项与选中态一致。
+// 偏好选项与表单项：个人设置页与引导页共用
 const goals = [
   { value: 'fat_loss', name: '减脂塑形', desc: '优先安排轻量高效训练' },
   { value: 'muscle_gain', name: '增肌增重', desc: '优先安排力量训练' }
@@ -83,7 +81,7 @@ function completed(profile) {
   return !!((p.scenes && p.scenes.length) || (p.equipment && p.equipment.length) || p.updatedAt)
 }
 
-// 从云端取回偏好配置（云端无记录时返回默认值，updatedAt = 0）。
+// 从云端取回偏好（无记录时 updatedAt=0）
 function pullFromCloud() {
   return cloud.call('prefsGet').then(function (res) {
     if (!res || !res.ok) return { ok: false, prefs: null }
@@ -92,7 +90,7 @@ function pullFromCloud() {
   })
 }
 
-// 把本机偏好上传云端（由 login 云函数落库并刷新 updatedAt）。
+// 上传本机偏好到云端
 function pushToCloud() {
   const p = get()
   const payload = {
@@ -108,7 +106,7 @@ function pushToCloud() {
   })
 }
 
-// 用云端内容整体覆盖本地偏好（字段缺失回落到默认值）。
+// 用云端内容整体覆盖本地偏好
 function applyFromCloud(prefs) {
   const src = (prefs && typeof prefs === 'object') ? prefs : {}
   const next = {}
@@ -119,11 +117,7 @@ function applyFromCloud(prefs) {
   return next
 }
 
-// 双向收敛（调用方需保证已登录）：
-// - 云端无记录且本地也未保存过：什么都不做
-// - 云端较新：拉取覆盖本地（换机 / 他端改动恢复）
-// - 本地较新：本地上传（首次启用云端 / 刚改过未同步）
-// 返回 { ok, changed }，changed 表示本次本机偏好被云端覆盖。
+// 双向收敛（调用方需保证已登录）：云端较新则覆盖本地，本地较新则上传；changed 表示本地被云端覆盖
 function syncFromCloud() {
   return pullFromCloud().then(function (remote) {
     if (!remote || !remote.ok) return { ok: false, changed: false }
@@ -144,10 +138,8 @@ function syncFromCloud() {
   })
 }
 
-// 偏好 + 自定义计划的一次往返收敛（checkin 页 onShow / 登录成功后调用）。
-// 两字段同存于 ft_users，userGet 一次返回，比分别 syncFromCloud 少云函数请求；
-// 本机较新的一方仍各自 push 补传，两端同为空或相同时不产生写入。
-// 注意：个人计划调整仅存本机，不参与云端同步。
+// 偏好 + 自定义计划一次往返收敛（userGet 一次取回）；本机较新的一方各自补传。
+// 注意：个人计划调整仅存本机，不参与同步。
 function syncFromCloudAll() {
   return cloud.call('userGet').then(function (res) {
     if (!res || !res.ok) return { ok: false, changed: false }
@@ -188,7 +180,7 @@ function syncFromCloudAll() {
   })
 }
 
-// 退出登录时清空本机偏好（云端保留，重新登录后按账号拉回），避免下一账号误用/误推上一账号的配置。
+// 退出登录时清空本机偏好（云端保留，重新登录后按账号拉回）
 function resetLocal() {
   const next = {}
   Object.keys(defaults).forEach(function (key) { next[key] = defaults[key] })

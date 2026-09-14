@@ -27,20 +27,12 @@
   "packOptions": {
     "ignore": [
       {
-        "value": ".woff2",
-        "type": "suffix"
-      },
-      {
         "value": ".md",
         "type": "suffix"
       },
       {
-        "value": "assets/fonts",
+        "value": "assets",
         "type": "folder"
-      },
-      {
-        "value": "assets/avatar.png",
-        "type": "file"
       }
     ],
     "include": []

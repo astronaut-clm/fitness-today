@@ -1,14 +1,13 @@
 // pages/tutorial-detail/tutorial-detail.js
 const actionsData = require('../../data/actions.js')
 const config = require('../../utils/config.js')
-const account = require('../../utils/account.js')
 const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
-// 拼接动作演示动画的云存储 fileID：cloud://<env.bucket>/actions/<id>.gif
+// 拼接动作演示动画地址：<ACTION_CDN_PREFIX><id>.gif（jsDelivr 直链，不经过云存储）
 function actionImage(id) {
-  if (!config.ENABLE_CLOUD || !config.ACTION_FILE_PREFIX) return ''
-  return config.ACTION_FILE_PREFIX + 'actions/' + id + '.gif'
+  if (!id || !config.ACTION_CDN_PREFIX) return ''
+  return config.ACTION_CDN_PREFIX + id + '.gif'
 }
 
 // 教学指导以动作自带数据为主，未配置的动作回落到这里给出通用建议。
@@ -53,7 +52,7 @@ Page({
       view: {
         id: a.id,
         name: a.name,
-        image: '',
+        image: actionImage(a.id),
         category: a.category,
         equipment: a.equipment,
         level: a.level,
@@ -70,15 +69,6 @@ Page({
       },
       related: related
     })
-
-    // cloud:// 不能直接给 image 渲染，与头像同一路径换取 https 临时链接
-    const fileID = actionImage(a.id)
-    if (fileID) {
-      const self = this
-      account.resolveAvatar(fileID).then(function (url) {
-        if (url) self.setData({ 'view.image': url })
-      })
-    }
   },
 
   onImgError() {

@@ -21,7 +21,7 @@
       <view class="brief-level"><text class="tag {{view.lvClass}}">{{view.level}}</text></view>
     </view>
 
-    <!-- 动作演示动画（云存储） -->
+    <!-- 动作演示动画（jsDelivr 直链） -->
     <view class="g-card anim-card" wx:if="{{view.image}}">
       <view class="section-title anim-title">动作演示</view>
       <image class="anim-img" src="{{view.image}}" mode="aspectFit" binderror="onImgError" />

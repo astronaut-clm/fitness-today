@@ -187,7 +187,7 @@ function deleteFile(fileID) {
 }
 
 // 云文件 fileID → https 临时链接（image 组件不能直接用 cloud://）。
-// 统一走云函数 fileUrl：服务端管理员 token 绕过存储权限规则，头像与动作动画通用。
+// 统一走云函数 fileUrl：服务端管理员 token 绕过存储权限规则，用于用户头像等云端资源。
 // 内存缓存 90 分钟，换取失败回退旧链接，彻底失败返回空串。
 const AVATAR_CACHE = {}
 const AVATAR_TTL = 90 * 60 * 1000

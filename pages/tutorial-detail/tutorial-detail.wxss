@@ -66,10 +66,23 @@ page {
   margin-bottom: 16rpx;
 }
 
+.anim-frame {
+  /* 源视频为 1:1 正方形，容器须同比例，否则 <video> 补边处会露出原生黑底。
+     容器固定尺寸 + 裁剪溢出：<video> 原生层按物理像素取整，边缘总会差出不到 1px；
+     由容器裁掉视频多出的部分，任何机型的取整误差都落在容器外面，不会露出黑线 */
+  width: 420rpx;
+  height: 420rpx;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
 .anim-img {
   display: block;
-  width: 100%;
-  height: 420rpx;
+  /* 四周各比容器大 2rpx，多出的部分被 anim-frame 裁掉；background 兜底防止缝隙透黑 */
+  width: calc(100% + 4rpx);
+  height: calc(100% + 4rpx);
+  margin: -2rpx;
+  background: #ffffff;
 }
 
 /* 内容卡 */

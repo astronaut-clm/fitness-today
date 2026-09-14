@@ -21,32 +21,26 @@
       <view class="brief-level"><text class="tag {{view.lvClass}}">{{view.level}}</text></view>
     </view>
 
-    <!-- 动作演示：优先 <video> 循环播放，未配置 MP4 或加载失败时退回 GIF -->
-    <!-- 注：<video> 在 controls=false 时官方规定 poster 不生效，故加载瞬间会短暂空白 -->
-    <view class="g-card anim-card" wx:if="{{view.video || view.image}}">
+    <!-- 动作演示：<video> 循环播放，未配置 MP4 或加载失败时整卡不渲染 -->
+    <!-- 注：视频起播那一瞬会短暂显示原生黑底（控件关闭时 poster 不生效，平台限制） -->
+    <!-- anim-frame 只负责定尺寸并裁剪溢出，用于吃掉 <video> 原生层在边缘残留的黑细线（见 wxss） -->
+    <view class="g-card anim-card" wx:if="{{view.video}}">
       <view class="section-title anim-title">动作演示</view>
-      <video
-        wx:if="{{view.video}}"
-        class="anim-img"
-        src="{{view.video}}"
-        poster="{{view.image}}"
-        autoplay
-        loop
-        muted
-        object-fit="contain"
-        controls="{{false}}"
-        show-center-play-btn="{{false}}"
-        show-fullscreen-btn="{{false}}"
-        enable-progress-gesture="{{false}}"
-        binderror="onVideoError"
-      />
-      <image
-        wx:else
-        class="anim-img"
-        src="{{view.image}}"
-        mode="aspectFit"
-        binderror="onImgError"
-      />
+      <view class="anim-frame">
+        <video
+          class="anim-img"
+          src="{{view.video}}"
+          autoplay
+          loop
+          muted
+          object-fit="cover"
+          controls="{{false}}"
+          show-center-play-btn="{{false}}"
+          show-fullscreen-btn="{{false}}"
+          enable-progress-gesture="{{false}}"
+          binderror="onVideoError"
+        />
+      </view>
     </view>
 
     <!-- 动作要点 -->

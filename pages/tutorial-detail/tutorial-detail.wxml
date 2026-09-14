@@ -14,11 +14,17 @@
       <view class="hero-meta">目标肌群：{{view.muscles}}</view>
     </view>
 
-    <!-- 简介 -->
+    <!-- 动作简介 -->
     <view class="g-card brief">
       <view class="section-title">动作简介</view>
       <view class="brief-text">{{view.summary}}</view>
       <view class="brief-level"><text class="tag {{view.lvClass}}">{{view.level}}</text></view>
+    </view>
+
+    <!-- 动作演示动画（云存储） -->
+    <view class="g-card anim-card" wx:if="{{view.image}}">
+      <view class="section-title anim-title">动作演示</view>
+      <image class="anim-img" src="{{view.image}}" mode="aspectFit" binderror="onImgError" />
     </view>
 
     <!-- 动作要点 -->

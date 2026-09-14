@@ -186,8 +186,9 @@ function deleteFile(fileID) {
   return wx.cloud.deleteFile({ fileList: [fileID] }).catch(function () {})
 }
 
-// 云头像 fileID → image 可用的 https 临时链接（部分环境无法直接加载 cloud://）；
-// 内存缓存 90 分钟，换取失败回退旧链接，彻底失败返回空串
+// 云文件 fileID → https 临时链接（image 组件不能直接用 cloud://）。
+// 统一走云函数 fileUrl：服务端管理员 token 绕过存储权限规则，头像与动作动画通用。
+// 内存缓存 90 分钟，换取失败回退旧链接，彻底失败返回空串。
 const AVATAR_CACHE = {}
 const AVATAR_TTL = 90 * 60 * 1000
 
@@ -202,16 +203,12 @@ function resolveAvatar(fileID) {
   if (cached && cached.expireAt > Date.now()) return Promise.resolve(cached.url)
 
   const fallback = (cached && cached.url) || ''
-  return cloud.ready().then(function (ok) {
-    if (!ok || !wx.cloud.getTempFileURL) return fallback
-    return wx.cloud.getTempFileURL({ fileList: [id] }).then(function (res) {
-      const item = (res && res.fileList && res.fileList[0]) || {}
-      const url = item.tempFileURL || ''
-      if (url) AVATAR_CACHE[id] = { url: url, expireAt: Date.now() + AVATAR_TTL }
-      return url || fallback
-    }).catch(function () {
-      return fallback
-    })
+  // 用 invoke 直接调用 fileUrl，避免 cloud.call 要求 openid
+  return cloud.invoke('fileUrl', { fileList: [id] }).then(function (res) {
+    const list = (res && res.result && res.result.fileList) || []
+    const url = (list[0] && list[0].tempFileURL) || ''
+    if (url) AVATAR_CACHE[id] = { url: url, expireAt: Date.now() + AVATAR_TTL }
+    return url || fallback
   }).catch(function () {
     return fallback
   })

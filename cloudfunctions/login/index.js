@@ -91,6 +91,24 @@ exports.main = async (event) => {
   const action = event && event.action
 
   if (!action || action === 'openid') return { openid: OPENID }
+
+  // 换取云存储临时 https 链接：服务端管理员 token 可绕过「仅创建者可读写」规则，
+  // 供管理员上传的资源（如动作演示动画）使用；入参 fileList，返回每项 tempFileURL，限 20 个
+  if (action === 'fileUrl') {
+    const list = Array.isArray(event.fileList) ? event.fileList.slice(0, 20) : []
+    const r = await cloud.getTempFileURL({ fileList: list }).catch(function () { return { fileList: [] } })
+    return {
+      openid: OPENID,
+      fileList: ((r && r.fileList) || []).map(function (item) {
+        return {
+          fileID: (item && item.fileID) || '',
+          tempFileURL: (item && item.tempFileURL) || '',
+          status: item && item.status
+        }
+      })
+    }
+  }
+
   if (!OPENID) return { openid: '' }
 
   // 个人设置按 openid 精确读写，天然按用户隔离。

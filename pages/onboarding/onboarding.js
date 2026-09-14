@@ -1,4 +1,4 @@
-// pages/onboarding/onboarding.js 登录后引导：补全训练偏好 → 创建自定义计划（均可跳过）
+// 登录后引导：补全训练偏好 → 创建自定义计划（均可跳过）
 const profile = require('../../utils/profile.js')
 const customPlans = require('../../utils/custom-plans.js')
 const account = require('../../utils/account.js')
@@ -79,7 +79,6 @@ Page({
     this.setData({ weeklyTargetMinutes: this.current.weeklyTargetMinutes })
   },
 
-  // 落库当前偏好（已登录时同步云端）
   savePrefs() {
     profile.save(this.current)
     if (account.isLoggedIn()) profile.pushToCloud()
@@ -104,7 +103,6 @@ Page({
     this.onExit()
   },
 
-  // 从第二步返回第一步，可重新设置训练偏好
   onPrevStep() {
     this.setData({ step: 1 })
   },

@@ -1,9 +1,7 @@
-/* pages/onboarding/onboarding.wxss 登录后引导 */
 page { height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
 .scrollarea { flex: 1; overflow-y: hidden; }
 .page { padding: 24rpx 32rpx 200rpx; }
 
-/* 步骤指示 */
 .steps { display: flex; align-items: center; gap: 16rpx; margin: 8rpx 8rpx 28rpx; }
 .step { display: flex; align-items: center; gap: 12rpx; color: var(--ink3); font-size: 26rpx; }
 .step.on { color: var(--ink); font-weight: 700; }
@@ -11,7 +9,6 @@ page { height: 100vh; display: flex; flex-direction: column; background: var(--b
 .step.on .step-no { background: var(--primary); color: var(--card); }
 .step-line { flex: 1; height: var(--pxs); background: var(--ink); }
 
-/* 标题 */
 .intro { margin: 8rpx 8rpx 24rpx; }
 .intro-title { color: var(--ink); font-size: 42rpx; font-weight: 800; }
 .intro-sub { margin-top: 8rpx; font-size: 24rpx; }
@@ -34,7 +31,6 @@ page { height: 100vh; display: flex; flex-direction: column; background: var(--b
 .slider-area { flex: 1; min-width: 0; padding-top: 2rpx; }
 .slider-row slider { width: 100%; }
 
-/* 自定义计划入口 */
 .cp-entry { margin-top: 20rpx; }
 .cp-badge { display: flex; align-items: center; justify-content: center; width: 72rpx; height: 72rpx; margin-right: 20rpx; border: var(--pxs) solid var(--ink); background: var(--primary-bg); color: var(--ink); font-size: 24rpx; font-weight: 700; }
 .cn-main { min-width: 0; }
@@ -43,7 +39,6 @@ page { height: 100vh; display: flex; flex-direction: column; background: var(--b
 .cp-arrow { color: var(--ink3); font-size: 40rpx; }
 .cp-item { margin-top: 16rpx; color: var(--ink2); font-size: 25rpx; line-height: 1.6; }
 
-/* 底部操作条 */
 .foot-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; gap: 12rpx; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: var(--px) solid var(--ink); background: var(--card); }
 .foot-row { display: flex; align-items: stretch; gap: 20rpx; }
 /* 按钮内两行文案：主操作 + 小字提示 */

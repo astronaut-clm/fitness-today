@@ -1,4 +1,4 @@
-// utils/profile.js 用户偏好配置与目标（本机存储，登录后按 openid 与云端双向同步，updatedAt 收敛）
+// 用户偏好配置与目标：本机存储，登录后按 openid 与云端双向同步，updatedAt 收敛
 const cloud = require('./cloud.js')
 const customPlans = require('./custom-plans.js')
 
@@ -90,7 +90,6 @@ function pullFromCloud() {
   })
 }
 
-// 上传本机偏好到云端
 function pushToCloud() {
   const p = get()
   const payload = {
@@ -106,7 +105,6 @@ function pushToCloud() {
   })
 }
 
-// 用云端内容整体覆盖本地偏好
 function applyFromCloud(prefs) {
   const src = (prefs && typeof prefs === 'object') ? prefs : {}
   const next = {}
@@ -146,7 +144,6 @@ function syncFromCloudAll() {
     let changed = false
     const pushTasks = []
 
-    // —— 训练偏好 ——
     const remotePrefs = (res.prefs && typeof res.prefs === 'object') ? res.prefs : {}
     const remotePrefsTs = Number(remotePrefs.updatedAt || 0)
     const localPrefs = get()
@@ -160,7 +157,6 @@ function syncFromCloudAll() {
       }
     }
 
-    // —— 自定义计划 ——
     const remoteCustom = (res.customPlans && typeof res.customPlans === 'object') ? res.customPlans : {}
     const remoteCustomTs = Number(remoteCustom.updatedAt || 0)
     const localCustomTs = Number(customPlans.getStore().updatedAt || 0)

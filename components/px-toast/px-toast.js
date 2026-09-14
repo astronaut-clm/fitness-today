@@ -1,4 +1,4 @@
-// components/px-toast 页内像素提示（由 utils/toast.js 驱动，以支持像素字体）
+// 页内像素提示：由 utils/toast.js 驱动，以支持像素字体
 const toast = require('../../utils/toast.js')
 
 Component({

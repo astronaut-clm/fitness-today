@@ -1,4 +1,3 @@
-// pages/index/index.js
 const store = require('../../utils/store.js')
 const dateUtil = require('../../utils/date.js')
 const profile = require('../../utils/profile.js')
@@ -144,13 +143,11 @@ Page({
         else toast.show('登录失败，请重试')
         return
       }
-      // 登录成功：收起加载层并展示首页
       this.setData({ loginBusy: false, loggedIn: true })
       // 云端数据尚未拉回，本地仍为空态：只做即时展示、不写推荐缓存，避免污染
       this.refresh({ noCache: true })
       // 云端同步后台执行，不阻塞引导跳转；完成后回填首页并落推荐缓存
       login.syncAfterLogin().then((ok) => {
-        // 同步完成后重算并落缓存，当天推荐固定
         if (ok) this.refresh()
       })
       // 仅全新账号首次登录才引导补全资料

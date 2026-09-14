@@ -1,4 +1,3 @@
-<!-- pages/account/account.wxml 个人设置 -->
 <navigation-bar title="个人设置" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y>
@@ -23,6 +22,14 @@
       <view class="menu-copy">
         <view class="menu-title">偏好配置</view>
         <view class="weak menu-sub">训练目标 · 场地 · 器械 · 每周目标</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <view wx:if="{{isAdmin}}" class="g-card menu-card" hover-class="hover" hover-stay-time="100" bindtap="goAdminReport">
+      <view class="menu-copy">
+        <view class="menu-title">举报审核</view>
+        <view class="weak menu-sub">查看铁友圈待处理举报</view>
       </view>
       <view class="menu-arrow">›</view>
     </view>

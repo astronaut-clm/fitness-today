@@ -1,4 +1,3 @@
-<!-- pages/checkin/checkin.wxml -->
 <navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y>
@@ -71,9 +70,6 @@
         <view class="rec-delete" data-id="{{item.id}}" hover-class="hover" hover-stay-time="100" bindtap="onDeleteRecord">删除</view>
       </view>
       <view class="rec-detail">{{item.detailText}}</view>
-      <view class="rec-meta" wx:if="{{item.skippedText}}">
-        <text>{{item.skippedText}}</text>
-      </view>
     </view>
   </view>
   <view wx:else class="empty g-card">

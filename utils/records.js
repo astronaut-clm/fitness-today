@@ -1,4 +1,4 @@
-// utils/records.js 训练记录仓库（以记录 ID 为主键，支持一天多次训练）
+// 训练记录仓库（以记录 ID 为主键，支持一天多次训练）
 // 单设备语义：删除即物理删除，本地墓碑仅作离线删除待同步的临时缓冲
 const dateUtil = require('./date.js')
 
@@ -94,7 +94,6 @@ function getById(id, includeDeleted) {
   return normalized
 }
 
-// 从记录数组派生「日期 → 记录」映射
 function getDateMapFrom(list) {
   const out = {}
   ;(list || []).forEach(function (record) {
@@ -139,7 +138,6 @@ function drop(id) {
   return rec
 }
 
-// 清理本机已同步的墓碑记录（deletedAt > 0）
 function purgeDeleted() {
   const store = getStore()
   let count = 0

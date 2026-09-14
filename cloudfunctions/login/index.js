@@ -19,7 +19,6 @@ function clampNum(value, min, max, fallback) {
   return Math.min(max, Math.max(min, num))
 }
 
-// 清洗训练偏好：类型收敛，缺失回落默认值。
 function cleanPrefs(raw) {
   const p = (raw && typeof raw === 'object') ? raw : {}
   return {

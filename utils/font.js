@@ -1,5 +1,4 @@
-// utils/font.js 像素字体加载（wx.loadFontFace 只认 https 直链，故托管于 jsDelivr）；
-// 按 FONT_URLS 顺序尝试，全失败则静默回退系统字体
+// wx.loadFontFace 只认 https 直链，故字体托管于 jsDelivr；按 FONT_URLS 顺序尝试，全失败则静默回退系统字体
 const config = require('./config.js')
 
 // 会话级标记：注册成功后在 wx 上打标，避免热重载重复下载
@@ -10,7 +9,6 @@ let loading = null
 // 单源超时（视为失败，回退下一个源）
 const TIMEOUT = 25000
 
-// ---- 字体偏好（个人设置页可选，持久化本机） ----
 // pixel=加载 Zpix；system=系统字体。注册后无法卸载，关回系统字体需重启小程序
 const CHOICE_KEY = 'ft_font_choice_v1'
 
@@ -26,7 +24,6 @@ function setChoice(value) {
   return next
 }
 
-// 加载单个字体源，成功 true 失败 false
 function loadOne(url) {
   return new Promise(function (resolve) {
     let settled = false
@@ -56,12 +53,9 @@ function loadOne(url) {
   })
 }
 
-// 按序尝试所有字体源，返回是否注册成功
 function load() {
-  // 系统字体：不加载自定义字体
   if (getChoice() !== 'pixel') return Promise.resolve(false)
   if (loading) return loading
-  // 已注册过则跳过，避免重复加载
   if (wx[LOADED_MARK]) return Promise.resolve(true)
 
   const urls = (config.FONT_URLS || []).slice()

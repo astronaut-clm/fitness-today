@@ -1,4 +1,3 @@
-<!--pages/workout/workout.wxml 训练跟练-->
 <px-toast></px-toast>
 <!-- 自绘顶部导航：返回点击直接绑定页面方法 -->
 
@@ -27,8 +26,32 @@
     <block wx:if="{{state === 'finished'}}">
       <view class="g-card panel done">
         <view class="done-ico">✓</view>
-        <view class="done-title">训练完成，真棒！</view>
+        <view class="done-title">{{doneTitle}}</view>
         <view class="done-sub sub">{{planName}} · {{total - skippedGroups}}/{{total}} 组完成 · 用时 {{costText}}</view>
+        <view class="done-cheer">{{doneCheer}}</view>
+
+        <view class="done-stats">
+          <view class="ds-item" wx:for="{{doneStats}}" wx:key="label">
+            <view class="ds-val">{{item.value}}</view>
+            <view class="ds-label weak">{{item.label}}</view>
+          </view>
+        </view>
+
+        <view class="badges" wx:if="{{badges.length}}">
+          <view class="badge" wx:for="{{badges}}" wx:key="title">
+            <view class="badge-ico">{{item.icon}}</view>
+            <view class="badge-txt">
+              <view class="badge-title">{{item.title}}</view>
+              <view class="badge-desc weak">{{item.desc}}</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="share-row">
+          <button class="share-btn primary" open-type="share" hover-class="hover">分享给好友</button>
+          <button wx:if="{{canShareFeed}}" class="share-btn {{feedPosted ? 'posted' : 'ghost'}}" hover-class="hover" bindtap="onShareToFeed">{{feedPosted ? '已发到铁友圈' : '发到铁友圈'}}</button>
+        </view>
+        <view class="done-back weak" hover-class="hover" hover-stay-time="100" bindtap="onNavBack">返回</view>
       </view>
     </block>
 
@@ -82,7 +105,6 @@
   </view>
 </scroll-view>
 
-<!-- 恢复上次训练弹层 -->
 <view wx:if="{{showResumeConfirm}}" class="mask" catchtouchmove="noop">
   <view class="dialog" catchtap="noop">
     <view class="dialog-title">继续上次训练？</view>

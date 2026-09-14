@@ -1,17 +1,14 @@
-<!--pages/plan-detail/plan-detail.wxml 计划详情-->
 <navigation-bar title="训练详情" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list" wx:if="{{plan}}">
   <view class="page">
 
-    <!-- 计划信息 -->
     <view class="head g-card">
       <view class="name">{{plan.name}}</view>
       <view class="meta sub">{{plan.duration}} 分钟 · 约 {{plan.calories}} kcal · {{plan.exTotal}} 个动作</view>
       <view class="summary">{{plan.summary}}</view>
     </view>
 
-    <!-- 训练提示 -->
     <view class="notice">
       <view class="notice-title">训练提示</view>
       <view class="notice-text">{{plan.notice}}</view>
@@ -60,7 +57,6 @@
   <view class="btn btn-primary bar-btn bar-main" hover-class="hover" hover-stay-time="100" bindtap="onWorkout">{{hasActiveSession ? '继续训练' : '开始训练'}}</view>
 </view>
 
-<!-- 切换计划确认弹层 -->
 <view wx:if="{{showSwitchConfirm}}" class="switch-mask" catchtouchmove="noop">
   <view class="switch-dialog" catchtap="noop">
     <view class="switch-title">有未完成训练</view>

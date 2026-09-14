@@ -23,7 +23,6 @@ function addDays(dateStr, delta) {
   return format(d)
 }
 
-// 今天 + 前一天，用于连续打卡判断
 function todayAndYesterday() {
   const t = today()
   return { today: t, yesterday: addDays(t, -1) }
@@ -32,15 +31,15 @@ function todayAndYesterday() {
 // 中文星期标签（下标对齐 getDay()，0 = 周日）
 const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
-// 月历表头（周一开头，由 WEEK_LABELS 派生）
+// 月历表头：周一开头
 const WEEK_HEAD_LABELS = WEEK_LABELS.slice(1).concat(WEEK_LABELS.slice(0, 1))
 
-// 某年某月天数（month: 1-12）
+// month: 1-12
 function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate()
 }
 
-// 生成月历网格（周一开头，首尾补空格）
+// 周一开头，首尾补空格
 function monthGrid(year, month) {
   const first = new Date(year, month - 1, 1)
   const offset = (first.getDay() + 6) % 7 // 周一开头

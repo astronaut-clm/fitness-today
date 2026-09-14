@@ -47,7 +47,6 @@ page {
   box-sizing: border-box;
 }
 
-/* 通用按钮 */
 .btn {
   height: 92rpx;
   border-radius: 0;
@@ -103,7 +102,6 @@ page {
   opacity: 0.75;
 }
 
-/* 标签 / 徽章 */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -139,7 +137,6 @@ page {
   font-weight: 700;
 }
 
-/* 文本 */
 .sub {
   color: var(--ink2);
 }
@@ -152,7 +149,6 @@ page {
   font-weight: 700;
 }
 
-/* 布局工具 */
 .row {
   display: flex;
   align-items: center;

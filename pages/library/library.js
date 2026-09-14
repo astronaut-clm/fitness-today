@@ -1,4 +1,3 @@
-// pages/library/library.js 动作库
 const actionsData = require('../../data/actions.js')
 const levelUtil = require('../../utils/level.js')
 
@@ -56,7 +55,7 @@ Page({
         level: a.level,
         lvClass: levelUtil.tagClass(a.level),
         muscles: (a.muscles || []).join(' · '),
-        key: a.keys && a.keys[0] ? a.keys[0] : ''
+        key: a.steps && a.steps[0] ? a.steps[0].key : ''
       }
     })
 

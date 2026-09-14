@@ -1,4 +1,3 @@
-/* pages/checkin/checkin.wxss */
 /* 自定义导航栏与内容区共用视口，避免底部内容被页面边界裁切。 */
 page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 /* padding 必须放内层容器，否则内层滚动层被挤窄、滚动条不贴右。 */

@@ -1,4 +1,4 @@
-// utils/rank.js 月榜数据获取（服务端 social.rankMonth 聚合；月份按本机时区计算）
+// 月榜数据由服务端 social.rankMonth 聚合；月份按本机时区计算
 const cloud = require('./cloud.js')
 const dateUtil = require('./date.js')
 
@@ -15,7 +15,6 @@ function monthLabel(month) {
   return Number(parts[0]) + '年' + Number(parts[1]) + '月'
 }
 
-// 拉取榜单
 function fetch(month) {
   const key = month || currentMonth()
   return cloud.callTo('social', 'rankMonth', { month: key }).then(function (res) {

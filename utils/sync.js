@@ -1,4 +1,4 @@
-// utils/sync.js 训练记录云端同步（每条记录独立文档；删除即物理删除云端文档，不留墓碑）
+// 训练记录云端同步：每条记录独立文档；删除即物理删除云端文档，不留墓碑
 const config = require('./config.js')
 const cloud = require('./cloud.js')
 
@@ -92,14 +92,12 @@ function pullAll() {
   })
 }
 
-// 增量拉取：只取 updatedAt 晚于同步水位的文档
 function pullSince(since) {
   return withDb(function (db) {
     const col = db.collection(COLL)
     const out = []
     const PAGE = 20
     const minTs = Number(since) || 0
-    // 按 _id 游标分页 + updatedAt 水位过滤
     function load(lastId) {
       const where = lastId
         ? { updatedAt: db.command.gt(minTs), _id: db.command.gt(lastId) }

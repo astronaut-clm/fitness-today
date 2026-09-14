@@ -1,4 +1,3 @@
-// utils/recommend.js 个性化计划推荐
 const plansData = require('../data/plans.js')
 const actionsData = require('../data/actions.js')
 const insights = require('./insights.js')
@@ -100,7 +99,6 @@ function prefsSignature(profile) {
   return [p.goal || '', scenes.join(','), p.experience || '', equipment.join(',')].join('|')
 }
 
-// 按记录 + 偏好打分选出最优计划
 function compute(records, profile) {
   const recent = insights.recentMuscles(records, 2)
   const scored = candidates().map(function (plan) {

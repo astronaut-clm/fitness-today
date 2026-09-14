@@ -1,29 +1,21 @@
-<!--pages/tutorial-detail/tutorial-detail.wxml 动作详情-->
 <navigation-bar title="动作详情" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list" wx:if="{{view}}">
   <view class="page">
 
-    <!-- 头部 -->
     <view class="hero">
-      <view class="hero-tags">
-        <text class="h-tag">{{view.category}}</text>
-        <text class="h-tag">{{view.equipment}}</text>
+      <view class="hero-top">
+        <view class="hero-tags">
+          <text class="h-tag">{{view.category}}</text>
+          <text class="h-tag">{{view.equipment}}</text>
+        </view>
+        <text class="tag hero-level {{view.lvClass}}">{{view.level}}</text>
       </view>
       <view class="hero-name">{{view.name}}</view>
       <view class="hero-meta">目标肌群：{{view.muscles}}</view>
+      <view class="hero-summary" wx:if="{{view.summary}}">{{view.summary}}</view>
     </view>
 
-    <!-- 动作简介 -->
-    <view class="g-card brief">
-      <view class="section-title">动作简介</view>
-      <view class="brief-text">{{view.summary}}</view>
-      <view class="brief-level"><text class="tag {{view.lvClass}}">{{view.level}}</text></view>
-    </view>
-
-    <!-- 动作演示：<video> 循环播放，未配置 MP4 或加载失败时整卡不渲染 -->
-    <!-- 注：视频起播那一瞬会短暂显示原生黑底（控件关闭时 poster 不生效，平台限制） -->
-    <!-- anim-frame 只负责定尺寸并裁剪溢出，用于吃掉 <video> 原生层在边缘残留的黑细线（见 wxss） -->
     <view class="g-card anim-card" wx:if="{{view.video}}">
       <view class="section-title anim-title">动作演示</view>
       <view class="anim-frame">
@@ -43,25 +35,18 @@
       </view>
     </view>
 
-    <!-- 动作要点 -->
-    <view class="g-card">
-      <view class="section-title">动作要点</view>
-      <view class="kv" wx:for="{{view.keys}}" wx:key="*this">
-        <text class="kv-dot">•</text>
-        <text class="kv-text">{{item}}</text>
-      </view>
-    </view>
-
-    <!-- 训练步骤 -->
+    <!-- 训练步骤：每条步骤附带对应动作要点 -->
     <view class="g-card">
       <view class="section-title">训练步骤</view>
-      <view class="kv" wx:for="{{view.steps}}" wx:key="*this">
+      <view class="step" wx:for="{{view.steps}}" wx:key="step">
         <view class="step-idx">{{index + 1}}</view>
-        <text class="kv-text">{{item}}</text>
+        <view class="step-body">
+          <view class="step-text">{{item.step}}</view>
+          <view class="step-key" wx:if="{{item.key}}">要点 · {{item.key}}</view>
+        </view>
       </view>
     </view>
 
-    <!-- 节奏与常见错误 -->
     <view class="g-card guide-card">
       <view class="section-title">建议节奏</view>
       <view class="tempo">{{view.tempo}}</view>
@@ -70,23 +55,12 @@
         <text class="kv-dot warn-dot">!</text>
         <text class="kv-text">{{item}}</text>
       </view>
+      <block wx:if="{{view.caution}}">
+        <view class="section-title caution-title">注意事项</view>
+        <view class="caution-text">{{view.caution}}</view>
+      </block>
     </view>
 
-    <view class="g-card alternative-card">
-      <view class="section-title">做不了怎么办？</view>
-      <view class="alternative-label">简化版本</view>
-      <view class="alternative-text">{{view.regression}}</view>
-      <view class="alternative-label">可选替代</view>
-      <view class="alternative-text">{{view.alternative}}</view>
-    </view>
-
-    <!-- 注意事项 -->
-    <view class="caution">
-      <view class="caution-title">注意事项</view>
-      <view class="caution-text">{{view.caution}}</view>
-    </view>
-
-    <!-- 相关动作 -->
     <view class="rel-head" wx:if="{{related.length}}">
       <view class="flex1">同部位动作</view>
     </view>

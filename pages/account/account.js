@@ -1,6 +1,7 @@
-// pages/account/account.js 个人设置：头像走 chooseAvatar、昵称走 nickname 输入框，资料按 openid 写入云端 ft_users。
+// 个人设置：头像走 chooseAvatar、昵称走 nickname 输入框，资料按 openid 写入云端 ft_users
 const account = require('../../utils/account.js')
 const customPlans = require('../../utils/custom-plans.js')
+const feed = require('../../utils/feed.js')
 const login = require('../../utils/login.js')
 const font = require('../../utils/font.js')
 const toast = require('../../utils/toast.js')
@@ -18,7 +19,8 @@ Page({
     customHint: '',
     usePixelFont: false,
     showLogoutConfirm: false,
-    savingShow: false
+    savingShow: false,
+    isAdmin: false
   },
 
   goPrefs() {
@@ -29,11 +31,22 @@ Page({
     wx.navigateTo({ url: '/pages/custom-plan/custom-plan' })
   },
 
-  // 返回本页时刷新自定义计划提示与字体选择。
+  // 举报审核入口仅管理员可见。
+  goAdminReport() {
+    wx.navigateTo({ url: '/pages/admin-report/admin-report' })
+  },
+
   onShow() {
     this.refreshCustomHint()
     this.refreshFont()
     this.syncCustomPlans()
+    this.checkAdmin()
+  },
+
+  checkAdmin() {
+    feed.adminCheck().then((res) => {
+      this.setData({ isAdmin: !!(res && res.isAdmin) })
+    }).catch(() => {})
   },
 
   refreshFont() {
@@ -52,7 +65,6 @@ Page({
     }
   },
 
-  // 已登录时与云端收敛自定义计划，换机/他端改动可见。
   syncCustomPlans() {
     if (!account.isLoggedIn()) return
     customPlans.syncFromCloud().then((res) => {
@@ -67,7 +79,6 @@ Page({
     this.setData({ customHint: parts.length ? '已设置：' + parts.join(' · ') : '自由组合动作，设置你的专属计划' })
   },
 
-  // 退出登录：页内确认弹层
   onLogout() {
     this.setData({ showLogoutConfirm: true })
   },

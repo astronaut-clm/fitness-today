@@ -1,6 +1,4 @@
-// 训练计划库（内置演示数据）。scene: home / gym；loop>1 表示整组循环重复轮数。
-
-
+// scene: home / gym；loop 为整组循环轮数
 const scenes = [
   { value: 'home', name: '居家' },
   { value: 'gym', name: '健身房' }

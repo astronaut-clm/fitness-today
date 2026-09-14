@@ -1,4 +1,4 @@
-// utils/insights.js 训练目标、趋势与肌群覆盖
+// 训练目标达成度、趋势与肌群覆盖
 const dateUtil = require('./date.js')
 const plansData = require('../data/plans.js')
 const actionsData = require('../data/actions.js')

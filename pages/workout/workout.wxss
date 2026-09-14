@@ -1,4 +1,3 @@
-/* pages/workout/workout.wxss */
 page {
   height: 100vh;
   display: flex;
@@ -88,7 +87,6 @@ page {
   background: var(--green);
 }
 
-/* 顶部计划信息 */
 .top {
   display: flex;
   align-items: center;
@@ -114,7 +112,6 @@ page {
   margin-top: 6rpx;
 }
 
-/* 进度 */
 .prog {
   margin-top: 36rpx;
 }
@@ -189,7 +186,6 @@ page {
   margin-top: 40rpx;
 }
 
-/* 动作信息 */
 .g-tags {
   display: flex;
   justify-content: center;
@@ -247,7 +243,6 @@ page {
   margin-left: 16rpx;
 }
 
-/* 完成态 */
 .done {
   margin-top: 56rpx;
   padding-top: 80rpx;
@@ -279,6 +274,140 @@ page {
   margin-top: 10rpx;
 }
 
+.done-cheer {
+  font-size: 26rpx;
+  color: var(--ink2);
+  margin-top: 24rpx;
+  line-height: 1.7;
+}
+
+.done-stats {
+  display: flex;
+  margin-top: 40rpx;
+  background: var(--card2);
+  border: var(--pxs) solid var(--ink);
+}
+
+.ds-item {
+  flex: 1;
+  padding: 18rpx 0;
+}
+
+.ds-item + .ds-item {
+  border-left: var(--pxs) solid var(--ink);
+}
+
+.ds-val {
+  font-size: 34rpx;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-label {
+  font-size: 20rpx;
+  margin-top: 6rpx;
+}
+
+.badges {
+  margin-top: 32rpx;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  padding: 18rpx 20rpx;
+  background: var(--card);
+  border: var(--pxs) solid var(--ink);
+}
+
+.badge + .badge {
+  margin-top: 16rpx;
+}
+
+.badge-ico {
+  flex: none;
+  width: 68rpx;
+  height: 68rpx;
+  margin-right: 20rpx;
+  background: var(--primary-bg);
+  border: var(--pxs) solid var(--ink);
+  color: var(--ink);
+  font-size: 34rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.badge-title {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.badge-desc {
+  font-size: 22rpx;
+  margin-top: 4rpx;
+}
+
+.share-row {
+  margin-top: 44rpx;
+}
+
+/* button 需重置默认样式才能贴合像素风 */
+.share-btn {
+  width: 100%;
+  height: 96rpx;
+  margin: 0;
+  padding: 0;
+  border: var(--px) solid var(--ink);
+  border-radius: 0;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 2rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-btn::after {
+  border: none;
+}
+
+.share-btn + .share-btn {
+  margin-top: 20rpx;
+}
+
+.share-btn.primary {
+  background: var(--primary);
+  color: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.share-btn.ghost {
+  background: var(--card);
+  color: var(--ink);
+}
+
+.share-btn.posted {
+  background: var(--card2);
+  color: var(--ink2);
+}
+
+.done-back {
+  display: inline-block;
+  font-size: 26rpx;
+  margin-top: 32rpx;
+  padding: 10rpx 28rpx;
+}
+
 .next-preview {
   font-size: 22rpx;
   margin-top: 18rpx;
@@ -291,7 +420,6 @@ page {
   padding: 8rpx 20rpx;
 }
 
-/* 退出确认弹层 */
 .mask {
   position: fixed;
   left: 0;

@@ -1,4 +1,3 @@
-// pages/custom-plan/custom-plan.js 自定义计划编辑
 const actionsData = require('../../data/actions.js')
 const customPlans = require('../../utils/custom-plans.js')
 const account = require('../../utils/account.js')
@@ -34,7 +33,6 @@ Page({
     this.loadScene(scene)
   },
 
-  // 载入某场景已有计划，没有则用默认名称与空动作列表。
   loadScene(scene) {
     const existing = customPlans.get(scene)
     const selected = existing ? existing.exercises.map(function (ex) {
@@ -60,7 +58,6 @@ Page({
     this.buildPicker()
   },
 
-  // 生成动作库列表，标记已在组合中的动作。
   buildPicker() {
     const cat = this.data.cat
     const chosen = {}
@@ -164,7 +161,6 @@ Page({
         return { actionId: item.actionId, sets: item.sets, reps: item.reps }
       })
     })
-    // 已登录时同步云端，换设备可恢复。
     if (account.isLoggedIn()) customPlans.pushToCloud()
     toast.back('计划已保存', { success: true })
   },

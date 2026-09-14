@@ -1,5 +1,4 @@
-// utils/custom-plans.js 自定义训练计划
-// 每个场景各一份，读取时装饰成与内置计划一致的结构供各页面复用；
+// 自定义训练计划：每个场景各一份，读取时装饰成与内置计划一致的结构供各页面复用；
 // 登录后按 openid 与云端双向同步（updatedAt 收敛），换机可恢复。
 const cloud = require('./cloud.js')
 const actionsData = require('../data/actions.js')
@@ -32,7 +31,6 @@ function saveStore(store) {
   return safe
 }
 
-// 依据所选动作估算时长/消耗/难度，免去用户填写
 function estimate(exercises, scene) {
   const gym = scene === 'gym'
   const restPerSet = gym ? 60 : 30
@@ -57,7 +55,6 @@ function planId(scene) {
   return 'custom_' + scene
 }
 
-// 把本地原始计划补全为可渲染的完整结构
 function decorate(stored) {
   if (!stored || !stored.scene) return null
   const exercises = (stored.exercises || []).map(function (ex) {
@@ -108,7 +105,6 @@ function getById(id) {
   return get(id.slice(7))
 }
 
-// 某场景是否有自定义计划
 function has(scene) {
   return !!get(scene)
 }
@@ -119,7 +115,6 @@ function listByScene(scene) {
   return plan ? [plan] : []
 }
 
-// 保存（新增或覆盖）某场景自定义计划
 function save(scene, data) {
   if (scene !== 'home' && scene !== 'gym') return null
   const store = getStore()
@@ -148,7 +143,6 @@ function remove(scene) {
   saveStore(store)
 }
 
-// 退出登录时清空本机自定义计划
 function resetLocal() {
   saveStore(emptyStore())
 }
@@ -162,7 +156,6 @@ function pullFromCloud() {
   })
 }
 
-// 上传本机自定义计划到云端
 function pushToCloud() {
   const store = getStore()
   return cloud.call('cpSet', { customPlans: { plans: store.plans, updatedAt: store.updatedAt } }).then(function (res) {
@@ -170,7 +163,6 @@ function pushToCloud() {
   })
 }
 
-// 用云端内容整体覆盖本地
 function applyFromCloud(data) {
   const src = (data && typeof data === 'object') ? data : {}
   const store = {

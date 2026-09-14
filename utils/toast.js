@@ -1,5 +1,4 @@
-// utils/toast.js 页内像素提示（替代原生 wx.showToast，以使用像素字体）
-// 用法：toast.show('已保存', { success: true })
+// 页内像素提示，替代原生 wx.showToast 以使用像素字体
 const registry = []
 
 function register(comp) {

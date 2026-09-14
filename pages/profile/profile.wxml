@@ -1,4 +1,3 @@
-<!-- pages/profile/profile.wxml -->
 <navigation-bar title="偏好配置" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y>

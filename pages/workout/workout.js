@@ -1,4 +1,3 @@
-// pages/workout/workout.js 训练跟练
 const plansData = require('../../data/plans.js')
 const actionsData = require('../../data/actions.js')
 const store = require('../../utils/store.js')
@@ -6,6 +5,9 @@ const dateUtil = require('../../utils/date.js')
 const sessionStore = require('../../utils/workout-session.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
+const insights = require('../../utils/insights.js')
+const account = require('../../utils/account.js')
+const feed = require('../../utils/feed.js')
 const toast = require('../../utils/toast.js')
 const voice = require('../../utils/voice.js')
 
@@ -33,7 +35,32 @@ const FINISH_LINES = [
   '今天这波，满分收官！'
 ]
 
-function pickVoiceLine(list) {
+// 完成页文案：按完成度分档随机取一句，避免每次都一样
+const PRAISE = {
+  perfect: [
+    '完美通关，太强了！',
+    '满分开局，收工！',
+    '一组不落，教科书级别！',
+    '今天这场，无可挑剔！'
+  ],
+  full: FINISH_LINES,
+  partial: [
+    '尽力了，就是满分！',
+    '完成就好，明天继续！',
+    '能坚持到现在，已经赢了！'
+  ]
+}
+
+const CHEER_LINES = [
+  '今天的汗水，都会在明天还给你。',
+  '不用和谁比，你赢过了想躺下的自己。',
+  '每一次坚持，身体都记得。',
+  '练完这一场，今天就算赢了。',
+  '你已经比开始的自己更强一点了。',
+  '慢慢来，比较快，明天见。'
+]
+
+function pickOne(list) {
   return list[Math.floor(Math.random() * list.length)]
 }
 
@@ -106,11 +133,15 @@ Page({
     // 语音开关（本地持久化）；voiceSupported 仅在插件可用时展示
     voiceOn: true,
     voiceSupported: false,
-    // 自绘导航状态栏高度（px）
     statusBarHeight: 0,
-    // 恢复上次训练弹层
     showResumeConfirm: false,
-    resumeDone: 0
+    resumeDone: 0,
+    doneTitle: '',
+    doneCheer: '',
+    doneStats: [],
+    badges: [],
+    canShareFeed: false,
+    feedPosted: false
   },
 
   onLoad(options) {
@@ -181,7 +212,6 @@ Page({
     })
   },
 
-  // 继续上次未完成的训练
   onResumeContinue() {
     const session = this._resumeSession
     this.setData({ showResumeConfirm: false })
@@ -190,7 +220,6 @@ Page({
     this.restoreSession(session)
   },
 
-  // 放弃上次进度，重新开始
   onResumeRestart() {
     this.setData({ showResumeConfirm: false })
     this._resumeSession = null
@@ -262,13 +291,13 @@ Page({
     })
   },
 
-  // 进入 finished 态时落库为训练记录并清理本地进度
+  // 进入 finished 态时落库为训练记录并清理本地进度，返回落库结果供完成页统计
   finalizeWorkout() {
-    if (!this.plan) return
+    if (!this.plan) return null
     const plan = this.plan
     const actualSeconds = Math.max(0, Math.round((Date.now() - this.startTs) / 1000))
     try {
-      store.addRecord({
+      const saved = store.addRecord({
         date: dateUtil.today(),
         type: 'plan',
         planId: plan.id,
@@ -284,12 +313,92 @@ Page({
         adjustmentsSnapshot: adjustments.get(this.planId)
       })
       sessionStore.clear()
+      return saved
     } catch (e) {
       toast.show('保存失败，请重试')
+      return null
     }
   },
 
+  // 完成页情绪反馈：夸赞文案 + 成就徽章，统计基于刚落库的记录
+  buildFinishFeedback(saved) {
+    const total = this.data.total || 1
+    const skipped = this.data.skippedGroups || 0
+    const done = Math.max(0, total - skipped)
+    const minutes = Math.max(1, Math.round(Math.max(0, Date.now() - this.startTs) / 60000))
+    const list = store.getAllRecords()
+    const stats = store.computeStatsFrom(list)
+    const insight = insights.build(list)
+    const today = dateUtil.today()
+    const planId = this.planId
+    const savedId = (saved && saved.id) || ''
 
+    let titles = PRAISE.partial
+    if (skipped === 0) titles = PRAISE.perfect
+    else if (done >= total) titles = PRAISE.full
+
+    const badges = []
+    if (skipped === 0) badges.push({ icon: '全', title: '全勤通关', desc: '一组没落，全程在线' })
+    const samePlanBefore = list.filter(function (r) { return r.planId === planId && r.id !== savedId }).length
+    if (!samePlanBefore) badges.push({ icon: '首', title: '解锁新计划', desc: '第一次完成《' + this.data.planName + '》' })
+    if (stats.total <= 1) badges.push({ icon: '始', title: '第一天', desc: '好的开始，明天继续' })
+    else if (stats.total % 10 === 0) badges.push({ icon: '程', title: '第 ' + stats.total + ' 天', desc: '又一个里程碑达成' })
+    const past = list.filter(function (r) { return r.date < today }).map(function (r) { return r.date }).sort()
+    const lastDate = past.length ? past[past.length - 1] : ''
+    const gap = lastDate ? Math.round((dateUtil.parse(today) - dateUtil.parse(lastDate)) / 86400000) : 0
+    if (gap >= 7) badges.push({ icon: '回', title: '重新出发', desc: '隔了 ' + gap + ' 天，你又回来了' })
+    if (stats.streak >= 2) badges.push({ icon: '连', title: '连续 ' + stats.streak + ' 天', desc: '每天都在变强一点' })
+    if (insight.weekDays >= 3) badges.push({ icon: '周', title: '本周第 ' + insight.weekDays + ' 练', desc: '这周节奏稳住了' })
+    if (minutes >= 30) badges.push({ icon: '耐', title: '耐力全开', desc: '单次坚持 ' + minutes + ' 分钟' })
+
+    return {
+      doneTitle: pickOne(titles),
+      doneCheer: pickOne(CHEER_LINES),
+      doneStats: [
+        { label: '完成组数', value: done + '/' + total },
+        { label: '用时', value: this.data.costText },
+        { label: '连续打卡', value: stats.streak + ' 天' },
+        { label: '本周训练', value: insight.weekDays + ' 次' }
+      ],
+      badges: badges.slice(0, 3),
+      canShareFeed: account.isLoggedIn(),
+      feedPosted: false
+    }
+  },
+
+  // 分享给好友：完成后带成绩，未完成则邀约
+  onShareAppMessage() {
+    if (this.data.state !== 'finished') {
+      return { title: '我正在练《' + this.data.planName + '》，一起动起来！', path: '/pages/index/index' }
+    }
+    const done = Math.max(0, (this.data.total || 0) - (this.data.skippedGroups || 0))
+    return {
+      title: '刚完成《' + this.data.planName + '》' + done + '/' + this.data.total + ' 组，用时 ' + this.data.costText + '！',
+      path: '/pages/index/index'
+    }
+  },
+
+  onShareToFeed() {
+    if (this._postingFeed) return
+    if (!account.isLoggedIn()) { toast.show('登录后才能发到铁友圈'); return }
+    this._postingFeed = true
+    const done = Math.max(0, (this.data.total || 0) - (this.data.skippedGroups || 0))
+    const text = '今天完成《' + this.data.planName + '》，' + done + '/' + this.data.total + ' 组，用时 ' + this.data.costText + '。' + this.data.doneCheer
+    feed.create(text).then((res) => {
+      this._postingFeed = false
+      if (!res || !res.ok) {
+        const code = (res && res.code) || ''
+        if (code === 'risky' || code === 'review') toast.show('内容未通过安全检测，请重试')
+        else toast.show('发布失败，请重试')
+        return
+      }
+      this.setData({ feedPosted: true })
+      toast.show('已发到铁友圈', { success: true })
+    }).catch(() => {
+      this._postingFeed = false
+      toast.show('发布失败，请重试')
+    })
+  },
 
   startInterval() {
     if (!this.timer) this.timer = setInterval(() => this.tick(), 1000)
@@ -357,7 +466,7 @@ Page({
     if (!group) return
     // 动作名与口号按序合成后一次入队，避免回调乱序导致口号先播
     // interrupt：打断上一阶段残留播报（如休息句/倒数），避免新组播报被拖延
-    voice.speakAll([setVoiceText(group), pickVoiceLine(CHEERS)], { interrupt: true })
+    voice.speakAll([setVoiceText(group), pickOne(CHEERS)], { interrupt: true })
   },
 
   // 倒数 5/4/3/2/1：仅最后 5 秒播报，同值不重复。
@@ -418,9 +527,9 @@ Page({
         skippedGroups: skippedGroups,
         costText: this.calcCost()
       })
-      voice.speak(pickVoiceLine(FINISH_LINES), { interrupt: true })
+      voice.speak(pickOne(FINISH_LINES), { interrupt: true })
       this.vibrate('long')
-      this.finalizeWorkout()
+      this.setData(this.buildFinishFeedback(this.finalizeWorkout()))
       return
     }
 
@@ -504,7 +613,6 @@ Page({
   onSkipRest() { this.skipRest() },
   onExtendRest() { this.extendRest() },
 
-  // 顶部返回：与系统右滑返回一致
   onNavBack() {
     if (this.data.state !== 'finished') {
       // 训练中：完成过组则保存进度，否则清空

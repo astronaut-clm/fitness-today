@@ -1,4 +1,3 @@
-// pages/rank/rank.js 排行榜（按月累计训练时长排名）
 const rank = require('../../utils/rank.js')
 const account = require('../../utils/account.js')
 

@@ -1,4 +1,3 @@
-<!--pages/index/index.wxml 今日首页-->
 <navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
@@ -96,7 +95,6 @@
   </view>
 </scroll-view>
 
-<!-- 登录未完成提示弹层 -->
 <view class="px-mask" wx:if="{{loginFailShow}}" bindtap="onCloseLoginFail" catchtouchmove="noop">
   <view class="px-dialog" catchtap="noop">
     <view class="px-dialog-title">登录未完成</view>

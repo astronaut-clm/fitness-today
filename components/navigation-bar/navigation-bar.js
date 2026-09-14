@@ -34,18 +34,16 @@ Component({
       value: false,
     },
     animated: {
-      // 显隐时的 opacity 动画
       type: Boolean,
       value: true,
       observer: '_refreshStyle'
     },
     show: {
-      // 显隐导航（隐藏时仍占位）
+      // 隐藏时仍占位
       type: Boolean,
       value: true,
       observer: '_refreshStyle'
     },
-    // 返回的页面深度
     delta: {
       type: Number,
       value: 1
@@ -79,7 +77,6 @@ Component({
     },
   },
   methods: {
-    // 依据属性与胶囊几何拼装导航栏内联样式
     _refreshStyle() {
       const geo = this._geo
       if (!geo) return // observer 可能早于 attached，几何就绪后再渲染
@@ -106,7 +103,7 @@ Component({
       this.triggerEvent('back', { delta: data.delta }, {})
     },
 
-    // 返回首页（switchTab 清除非 tabBar 页栈）
+    // switchTab 会清除非 tabBar 页栈
     home() {
       wx.switchTab({
         url: '/pages/index/index'

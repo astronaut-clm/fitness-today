@@ -1,4 +1,4 @@
-// utils/workout-session.js 未完成训练本地恢复
+// 未完成训练的本地断点恢复
 const KEY = 'ft_active_workout_v1'
 
 function get() {

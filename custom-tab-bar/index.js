@@ -1,4 +1,3 @@
-// custom-tab-bar 像素风 tabBar
 Component({
   data: {
     selected: 0,

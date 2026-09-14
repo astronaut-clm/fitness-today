@@ -1,4 +1,3 @@
-// pages/feed/feed.js 铁友圈（跨用户动态）
 const feed = require('../../utils/feed.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
@@ -22,21 +21,13 @@ Page({
     deleteTarget: -1,
     showReportDialog: false,
     reportTarget: '',
-    // 评论半屏面板
-    showComments: false,
-    commentPostId: '',
-    commentPostIndex: -1,
-    comments: [],
-    commentsLoaded: false,
-    commentsLoading: false,
-    commentsLoadingMore: false,
-    commentsHasMore: true,
-    commentTotal: 0,
-    commentDraft: '',
-    commentDraftLen: 0,
-    commentSending: false,
-    showCommentDelete: false,
-    commentDeleteId: ''
+    reviewId: ''
+  },
+
+  // 管理端「去复核」带 reviewPostId 跳转，加载后自动定位到该动态。
+  onLoad(options) {
+    this._reviewPostId = String((options && options.reviewPostId) || '')
+    this._reviewPage = 0
   },
 
   onShow() {
@@ -69,16 +60,17 @@ Page({
         loaded: true,
         error: false
       })
+      this.locateReview()
     }).catch(() => {
       this.setData(silent ? { loading: false } : { loading: false, loaded: true, error: true })
     })
   },
 
   loadMore() {
-    if (this.data.loading || this.data.loadingMore || !this.data.hasMore || !this.data.rows.length) return
+    if (this.data.loading || this.data.loadingMore || !this.data.hasMore || !this.data.rows.length) return Promise.resolve()
     const cursor = this.data.rows[this.data.rows.length - 1].createdAt
     this.setData({ loadingMore: true })
-    feed.list(cursor).then((res) => {
+    return feed.list(cursor).then((res) => {
       if (!res || !res.ok) {
         this.setData({ loadingMore: false })
         return
@@ -93,6 +85,27 @@ Page({
     })
   },
 
+  // 复核定位：在已加载列表里找目标动态，找到就滚动过去并高亮；否则翻页继续找（最多 20 页）。
+  locateReview() {
+    const pid = this._reviewPostId
+    if (!pid) return
+    const rows = this.data.rows
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].id === pid) {
+        this._reviewPostId = ''
+        this.setData({ reviewId: 'post-' + pid })
+        return
+      }
+    }
+    if (!this.data.hasMore || (this._reviewPage || 0) >= 20) {
+      this._reviewPostId = ''
+      toast.show('内容已删除，或不在前 20 页内')
+      return
+    }
+    this._reviewPage = (this._reviewPage || 0) + 1
+    this.loadMore().then(() => this.locateReview())
+  },
+
   onRetry() {
     this.load()
   },
@@ -104,13 +117,6 @@ Page({
     this.setData({ ['rows[' + index + '].avatar']: '' })
   },
 
-  onCommentAvatarError(e) {
-    const index = e.currentTarget.dataset.index
-    if (index == null) return
-    this.setData({ ['comments[' + index + '].avatar']: '' })
-  },
-
-  // ---- 发布 ----
   openPost() {
     this.setData({ showPostDialog: true, draft: '', draftLen: 0 })
   },
@@ -151,7 +157,7 @@ Page({
     })
   },
 
-  // ---- 点赞（乐观更新，失败回滚） ----
+  // 乐观更新：失败回滚
   onLike(e) {
     const index = e.currentTarget.dataset.index
     const row = this.data.rows[index]
@@ -184,7 +190,7 @@ Page({
     })
   },
 
-  // ---- 更多：自己的帖子弹删除，别人的弹举报 ----
+  // 自己的帖子弹删除，别人的弹举报
   onMore(e) {
     const index = e.currentTarget.dataset.index
     const row = this.data.rows[index]
@@ -221,10 +227,10 @@ Page({
   },
 
   confirmReport() {
-    const postId = this.data.reportTarget
+    const targetId = this.data.reportTarget
     this.setData({ showReportDialog: false, reportTarget: '' })
-    if (!postId) return
-    feed.report(postId, '').then((res) => {
+    if (!targetId) return
+    feed.report(targetId, '').then((res) => {
       if (!res || !res.ok) {
         toast.show('举报失败，请重试')
         return
@@ -232,158 +238,6 @@ Page({
       toast.show('已收到举报', { success: true })
     }).catch(() => {
       toast.show('举报失败，请重试')
-    })
-  },
-
-  // ---- 评论半屏面板 ----
-  openComments(e) {
-    const index = e.currentTarget.dataset.index
-    const row = this.data.rows[index]
-    if (!row) return
-    this.setData({
-      showComments: true,
-      commentPostId: row.id,
-      commentPostIndex: index,
-      comments: [],
-      commentsLoaded: false,
-      commentsLoading: false,
-      commentsLoadingMore: false,
-      commentsHasMore: true,
-      commentTotal: Number(row.commentCount) || 0,
-      commentDraft: '',
-      commentDraftLen: 0
-    })
-    this.loadComments()
-  },
-
-  closeComments() {
-    if (this.data.commentSending) return
-    this.setData({
-      showComments: false,
-      commentPostId: '',
-      commentPostIndex: -1,
-      comments: [],
-      commentsLoaded: false
-    })
-  },
-
-  loadComments() {
-    if (this.data.commentsLoading) return
-    const postId = this.data.commentPostId
-    if (!postId) return
-    this.setData({ commentsLoading: true })
-    feed.comments(postId, 0).then((res) => {
-      // 切帖/关面板后到达的旧请求直接丢弃
-      if (this.data.commentPostId !== postId) return
-      if (!res || !res.ok) {
-        this.setData({ commentsLoading: false, commentsLoaded: true })
-        toast.show('评论加载失败')
-        return
-      }
-      this.setData({
-        comments: res.rows,
-        commentsHasMore: res.hasMore,
-        commentsLoading: false,
-        commentsLoaded: true
-      })
-    }).catch(() => {
-      this.setData({ commentsLoading: false, commentsLoaded: true })
-      toast.show('评论加载失败')
-    })
-  },
-
-  loadMoreComments() {
-    if (this.data.commentsLoading || this.data.commentsLoadingMore || !this.data.commentsHasMore || !this.data.comments.length) return
-    const postId = this.data.commentPostId
-    const cursor = this.data.comments[this.data.comments.length - 1].createdAt
-    this.setData({ commentsLoadingMore: true })
-    feed.comments(postId, cursor).then((res) => {
-      if (this.data.commentPostId !== postId) return
-      if (!res || !res.ok) {
-        this.setData({ commentsLoadingMore: false })
-        return
-      }
-      this.setData({
-        comments: this.data.comments.concat(res.rows),
-        commentsHasMore: res.hasMore,
-        commentsLoadingMore: false
-      })
-    }).catch(() => {
-      this.setData({ commentsLoadingMore: false })
-    })
-  },
-
-  onCommentInput(e) {
-    const val = String((e.detail && e.detail.value) || '').slice(0, 200)
-    this.setData({ commentDraft: val, commentDraftLen: val.length })
-  },
-
-  submitComment() {
-    if (this.data.commentSending) return
-    const content = String(this.data.commentDraft || '').trim()
-    if (!content) {
-      toast.show('先写点什么吧')
-      return
-    }
-    const postId = this.data.commentPostId
-    if (!postId) return
-    this.setData({ commentSending: true })
-    feed.comment(postId, content).then((res) => {
-      this.setData({ commentSending: false })
-      if (!res || !res.ok) {
-        const code = (res && res.code) || ''
-        if (code === 'risky' || code === 'review') toast.show('内容未通过安全检测，请修改后重试')
-        else if (code === 'too_fast') toast.show('评论太快啦，歇会儿再发')
-        else if (code === 'not_found') toast.show('动态已不存在')
-        else toast.show('评论失败，请重试')
-        return
-      }
-      this.setData({ commentDraft: '', commentDraftLen: 0 })
-      this.loadComments()
-      this.bumpCommentCount(1)
-    }).catch(() => {
-      this.setData({ commentSending: false })
-      toast.show('评论失败，请重试')
-    })
-  },
-
-  // 同步列表里对应帖子的评论数（+1 / -1）
-  bumpCommentCount(delta) {
-    const index = this.data.commentPostIndex
-    if (index < 0) return
-    const row = this.data.rows[index]
-    if (!row) return
-    const next = Math.max(0, (Number(row.commentCount) || 0) + delta)
-    this.setData({
-      ['rows[' + index + '].commentCount']: next,
-      commentTotal: Math.max(0, this.data.commentTotal + delta)
-    })
-  },
-
-  onDeleteCommentTap(e) {
-    const id = e.currentTarget.dataset.id
-    if (!id) return
-    this.setData({ showCommentDelete: true, commentDeleteId: id })
-  },
-
-  onCancelCommentDelete() {
-    this.setData({ showCommentDelete: false, commentDeleteId: '' })
-  },
-
-  confirmCommentDelete() {
-    const id = this.data.commentDeleteId
-    this.setData({ showCommentDelete: false, commentDeleteId: '' })
-    if (!id) return
-    feed.removeComment(id).then((res) => {
-      if (!res || !res.ok) {
-        toast.show((res && res.code === 'forbidden') ? '只能删除自己的评论' : '删除失败，请重试')
-        return
-      }
-      this.setData({ comments: this.data.comments.filter((c) => c.id !== id) })
-      this.bumpCommentCount(-1)
-      toast.show('已删除', { success: true })
-    }).catch(() => {
-      toast.show('删除失败，请重试')
     })
   },
 

@@ -1,4 +1,3 @@
-/* pages/plan/plan.wxss */
 page {
   height: 100vh;
   display: flex;
@@ -15,7 +14,6 @@ page {
   padding: 24rpx 32rpx 48rpx;
 }
 
-/* 场景切换 */
 .seg {
   display: flex;
   background: var(--card2);
@@ -41,7 +39,6 @@ page {
   color: var(--card);
 }
 
-/* 筛选行 */
 .filter-row {
   display: flex;
   align-items: center;
@@ -70,7 +67,6 @@ page {
   font-weight: 700;
 }
 
-/* 计划卡片 */
 .plan {
   margin-bottom: 24rpx;
 }

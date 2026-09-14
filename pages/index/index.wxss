@@ -1,4 +1,3 @@
-/* pages/index/index.wxss */
 page {
   height: 100vh;
   display: flex;
@@ -97,7 +96,6 @@ page {
   color: var(--ink3);
 }
 
-/* Hero 卡片 */
 .hero {
   background: #0058f8;
   /* 彩色底叠加反白网点（halftone），增强复古质感 */
@@ -180,12 +178,10 @@ page {
   opacity: 0.86;
 }
 
-/* 本周目标 */
 .goal-card {
   margin-top: 28rpx;
 }
 
-/* 未设置目标时的引导卡 */
 .goal-guide {
   margin-top: 28rpx;
   border: var(--px) dashed var(--ink);
@@ -260,7 +256,6 @@ page {
   background: var(--card2);
 }
 
-/* 本周目标标题 */
 .week-title {
   font-size: 32rpx;
   font-weight: 700;

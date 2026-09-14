@@ -1,4 +1,4 @@
-// utils/login.js 微信「头像昵称」一键登录（取 openid → 传头像 → 存资料 → 云端收敛）
+// 微信「头像昵称」一键登录：取 openid → 传头像 → 存资料 → 云端收敛
 const account = require('./account.js')
 const store = require('./store.js')
 const profile = require('./profile.js')
@@ -43,7 +43,6 @@ function loginOneTap(tempFilePath) {
   })
 }
 
-// 登录成功后拉回历史记录与偏好/自定义计划；失败仅记日志
 function syncAfterLogin() {
   return store.syncFromCloud().then(function (ok) {
     return profile.syncFromCloudAll().then(function () { return ok })
@@ -62,11 +61,9 @@ function resetLocalData() {
   adjustments.resetLocal()
   customPlans.resetLocal()
   onboarding.resetLocal()
-  // 推荐依赖的数据已重置，缓存一并清掉
   recommend.resetCache()
 }
 
-// 整体回退到未登录态（清账号身份 + 本地业务数据），用于主动退出或账号已不存在
 function resetSession() {
   account.logout()
   resetLocalData()

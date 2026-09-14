@@ -1,10 +1,8 @@
-<!--pages/onboarding/onboarding.wxml 登录后引导-->
 <navigation-bar title="完善资料" back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
 
-    <!-- 步骤指示 -->
     <view class="steps">
       <view class="step {{step >= 1 ? 'on' : ''}}"><text class="step-no">1</text><text>训练偏好</text></view>
       <view class="step-line"></view>

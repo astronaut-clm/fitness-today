@@ -1,10 +1,8 @@
-<!--pages/custom-plan/custom-plan.wxml 自定义计划编辑-->
 <navigation-bar title="自定义计划" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
 
-    <!-- 归属场景 -->
     <view class="g-card section">
       <view class="section-title">计划归属</view>
       <view class="seg">
@@ -14,13 +12,11 @@
       <view class="weak seg-tip">设置后将展示在计划的最上方，方便快速选择</view>
     </view>
 
-    <!-- 计划名称 -->
     <view class="g-card section">
       <view class="section-title">计划名称</view>
       <input class="name-input" value="{{name}}" maxlength="16" placeholder="给计划起个名字" placeholder-class="weak" bindinput="onName" />
     </view>
 
-    <!-- 已选动作 -->
     <view class="g-card section">
       <view class="row">
         <view class="flex1 section-title">已选动作</view>
@@ -53,7 +49,6 @@
       </view>
     </view>
 
-    <!-- 动作库 -->
     <view class="g-card section">
       <view class="section-title">动作库</view>
       <scroll-view scroll-x class="cat-scroll" enable-flex>
@@ -80,7 +75,6 @@
   <view class="btn btn-primary save-btn" hover-class="hover" hover-stay-time="100" bindtap="onSave">保存计划</view>
 </view>
 
-<!-- 删除确认弹层 -->
 <view class="px-mask" wx:if="{{showDeleteConfirm}}" bindtap="onCancelDelete" catchtouchmove="noop">
   <view class="px-dialog" catchtap="noop">
     <view class="px-dialog-title">删除自定义计划？</view>

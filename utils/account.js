@@ -1,4 +1,4 @@
-// utils/account.js 用户账号与个人设置（以 openid 为身份，资料存云端 ft_users）
+// 用户账号与个人设置：以 openid 为身份，资料存云端 ft_users
 const cloud = require('./cloud.js')
 
 const OPENID_KEY = 'ft_openid'
@@ -33,7 +33,6 @@ function login() {
   return openidPromise
 }
 
-// 默认昵称：取 openid 后六位
 function defaultNickname(openid) {
   const id = String(openid || '')
   const tail = id.length > 6 ? id.slice(-6) : id
@@ -134,7 +133,6 @@ function saveProfile(info) {
   })
 }
 
-// 计算临时文件 md5（用于头像去重）
 function fileDigest(filePath) {
   return new Promise(function (resolve) {
     const fs = wx.getFileSystemManager()
@@ -180,7 +178,6 @@ function cloudProfile() {
   })
 }
 
-// 清理旧的云头像文件（忽略失败）
 function deleteFile(fileID) {
   if (!enabled() || !fileID) return Promise.resolve()
   return wx.cloud.deleteFile({ fileList: [fileID] }).catch(function () {})
@@ -195,7 +192,6 @@ const AVATAR_TTL = 90 * 60 * 1000
 function resolveAvatar(fileID) {
   const id = String(fileID || '')
   if (!id) return Promise.resolve('')
-  // 普通 URL / 本地临时文件：直接用
   if (id.indexOf('cloud://') !== 0) return Promise.resolve(id)
   if (!enabled()) return Promise.resolve('')
 

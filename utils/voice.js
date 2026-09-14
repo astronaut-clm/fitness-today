@@ -1,4 +1,4 @@
-// utils/voice.js 训练语音播报（基于「微信同声传译」WechatSI 插件）
+// 训练语音播报（基于「微信同声传译」WechatSI 插件）
 // 预合成缓存 + 队列顺序播放（interrupt 可抢占）；插件缺失或合成失败时静默降级
 const KEY = 'ft_voice_enabled_v1'
 const LANG = 'zh_CN'

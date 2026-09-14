@@ -1,4 +1,3 @@
-// pages/plan-detail/plan-detail.js 计划详情
 const plansData = require('../../data/plans.js')
 const actionsData = require('../../data/actions.js')
 const adjustments = require('../../utils/plan-adjustments.js')
@@ -105,7 +104,6 @@ Page({
     wx.navigateTo({ url: '/pages/tutorial-detail/tutorial-detail?id=' + id })
   },
 
-  // 进入跟练页，逐组完成训练
   onWorkout() {
     if (!this.planId) return
     if (this.readonly) return

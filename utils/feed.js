@@ -1,4 +1,4 @@
-// utils/feed.js 铁友圈（列表/发布/点赞/删除/举报，均经 social 云函数以管理员权限读写）
+// 铁友圈读写均经 social 云函数，以管理员权限操作
 const cloud = require('./cloud.js')
 
 // 相对时间文案（超一周显示日期）
@@ -39,7 +39,6 @@ function create(content) {
   })
 }
 
-// 点赞/取消点赞，返回最终态
 function like(postId) {
   return cloud.callTo('social', 'feedLike', { postId: postId }).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
@@ -47,7 +46,6 @@ function like(postId) {
   })
 }
 
-// 删除自己的动态。
 function remove(postId) {
   return cloud.callTo('social', 'feedDelete', { postId: postId }).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
@@ -55,42 +53,39 @@ function remove(postId) {
   })
 }
 
-// 举报动态。
+// 举报动态：服务端会保存内容快照，供管理端复核。
 function report(postId, reason) {
-  return cloud.callTo('social', 'feedReport', { postId: postId, reason: reason || '' }).then(function (res) {
-    if (!res || !res.ok) return { ok: false }
+  return cloud.callTo('social', 'feedReport', { targetId: postId, reason: reason || '' }).then(function (res) {
+    if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
     return { ok: true }
   })
 }
 
-// 拉取某帖评论：cursor 为上一页最后一条 createdAt（0=首页）
-function comments(postId, cursor) {
-  const data = cursor ? { postId: postId, cursor: cursor } : { postId: postId }
-  return cloud.callTo('social', 'commentList', data).then(function (res) {
-    if (!res || !res.ok) return { ok: false }
-    const rows = (res.rows || []).map(function (row) {
-      return Object.assign({}, row, { timeText: timeText(row.createdAt) })
-    })
-    return {
-      ok: true,
-      rows: rows,
-      hasMore: !!res.hasMore,
-      nextCursor: Number(res.nextCursor) || 0
-    }
+// 管理端：是否为管理员（决定是否展示审核入口）
+function adminCheck() {
+  return cloud.callTo('social', 'adminCheck', {}).then(function (res) {
+    if (!res || !res.ok) return { ok: false, isAdmin: false }
+    return { ok: true, isAdmin: !!res.isAdmin }
   })
 }
 
-// 发表评论（失败 code：empty/too_fast/risky/review/not_found/db_error）
-function comment(postId, content) {
-  return cloud.callTo('social', 'commentCreate', { postId: postId, content: content }).then(function (res) {
+// 管理端：待处理举报列表（按被举报对象聚合）
+function adminReportList() {
+  return cloud.callTo('social', 'adminReportList', {}).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
-    return { ok: true, id: res.id, createdAt: res.createdAt }
+    const rows = (res.rows || []).map(function (row) {
+      return Object.assign({}, row, { timeText: timeText(row.lastAt) })
+    })
+    return { ok: true, rows: rows }
   })
 }
 
-// 删除自己的评论。
-function removeComment(commentId) {
-  return cloud.callTo('social', 'commentDelete', { commentId: commentId }).then(function (res) {
+// 管理端：处理举报（op='delete' 删除内容，其余忽略）
+function adminReportResolve(targetId, op) {
+  return cloud.callTo('social', 'adminReportResolve', {
+    targetId: targetId,
+    op: op || 'ignore'
+  }).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
     return { ok: true }
   })
@@ -102,7 +97,8 @@ module.exports = {
   like: like,
   remove: remove,
   report: report,
-  comments: comments,
-  comment: comment,
-  removeComment: removeComment
+  adminCheck: adminCheck,
+  adminReportList: adminReportList,
+  adminReportResolve: adminReportResolve,
+  timeText: timeText
 }

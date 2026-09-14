@@ -11,7 +11,24 @@ const COL_RANK_CACHE = 'ft_rank_cache'
 const COL_POSTS = 'ft_posts'
 const COL_LIKES = 'ft_post_likes'
 const COL_REPORTS = 'ft_post_reports'
-const COL_COMMENTS = 'ft_post_comments'
+
+// 管理员白名单：优先读云函数环境变量 ADMIN_OPENIDS（多个用英文逗号分隔），
+// 也可直接把 openid 写进下面的数组后重新部署 social 云函数。
+const ADMIN_OPENIDS = ['oO_3mxeXiqp6gGGcgZlyE7WjLGvs']
+
+function adminOpenids() {
+  const list = ADMIN_OPENIDS.slice()
+  const raw = String((typeof process !== 'undefined' && process.env && process.env.ADMIN_OPENIDS) || '')
+  raw.split(',').forEach(function (id) {
+    const v = String(id || '').trim()
+    if (v && list.indexOf(v) < 0) list.push(v)
+  })
+  return list
+}
+
+function isAdmin(openid) {
+  return !!openid && adminOpenids().indexOf(openid) >= 0
+}
 
 // 排行榜参数：只返回前 N 名；同一自然月榜单缓存 TTL（毫秒），避免每次打开都全量聚合。
 const RANK_TOP = 100
@@ -21,11 +38,6 @@ const RANK_CACHE_TTL = 60 * 1000
 const FEED_PAGE_SIZE = 10
 const FEED_MAX_LEN = 500
 const FEED_MIN_INTERVAL = 10 * 1000
-
-// 评论参数：分页大小 / 正文上限 / 同一用户评论最小间隔（毫秒）。
-const COMMENT_PAGE_SIZE = 20
-const COMMENT_MAX_LEN = 200
-const COMMENT_MIN_INTERVAL = 5 * 1000
 
 function cleanText(value, max) {
   return String(value == null ? '' : value).trim().slice(0, max)
@@ -37,7 +49,6 @@ function clampNum(value, min, max, fallback) {
   return Math.min(max, Math.max(min, num))
 }
 
-// ---- 排行榜（月榜） ----
 // 客户端传入本机时区的 'YYYY-MM'，服务端校验后换算成 [当月1日, 次月1日) 的区间。
 function monthRange(month) {
   const m = /^(\d{4})-(\d{2})$/.exec(String(month || ''))
@@ -59,7 +70,7 @@ function rankName(openid, user) {
   return id ? '练友' + id.slice(-6) : '神秘练友'
 }
 
-// 批量读取用户文档并按 _id 建映射，供榜单 / 动态 / 评论 join 昵称头像复用。
+// 批量读取用户文档并按 _id 建映射，供榜单 / 动态 join 昵称头像复用。
 async function loadUserMap(ids) {
   const list = (ids || []).filter(Boolean)
   if (!list.length) return {}
@@ -70,7 +81,6 @@ async function loadUserMap(ids) {
   return map
 }
 
-// 按 _openid 聚合当月累计训练分钟。
 function rankMinutesExpr() {
   const $ = db.command.aggregate
   return $.sum('$actualMinutes')
@@ -201,8 +211,6 @@ async function rankMonth(openid, event) {
   return { openid: openid, ok: true, month: month, rows: rows, me: me, updatedAt: now }
 }
 
-// ---- 铁友圈 ----
-
 // 发布前内容安全检测（v2）：返回 pass / review / risky。
 // 接口不可用（如未声明 openapi 权限）时保守放行并告警，避免发布功能整体不可用。
 async function checkContent(content, openid) {
@@ -271,7 +279,6 @@ async function feedList(openid, event) {
       avatar: avatarMap[i] || cleanText(author.avatar, 200),
       char: nickname.slice(0, 1),
       likeCount: Math.max(0, Number(p.likeCount) || 0),
-      commentCount: Math.max(0, Number(p.commentCount) || 0),
       liked: !!likedMap[p._id],
       isMe: p._openid === openid
     }
@@ -344,6 +351,20 @@ async function feedLike(openid, event) {
   return { openid: openid, ok: true, liked: !liked, likeCount: count }
 }
 
+// 内容被删除后，其待处理举报自动结案，避免管理员复核已不存在的内容。
+async function resolveReports(targetId) {
+  await db.collection(COL_REPORTS).where({ targetId: targetId })
+    .update({ data: { status: 'resolved', handledAt: Date.now(), removed: true } })
+    .catch(function () {})
+}
+
+// 物理删除一条动态及其点赞（管理员与作者共用）。
+async function removePost(postId) {
+  await db.collection(COL_POSTS).doc(postId).remove().catch(function () {})
+  await db.collection(COL_LIKES).where({ postId: postId }).remove().catch(function () {})
+  await resolveReports(postId)
+}
+
 // 删帖：仅作者可删，连带删除该帖所有点赞（server 端批量删除）。
 async function feedDelete(openid, event) {
   const postId = cleanText(event && event.postId, 64)
@@ -355,131 +376,110 @@ async function feedDelete(openid, event) {
   if (!post) return { openid: openid, ok: true }
   if (post._openid !== openid) return { openid: openid, ok: false, code: 'forbidden' }
 
-  await db.collection(COL_POSTS).doc(postId).remove().catch(function () {})
-  await db.collection(COL_LIKES).where({ postId: postId }).remove().catch(function () {})
-  await db.collection(COL_COMMENTS).where({ postId: postId }).remove().catch(function () {})
+  await removePost(postId)
   return { openid: openid, ok: true }
 }
 
-// 举报：按 postId_openid 去重记录，供后台核查（用户间不感知处理结果）。
+// 举报动态：post_targetId_openid 去重，落库时存内容快照，管理端可直接复核。
 async function feedReport(openid, event) {
-  const postId = cleanText(event && event.postId, 64)
-  if (!postId) return { openid: openid, ok: false, code: 'bad_post' }
-  await db.collection(COL_REPORTS).doc(postId + '_' + openid).set({
+  const targetId = cleanText((event && event.targetId) || (event && event.postId), 64)
+  if (!targetId) return { openid: openid, ok: false, code: 'bad_post' }
+
+  const res = await db.collection(COL_POSTS).doc(targetId).get()
+    .catch(function () { return { data: null } })
+  const post = res && res.data
+  if (!post || post.status !== 'ok') return { openid: openid, ok: false, code: 'not_found' }
+
+  await db.collection(COL_REPORTS).doc('post_' + targetId + '_' + openid).set({
     data: {
       _openid: openid,
-      postId: postId,
+      targetId: targetId,
       reason: cleanText(event && event.reason, 100),
+      targetContent: cleanText(post.content, FEED_MAX_LEN),
+      targetOpenid: cleanText(post._openid, 64),
+      status: 'pending',
       createdAt: Date.now()
     }
   }).catch(function () {})
   return { openid: openid, ok: true }
 }
 
-// ---- 评论 ----
+// 管理端：待处理举报列表，按被举报对象聚合（举报次数 / 举报人 / 内容快照）。
+// 举报量小，直接取整表后在内存排序，避免依赖数据库复合索引。
+async function adminReportList(openid) {
+  if (!isAdmin(openid)) return { openid: openid, ok: false, code: 'forbidden' }
 
-// 某帖评论：createdAt 倒序游标分页，join 昵称头像，标注 isMe。
-async function commentList(openid, event) {
-  const postId = cleanText(event && event.postId, 64)
-  if (!postId) return { openid: openid, ok: false, code: 'bad_post' }
+  const res = await db.collection(COL_REPORTS).where({ status: _.neq('resolved') })
+    .limit(100).get().catch(function () { return { data: [] } })
+  const list = (res && res.data) || []
 
-  const size = Math.round(clampNum(event && event.limit, 1, 50, COMMENT_PAGE_SIZE))
-  const cursor = Number(event && event.cursor) || 0
-  const where = { postId: postId, status: 'ok' }
-  if (cursor > 0) where.createdAt = _.lt(cursor)
-
-  const res = await db.collection(COL_COMMENTS).where(where).orderBy('createdAt', 'desc')
-    .limit(size + 1).get().catch(function () { return { data: [] } })
-  let list = (res && res.data) || []
-  const hasMore = list.length > size
-  if (hasMore) list = list.slice(0, size)
+  const groups = {}
+  const order = []
+  list.forEach(function (r) {
+    if (!r || !r.targetId) return
+    const key = r.targetId
+    let g = groups[key]
+    if (!g) {
+      g = {
+        targetId: r.targetId,
+        content: cleanText(r.targetContent, 500),
+        authorOpenid: cleanText(r.targetOpenid, 64),
+        count: 0,
+        reporters: [],
+        lastAt: 0
+      }
+      groups[key] = g
+      order.push(key)
+    }
+    g.count += 1
+    if (g.reporters.indexOf(r._openid) < 0) g.reporters.push(r._openid)
+    const at = Number(r.createdAt || 0)
+    if (at > g.lastAt) g.lastAt = at
+  })
 
   const openids = []
-  list.forEach(function (c) {
-    if (c._openid && openids.indexOf(c._openid) < 0) openids.push(c._openid)
+  order.forEach(function (k) {
+    const g = groups[k]
+    if (g.authorOpenid && openids.indexOf(g.authorOpenid) < 0) openids.push(g.authorOpenid)
+    g.reporters.forEach(function (id) { if (id && openids.indexOf(id) < 0) openids.push(id) })
   })
   const userMap = await loadUserMap(openids)
 
-  const avatarMap = await resolveAvatarTempUrls(list.map(function (c) {
-    const u = userMap[c._openid] || {}
-    return { avatar: cleanText(u.avatar, 200) }
-  }))
-
-  const rows = list.map(function (c, i) {
-    const author = userMap[c._openid] || {}
-    const nickname = rankName(c._openid, author)
+  const rows = order.map(function (k) {
+    const g = groups[k]
+    const author = userMap[g.authorOpenid] || {}
     return {
-      id: c._id,
-      content: cleanText(c.content, COMMENT_MAX_LEN),
-      createdAt: Number(c.createdAt || 0),
-      nickname: nickname,
-      avatar: avatarMap[i] || cleanText(author.avatar, 200),
-      char: nickname.slice(0, 1),
-      isMe: c._openid === openid
+      targetId: g.targetId,
+      content: g.content,
+      author: rankName(g.authorOpenid, author),
+      authorOpenid: g.authorOpenid,
+      count: g.count,
+      reporters: g.reporters.map(function (id) { return rankName(id, userMap[id] || {}) }),
+      lastAt: g.lastAt
     }
   })
+  rows.sort(function (a, b) { return b.lastAt - a.lastAt })
 
-  const last = list[list.length - 1]
-  return {
-    openid: openid,
-    ok: true,
-    rows: rows,
-    hasMore: hasMore,
-    nextCursor: hasMore && last ? Number(last.createdAt || 0) : 0
-  }
+  return { openid: openid, ok: true, rows: rows }
 }
 
-// 发表评论：校验帖子存在 + 频率限制 + 内容安全检测，通过后落库并累加帖子的评论数。
-async function commentCreate(openid, event) {
-  const postId = cleanText(event && event.postId, 64)
-  if (!postId) return { openid: openid, ok: false, code: 'bad_post' }
-  const content = cleanText(event && event.content, COMMENT_MAX_LEN)
-  if (!content) return { openid: openid, ok: false, code: 'empty' }
+// 管理端：处理举报。op=delete 删除被举报动态，其余为忽略；两种都把该动态的举报结案。
+async function adminReportResolve(openid, event) {
+  if (!isAdmin(openid)) return { openid: openid, ok: false, code: 'forbidden' }
+  const targetId = cleanText(event && event.targetId, 64)
+  if (!targetId) return { openid: openid, ok: false, code: 'bad_target' }
 
-  const postRes = await db.collection(COL_POSTS).doc(postId).get()
-    .catch(function () { return { data: null } })
-  const post = postRes && postRes.data
-  if (!post || post.status !== 'ok') return { openid: openid, ok: false, code: 'not_found' }
+  if ((event && event.op) === 'delete') await removePost(targetId)
 
-  // 频率限制：同一用户 COMMENT_MIN_INTERVAL 内只允许发一条，避免刷屏。
-  const lastRes = await db.collection(COL_COMMENTS).where({ _openid: openid })
-    .orderBy('createdAt', 'desc').limit(1).get().catch(function () { return { data: [] } })
-  const last = (lastRes && lastRes.data && lastRes.data[0]) || null
-  const now = Date.now()
-  if (last && now - Number(last.createdAt || 0) < COMMENT_MIN_INTERVAL) {
-    return { openid: openid, ok: false, code: 'too_fast' }
-  }
-
-  const suggest = await checkContent(content, openid)
-  if (suggest !== 'pass') {
-    return { openid: openid, ok: false, code: suggest === 'risky' ? 'risky' : 'review' }
-  }
-
-  const add = await db.collection(COL_COMMENTS).add({
-    data: { _openid: openid, postId: postId, content: content, createdAt: now, status: 'ok' }
-  }).catch(function () { return null })
-  if (!add || !add._id) return { openid: openid, ok: false, code: 'db_error' }
-
-  await db.collection(COL_POSTS).doc(postId).update({ data: { commentCount: _.inc(1) } })
-    .catch(function () {})
-  return { openid: openid, ok: true, id: add._id, createdAt: now }
-}
-
-// 删除评论：仅本人可删，连带把帖子的评论数减一。
-async function commentDelete(openid, event) {
-  const commentId = cleanText(event && event.commentId, 64)
-  if (!commentId) return { openid: openid, ok: false, code: 'bad_comment' }
-
-  const res = await db.collection(COL_COMMENTS).doc(commentId).get()
-    .catch(function () { return { data: null } })
-  const comment = res && res.data
-  if (!comment) return { openid: openid, ok: true }
-  if (comment._openid !== openid) return { openid: openid, ok: false, code: 'forbidden' }
-
-  await db.collection(COL_COMMENTS).doc(commentId).remove().catch(function () {})
-  await db.collection(COL_POSTS).doc(comment.postId).update({ data: { commentCount: _.inc(-1) } })
+  await db.collection(COL_REPORTS).where({ targetId: targetId })
+    .update({ data: { status: 'resolved', handledBy: openid, handledAt: Date.now() } })
     .catch(function () {})
   return { openid: openid, ok: true }
+}
+
+// 管理端：判断当前用户是否为管理员，用于决定是否展示审核入口。
+async function adminCheck(openid) {
+  return { openid: openid, ok: true, isAdmin: isAdmin(openid) }
 }
 
 exports.main = async (event) => {
@@ -498,9 +498,9 @@ exports.main = async (event) => {
   if (action === 'feedDelete') return feedDelete(OPENID, event)
   if (action === 'feedReport') return feedReport(OPENID, event)
 
-  if (action === 'commentList') return commentList(OPENID, event)
-  if (action === 'commentCreate') return commentCreate(OPENID, event)
-  if (action === 'commentDelete') return commentDelete(OPENID, event)
+  if (action === 'adminCheck') return adminCheck(OPENID, event)
+  if (action === 'adminReportList') return adminReportList(OPENID, event)
+  if (action === 'adminReportResolve') return adminReportResolve(OPENID, event)
 
   return { openid: OPENID }
 }

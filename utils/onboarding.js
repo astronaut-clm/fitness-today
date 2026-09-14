@@ -1,4 +1,4 @@
-// utils/onboarding.js 登录后「完善资料」引导标记（完成/跳过后写入，退出登录时清除）
+// 登录后「完善资料」引导标记（完成/跳过后写入，退出登录时清除）
 const KEY = 'ft_onboarding_v1'
 
 function isDone() {

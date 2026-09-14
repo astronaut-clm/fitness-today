@@ -12,6 +12,7 @@
     "pages/custom-plan/custom-plan",
     "pages/rank/rank",
     "pages/feed/feed",
+    "pages/admin-report/admin-report",
     "pages/onboarding/onboarding"
   ],
   "plugins": {

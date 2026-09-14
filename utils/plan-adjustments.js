@@ -1,4 +1,4 @@
-// utils/plan-adjustments.js 个人计划调整（仅存本机，不参与云端同步，不改内置计划数据）
+// 个人计划调整：仅存本机，不参与云端同步，不改内置计划数据
 const KEY = 'ft_plan_adjustments_v1'
 
 function emptyStore() {
@@ -71,7 +71,6 @@ function apply(plan) {
   return copy
 }
 
-// 退出登录时清空本机调整
 function resetLocal() {
   saveStore(emptyStore())
 }

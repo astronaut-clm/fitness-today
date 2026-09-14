@@ -1,4 +1,3 @@
-// pages/plan/plan.js 训练计划库
 const plansData = require('../../data/plans.js')
 const customPlans = require('../../utils/custom-plans.js')
 const store = require('../../utils/store.js')

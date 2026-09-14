@@ -1,4 +1,4 @@
-// utils/cloud.js CloudBase 初始化协调层（调用前统一等 ready()，避免启动期竞态）
+// CloudBase 初始化协调层：调用前统一等 ready()，避免启动期竞态
 const config = require('./config.js')
 
 let initPromise = null
@@ -32,7 +32,6 @@ function ready() {
   return init()
 }
 
-// 是否具备可调用的云函数能力
 function callable() {
   try {
     return !!(config.ENABLE_CLOUD && wx.cloud && wx.cloud.callFunction)

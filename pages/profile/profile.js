@@ -1,4 +1,3 @@
-// pages/profile/profile.js 训练偏好设置
 const profile = require('../../utils/profile.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')

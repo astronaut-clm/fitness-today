@@ -1,4 +1,3 @@
-/* components/px-toast/px-toast.wxss 页内像素提示 */
 .px-toast {
   position: fixed;
   left: 50%;

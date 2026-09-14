@@ -1,9 +1,7 @@
-<!--pages/library/library.wxml 动作库-->
 <navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
 
-    <!-- 搜索 -->
     <view class="search">
       <text class="search-ico">⌕</text>
       <input
@@ -17,7 +15,6 @@
       <text wx:if="{{keyword}}" class="search-clear" hover-class="hover" hover-stay-time="100" bindtap="onClearSearch">×</text>
     </view>
 
-    <!-- 分类 -->
     <view class="cats">
       <view
         wx:for="{{cats}}"
@@ -29,7 +26,6 @@
       >{{item}}</view>
     </view>
 
-    <!-- 列表 -->
     <view class="list-head">
       <text class="weak">共 {{list.length}} 个动作</text>
     </view>

@@ -1,4 +1,3 @@
-// pages/checkin/checkin.js
 const store = require('../../utils/store.js')
 const dateUtil = require('../../utils/date.js')
 const profile = require('../../utils/profile.js')
@@ -13,8 +12,7 @@ function recordView(record) {
     planName: record.planName,
     sceneName: record.sceneName,
     timeText: dateUtil.pad(time.getHours()) + ':' + dateUtil.pad(time.getMinutes()),
-    detailText: '实际训练 ' + record.actualMinutes + ' 分钟',
-    skippedText: record.skippedGroups ? '跳过 ' + record.skippedGroups + ' 组' : ''
+    detailText: '实际训练 ' + record.actualMinutes + ' 分钟'
   }
 }
 
@@ -32,7 +30,6 @@ Page({
     selected: '',
     selectedLabel: '',
     selectedRecords: [],
-    // 删除记录确认弹层
     deleteConfirm: { show: false, id: '', name: '' }
   },
 
@@ -207,7 +204,6 @@ Page({
     this.refreshSelected()
   },
 
-  // 删除记录确认弹层
   onDeleteRecord(e) {
     const id = e.currentTarget.dataset.id
     const record = store.getRecord(id)

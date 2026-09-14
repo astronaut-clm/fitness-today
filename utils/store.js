@@ -41,14 +41,13 @@ function getRecord(id) {
   return records.getById(id)
 }
 
-// 清空本机全部训练记录（退出登录时调用；云端不受影响）
+// 仅清本机，云端记录不受影响
 function clearLocal() {
   records.replaceAll({})
   // 水位归零，下次登录按首次同步全量拉回
   saveSyncMeta({ lastSyncAt: 0, lastFullPullAt: 0 })
 }
 
-// 从记录数组派生「日期 → 记录」映射
 function getDateMapFrom(list) {
   return records.getDateMapFrom(list)
 }
@@ -57,7 +56,6 @@ function getAllRecords() {
   return records.getAll()
 }
 
-// 从记录数组派生统计
 function computeStatsFrom(list) {
   return records.computeStatsFrom(list)
 }
@@ -67,17 +65,14 @@ function syncEnabled() {
 }
 
 function syncFromCloud() {
-  // 仅登录用户可同步
   if (!sync.enabled() || !account.isLoggedIn()) return Promise.resolve(false)
 
   const meta = readSyncMeta()
   const now = Date.now()
-  // 有水位时增量拉取，否则（首次/重登/超周期）全量拉取
   const needsFullPull = !meta.lastSyncAt || !meta.lastFullPullAt || (now - meta.lastFullPullAt) >= FULL_PULL_INTERVAL
   const remotePromise = needsFullPull ? sync.pullAll() : sync.pullSince(meta.lastSyncAt)
 
   return remotePromise.then(function (remote) {
-    // 拉取失败返回 false
     if (!remote) return false
 
     // 拉取期间可能已登出：禁止再用云端数据回填，否则清空的记录会被"复活"
@@ -108,7 +103,6 @@ function syncFromCloud() {
         lastSyncAt: Date.now(),
         lastFullPullAt: needsFullPull ? Date.now() : meta.lastFullPullAt
       })
-      // 同步成功后清理本机墓碑
       records.purgeDeleted()
       return true
     })

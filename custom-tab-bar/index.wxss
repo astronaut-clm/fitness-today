@@ -8,7 +8,6 @@
   z-index: 999;
   box-sizing: border-box;
   background: var(--card, #ffffff);
-  /* 网点纹理，与全站复古质感统一 */
   background-image: radial-gradient(rgba(26, 26, 26, 0.10) 1.5rpx, transparent 1.6rpx);
   background-size: 8rpx 8rpx;
   border-top: var(--px, 4rpx) solid var(--ink, #1a1a1a);

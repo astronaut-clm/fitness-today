@@ -4,10 +4,16 @@ const config = require('../../utils/config.js')
 const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
-// 拼接动作演示动画地址：<ACTION_CDN_PREFIX><id>.gif（jsDelivr 直链，不经过云存储）
+// 动作演示动图地址：<ACTION_CDN_PREFIX><id>.gif，仅作视频加载失败时的兜底
 function actionImage(id) {
   if (!id || !config.ACTION_CDN_PREFIX) return ''
   return config.ACTION_CDN_PREFIX + id + '.gif'
+}
+
+// 动作演示视频地址：<ACTION_VIDEO_PREFIX><id>.mp4，前缀留空则返回 ''，页面退回上面的 GIF
+function actionVideo(id) {
+  if (!id || !config.ACTION_VIDEO_PREFIX) return ''
+  return config.ACTION_VIDEO_PREFIX + id + '.mp4'
 }
 
 // 教学指导以动作自带数据为主，未配置的动作回落到这里给出通用建议。
@@ -48,11 +54,15 @@ Page({
       })
 
     const guide = defaultGuide()
+    // 演示动画二选一：video 有值走 <video> 循环播放，否则用 image 的 GIF 兜底（见 wxml 的动作演示卡）
+    const imageUrl = actionImage(a.id)
+    const videoUrl = actionVideo(a.id)
     this.setData({
       view: {
         id: a.id,
         name: a.name,
-        image: actionImage(a.id),
+        image: imageUrl,
+        video: videoUrl,
         category: a.category,
         equipment: a.equipment,
         level: a.level,
@@ -71,7 +81,13 @@ Page({
     })
   },
 
+  onVideoError() {
+    // 视频加载失败：清空 video，让 wxml 退回 GIF 兜底，避免演示卡整块消失
+    this.setData({ 'view.video': '' })
+  },
+
   onImgError() {
+    // GIF 兜底也加载失败：清空 image，隐藏演示卡
     this.setData({ 'view.image': '' })
   },
 

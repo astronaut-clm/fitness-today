@@ -21,10 +21,32 @@
       <view class="brief-level"><text class="tag {{view.lvClass}}">{{view.level}}</text></view>
     </view>
 
-    <!-- 动作演示动画（jsDelivr 直链） -->
-    <view class="g-card anim-card" wx:if="{{view.image}}">
+    <!-- 动作演示：优先 <video> 循环播放，未配置 MP4 或加载失败时退回 GIF -->
+    <!-- 注：<video> 在 controls=false 时官方规定 poster 不生效，故加载瞬间会短暂空白 -->
+    <view class="g-card anim-card" wx:if="{{view.video || view.image}}">
       <view class="section-title anim-title">动作演示</view>
-      <image class="anim-img" src="{{view.image}}" mode="aspectFit" binderror="onImgError" />
+      <video
+        wx:if="{{view.video}}"
+        class="anim-img"
+        src="{{view.video}}"
+        poster="{{view.image}}"
+        autoplay
+        loop
+        muted
+        object-fit="contain"
+        controls="{{false}}"
+        show-center-play-btn="{{false}}"
+        show-fullscreen-btn="{{false}}"
+        enable-progress-gesture="{{false}}"
+        binderror="onVideoError"
+      />
+      <image
+        wx:else
+        class="anim-img"
+        src="{{view.image}}"
+        mode="aspectFit"
+        binderror="onImgError"
+      />
     </view>
 
     <!-- 动作要点 -->

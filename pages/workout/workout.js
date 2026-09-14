@@ -342,7 +342,7 @@ Page({
   // 提前合成本次训练用到的语句，避免播报时等网络合成
   warmupVoice() {
     if (!voice.available || !voice.enabled()) return
-    const phrases = ['3', '2', '1'].concat(CHEERS).concat(FINISH_LINES)
+    const phrases = ['5', '4', '3', '2', '1'].concat(CHEERS).concat(FINISH_LINES)
     const seen = {}
     this.groups.forEach(function (group) {
       const setText = setVoiceText(group)
@@ -356,17 +356,20 @@ Page({
   announceGroup(group) {
     if (!group) return
     // 动作名与口号按序合成后一次入队，避免回调乱序导致口号先播
-    voice.speakAll([setVoiceText(group), pickVoiceLine(CHEERS)])
+    // interrupt：打断上一阶段残留播报（如休息句/倒数），避免新组播报被拖延
+    voice.speakAll([setVoiceText(group), pickVoiceLine(CHEERS)], { interrupt: true })
   },
 
-  // 倒数 3/2/1：仅最后 3 秒播报，同值不重复
+  // 倒数 5/4/3/2/1：仅最后 5 秒播报，同值不重复。
+  // 仅"5"带 interrupt 切断上一阶段残留长句，后续数字排队顺序播，
+  // 避免每秒一次抢占（停止+重建音频实例）造成连续卡顿
   announceCountdown(remain, phase) {
-    if (remain > 3) { this._countPhase = ''; this._countValue = 0; return }
+    if (remain > 5) { this._countPhase = ''; this._countValue = 0; return }
     if (remain < 1) return
     if (this._countPhase === phase && this._countValue === remain) return
     this._countPhase = phase
     this._countValue = remain
-    voice.speak(String(remain), { interrupt: true })
+    voice.speak(String(remain), { interrupt: remain === 5 })
   },
 
   onToggleVoice() {
@@ -415,7 +418,7 @@ Page({
         skippedGroups: skippedGroups,
         costText: this.calcCost()
       })
-      voice.speak(pickVoiceLine(FINISH_LINES))
+      voice.speak(pickVoiceLine(FINISH_LINES), { interrupt: true })
       this.vibrate('long')
       this.finalizeWorkout()
       return
@@ -438,7 +441,8 @@ Page({
     })
     this._countPhase = ''
     this._countValue = 0
-    voice.speak(restVoiceText(rest))
+    // 打断上一组末尾的倒数播报，休息提示立即出声
+    voice.speak(restVoiceText(rest), { interrupt: true })
     this.vibrate('short')
     this.persistSession()
     this.startInterval()

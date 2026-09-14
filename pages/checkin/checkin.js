@@ -14,7 +14,6 @@ function recordView(record) {
     sceneName: record.sceneName,
     timeText: dateUtil.pad(time.getHours()) + ':' + dateUtil.pad(time.getMinutes()),
     detailText: '实际训练 ' + record.actualMinutes + ' 分钟',
-    groupsText: record.completedGroups ? '完成 ' + record.completedGroups + '/' + record.totalGroups + ' 组' : '',
     skippedText: record.skippedGroups ? '跳过 ' + record.skippedGroups + ' 组' : ''
   }
 }

@@ -17,14 +17,21 @@ const queue = []    // 待播放的音频路径
 let current = null   // 当前正在播放的音频实例
 let playing = false
 let optionSet = false
+let pendingInterrupt = 0 // 抢占任务序号：连续抢占时只执行最新一次
 
 function noop() {}
 
+let enabledCache = null // 开关内存缓存：播报路径上避免每次同步读 storage
+
 function enabled() {
-  try { return wx.getStorageSync(KEY) !== false } catch (e) { return true }
+  if (enabledCache === null) {
+    try { enabledCache = wx.getStorageSync(KEY) !== false } catch (e) { enabledCache = true }
+  }
+  return enabledCache
 }
 
 function setEnabled(on) {
+  enabledCache = !!on
   try { wx.setStorageSync(KEY, !!on) } catch (e) {}
   if (!on) stop()
 }
@@ -76,7 +83,9 @@ function playNext() {
   function done() {
     if (settled) return
     settled = true
-    if (current === ctx) current = null
+    // 已被 stop() 抢占（interrupt / 页面隐藏），播放状态由抢占方接管
+    if (current !== ctx) return
+    current = null
     playing = false
     try { ctx.destroy() } catch (e) {}
     playNext()
@@ -88,7 +97,7 @@ function playNext() {
   ctx.play()
 }
 
-// 播放一段文本；opts.interrupt=true 时清空待播队列
+// 播放一段文本；opts.interrupt=true 时抢占（清空队列并打断当前播报）
 function speak(text, opts) {
   speakAll([text], opts)
 }
@@ -102,7 +111,21 @@ function speakAll(texts, opts) {
   const paths = new Array(list.length)
   let remaining = list.length
   function flush() {
-    if (interrupt) queue.length = 0
+    if (interrupt) {
+      // 抢占：立即清空待播队列，打断当前播报要延后约 60ms（3 帧）——
+      // 音频实例的 stop/destroy 与重建开销大，需等点击回调返回、界面绘制完成后再执行，
+      // 否则会阻塞 JS 线程造成按钮卡顿。
+      // 连续抢占时通过序号只保留最后一次，旧任务作废，避免过期语音抢先播出
+      queue.length = 0
+      const seq = ++pendingInterrupt
+      setTimeout(function () {
+        if (seq !== pendingInterrupt) return
+        stop()
+        paths.forEach(function (path) { if (path) queue.push(path) })
+        playNext()
+      }, 60)
+      return
+    }
     paths.forEach(function (path) { if (path) queue.push(path) })
     if (!playing) playNext()
   }
@@ -115,6 +138,43 @@ function speakAll(texts, opts) {
   })
 }
 
+// 预加载：合成完成后提前设置 src 触发音频下载/解码，降低首次播放起播延迟
+// 串行执行且播报时让路，避免实例创建/销毁与播放管线竞争
+const preloadQueue = []
+let preloading = false
+
+function runPreload() {
+  if (preloading) return
+  if (playing) { setTimeout(runPreload, 500); return }
+  const path = preloadQueue.shift()
+  if (!path) return
+  preloading = true
+  try {
+    const ctx = wx.createInnerAudioContext()
+    let released = false
+    function release() {
+      if (released) return
+      released = true
+      try { ctx.destroy() } catch (e) {}
+      preloading = false
+      runPreload()
+    }
+    ctx.onCanplay(release)
+    ctx.onError(release)
+    ctx.src = path
+    setTimeout(release, 3000)
+  } catch (e) {
+    preloading = false
+    runPreload()
+  }
+}
+
+function preload(path) {
+  if (!path) return
+  preloadQueue.push(path)
+  runPreload()
+}
+
 // 预合成：提前把本次会用到的语句生成为本地音频
 function warmup(texts) {
   if (!available || !enabled()) return
@@ -122,7 +182,7 @@ function warmup(texts) {
   ;(texts || []).forEach(function (text) {
     if (!text || seen[text]) return
     seen[text] = 1
-    synthesize(text, noop)
+    synthesize(text, preload)
   })
 }
 

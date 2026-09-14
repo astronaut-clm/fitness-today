@@ -71,9 +71,8 @@
         <view class="rec-delete" data-id="{{item.id}}" hover-class="hover" hover-stay-time="100" bindtap="onDeleteRecord">删除</view>
       </view>
       <view class="rec-detail">{{item.detailText}}</view>
-      <view class="rec-meta" wx:if="{{item.groupsText || item.skippedText}}">
-        <text wx:if="{{item.groupsText}}">{{item.groupsText}}</text>
-        <text wx:if="{{item.skippedText}}">{{item.skippedText}}</text>
+      <view class="rec-meta" wx:if="{{item.skippedText}}">
+        <text>{{item.skippedText}}</text>
       </view>
     </view>
   </view>
@@ -91,7 +90,7 @@
 <view class="px-mask" wx:if="{{deleteConfirm.show}}" bindtap="onCancelDelete" catchtouchmove="noop">
   <view class="px-dialog" catchtap="noop">
     <view class="px-dialog-title">删除训练记录？</view>
-    <view class="px-dialog-copy">{{deleteConfirm.name}} 将从记录中移除</view>
+    <view class="px-dialog-copy">{{deleteConfirm.name}} 将从记录中永久移除</view>
     <view class="px-dialog-btns">
       <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelDelete">取消</view>
       <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmDelete">删除</view>

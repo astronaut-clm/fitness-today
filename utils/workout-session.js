@@ -11,7 +11,8 @@ function save(session) {
   Object.keys(session).forEach(function (key) { next[key] = session[key] })
   next.version = 1
   next.savedAt = Date.now()
-  try { wx.setStorageSync(KEY, next) } catch (e) {}
+  // 异步写，避免同步 IO 阻塞训练页交互（如本组完成按钮）
+  try { wx.setStorage({ key: KEY, data: next }) } catch (e) {}
   return next
 }
 

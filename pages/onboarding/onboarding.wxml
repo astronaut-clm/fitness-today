@@ -10,7 +10,6 @@
       <view class="step {{step >= 2 ? 'on' : ''}}"><text class="step-no">2</text><text>自定义计划</text></view>
     </view>
 
-    <!-- 第一步：训练偏好 -->
     <block wx:if="{{step === 1}}">
       <view class="intro">
         <view class="intro-title">让每日推荐更懂你</view>

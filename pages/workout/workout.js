@@ -204,7 +204,6 @@ Page({
       this.startFresh()
       return
     }
-    // 恢复/重开用页内弹层确认
     this._resumeSession = session
     this.setData({
       showResumeConfirm: true,
@@ -274,7 +273,6 @@ Page({
     if (!this.plan || this.data.state === 'finished') return
     // 恢复弹层未选择时不落盘，避免初始态覆盖已存进度
     if (this.data.showResumeConfirm) return
-    // 无已完成组则不保存
     if (Number(this.data.completed || 0) <= 0) return
     sessionStore.save({
       planId: this.planId,
@@ -289,7 +287,7 @@ Page({
     })
   },
 
-  // 进入 finished 态时落库为训练记录并清理本地进度，返回落库结果供完成页统计
+  // 进入 finished 态时落库为训练记录并清理本地进度
   finalizeWorkout() {
     if (!this.plan) return null
     const plan = this.plan
@@ -317,7 +315,7 @@ Page({
     }
   },
 
-  // 完成页情绪反馈：夸赞文案 + 成绩统计，统计基于刚落库的记录
+  // 完成页文案与统计（基于刚落库的记录）
   buildFinishFeedback() {
     const total = this.data.total || 1
     const skipped = this.data.skippedGroups || 0

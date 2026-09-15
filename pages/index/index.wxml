@@ -105,7 +105,6 @@
   </view>
 </view>
 
-<!-- 登录中：页内像素加载层 -->
 <view class="px-loading-mask" wx:if="{{loginBusy}}" catchtouchmove="noop">
   <view class="px-loading">
     <view class="px-loading-dot"></view>

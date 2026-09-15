@@ -1,6 +1,7 @@
 const feed = require('../../utils/feed.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
+const avatarView = require('../../utils/avatar.js')
 
 // 超过该时长后重进页面静默刷新首页，顺带更新过期的头像临时链接（约 2 小时）。
 const FEED_REFRESH_INTERVAL = 10 * 60 * 1000
@@ -20,14 +21,7 @@ Page({
     showDeleteDialog: false,
     deleteTarget: -1,
     showReportDialog: false,
-    reportTarget: '',
-    reviewId: ''
-  },
-
-  // 管理端「去复核」带 reviewPostId 跳转，加载后自动定位到该动态。
-  onLoad(options) {
-    this._reviewPostId = String((options && options.reviewPostId) || '')
-    this._reviewPage = 0
+    reportTarget: ''
   },
 
   onShow() {
@@ -60,7 +54,6 @@ Page({
         loaded: true,
         error: false
       })
-      this.locateReview()
     }).catch(() => {
       this.setData(silent ? { loading: false } : { loading: false, loaded: true, error: true })
     })
@@ -85,36 +78,13 @@ Page({
     })
   },
 
-  // 复核定位：在已加载列表里找目标动态，找到就滚动过去并高亮；否则翻页继续找（最多 20 页）。
-  locateReview() {
-    const pid = this._reviewPostId
-    if (!pid) return
-    const rows = this.data.rows
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i].id === pid) {
-        this._reviewPostId = ''
-        this.setData({ reviewId: 'post-' + pid })
-        return
-      }
-    }
-    if (!this.data.hasMore || (this._reviewPage || 0) >= 20) {
-      this._reviewPostId = ''
-      toast.show('内容已删除，或不在前 20 页内')
-      return
-    }
-    this._reviewPage = (this._reviewPage || 0) + 1
-    this.loadMore().then(() => this.locateReview())
-  },
-
   onRetry() {
     this.load()
   },
 
   // 头像链接失效时清空该行头像，落到文字头像兜底，避免破图。
   onAvatarError(e) {
-    const index = e.currentTarget.dataset.index
-    if (index == null) return
-    this.setData({ ['rows[' + index + '].avatar']: '' })
+    avatarView.clearRow(this, 'rows', e.currentTarget.dataset.index)
   },
 
   openPost() {

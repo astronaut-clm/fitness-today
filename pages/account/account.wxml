@@ -6,7 +6,7 @@
       <view class="avatar-clip">
         <image wx:if="{{avatarUrl}}" class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
         <view wx:else class="avatar-fallback">{{avatarChar}}</view>
-        <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar"></button>
+        <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="none"></button>
       </view>
       <view class="weak avatar-tip">点击更换头像</view>
     </view>
@@ -18,7 +18,7 @@
       </view>
     </view>
 
-    <view class="g-card menu-card" hover-class="hover" hover-stay-time="100" bindtap="goPrefs">
+    <view class="g-card menu-card" bindtap="goPrefs">
       <view class="menu-copy">
         <view class="menu-title">偏好配置</view>
         <view class="weak menu-sub">训练目标 · 场地 · 器械 · 每周目标</view>
@@ -26,15 +26,7 @@
       <view class="menu-arrow">›</view>
     </view>
 
-    <view wx:if="{{isAdmin}}" class="g-card menu-card" hover-class="hover" hover-stay-time="100" bindtap="goAdminReport">
-      <view class="menu-copy">
-        <view class="menu-title">举报审核</view>
-        <view class="weak menu-sub">查看铁友圈待处理举报</view>
-      </view>
-      <view class="menu-arrow">›</view>
-    </view>
-
-    <view class="g-card menu-card" hover-class="hover" hover-stay-time="100" bindtap="goCustomPlans">
+    <view class="g-card menu-card" bindtap="goCustomPlans">
       <view class="menu-copy">
         <view class="menu-title">自定义计划</view>
         <view class="weak menu-sub">{{customHint}}</view>
@@ -52,19 +44,27 @@
       </view>
     </view>
 
+    <view wx:if="{{isAdmin}}" class="g-card menu-card" bindtap="goAdminReport">
+      <view class="menu-copy">
+        <view class="menu-title">举报审核</view>
+        <view class="weak menu-sub">查看铁友圈待处理举报</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
     <view class="bottom-space"></view>
   </view>
 </scroll-view>
 <view class="save-bar">
-  <view class="btn logout-save-btn" hover-class="hover" hover-stay-time="100" bindtap="onLogout">退出登录</view>
+  <view class="btn logout-save-btn" bindtap="onLogout">退出登录</view>
 </view>
-<view class="logout-mask" wx:if="{{showLogoutConfirm}}" bindtap="onCancelLogout" catchtouchmove="noop">
-  <view class="logout-dialog" catchtap="noop">
-    <view class="logout-dialog-title">退出并清空记录？</view>
-    <view class="logout-dialog-copy">再次登录会自动恢复全部云端数据</view>
-    <view class="logout-dialog-btns">
-      <view class="logout-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelLogout">再想想</view>
-      <view class="logout-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmLogout">退出并清空</view>
+<view class="px-mask" wx:if="{{showLogoutConfirm}}" bindtap="onCancelLogout" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">退出并清空记录？</view>
+    <view class="px-dialog-copy">再次登录会自动恢复全部云端数据</view>
+    <view class="px-dialog-btns">
+      <view class="px-dialog-btn cancel" bindtap="onCancelLogout">再想想</view>
+      <view class="px-dialog-btn danger" bindtap="onConfirmLogout">退出并清空</view>
     </view>
   </view>
 </view>

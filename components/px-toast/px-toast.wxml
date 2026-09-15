@@ -1,4 +1,4 @@
 <view class="px-toast" wx:if="{{show}}">
-  <view wx:if="{{success}}" class="px-toast-icon"></view>
+  <view class="px-toast-icon {{success ? 'success' : ''}}"></view>
   <text class="px-toast-text">{{text}}</text>
 </view>

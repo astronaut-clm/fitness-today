@@ -1,7 +1,4 @@
-/* 自定义导航栏与内容区共用视口，避免底部内容被页面边界裁切。 */
-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 /* padding 必须放内层容器，否则内层滚动层被挤窄、滚动条不贴右。 */
-.scrollarea { flex: 1; min-height: 0; overflow-y: hidden; background: var(--bg, #ffffff); }
 .page { box-sizing: border-box; padding: 24rpx 28rpx 0; }
 .user-card { display: flex; align-items: center; gap: 18rpx; padding: 22rpx 24rpx; margin-bottom: 20rpx; }
 .uc-avatar { width: 96rpx; height: 96rpx; flex: none; border-radius: 0; }
@@ -30,10 +27,10 @@ page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .week-day { padding-bottom: 10rpx; color: var(--ink3); font-size: 21rpx; }
 .date-cell { position: relative; height: 74rpx; color: var(--ink); font-size: 25rpx; line-height: 62rpx; }
 .date-cell.empty { color: transparent; }
+/* 有训练记录的日期：绿框标记（今天/选中态在其后定义，优先级更高） */
+.date-cell.has-record > text { display: inline-block; width: 50rpx; height: 50rpx; border: var(--pxs) solid var(--green); border-radius: 0; line-height: 46rpx; }
 .date-cell.today > text { display: inline-block; width: 50rpx; height: 50rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink); background: var(--card2); line-height: 46rpx; }
-.date-cell.selected > text { color: var(--card); background: var(--primary); }
-.date-dot { position: absolute; left: 50%; bottom: 0; min-width: 10rpx; height: 10rpx; padding: 0 4rpx; transform: translateX(-50%); border-radius: 0; color: var(--card); background: var(--ink); font-size: 16rpx; line-height: 10rpx; }
-.date-cell.selected .date-dot { background: var(--card); color: var(--ink); }
+.date-cell.selected > text { color: var(--card); background: var(--primary); border-color: var(--ink); }
 
 .record-head { display: flex; align-items: center; justify-content: space-between; margin: 30rpx 4rpx 16rpx; }
 .record-date { color: var(--ink); font-size: 30rpx; font-weight: 700; }
@@ -44,11 +41,7 @@ page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .rec-time { margin-top: 8rpx; font-size: 22rpx; }
 .rec-delete { align-self: center; padding: 8rpx 4rpx 8rpx 16rpx; color: var(--ink); font-size: 23rpx; font-weight: 700; }
 .rec-detail { margin-top: 16rpx; color: var(--ink2); font-size: 24rpx; }
-.rec-meta { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 14rpx; }
-.rec-meta text { padding: 5rpx 12rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink2); background: var(--card2); font-size: 20rpx; }
 .empty { padding: 48rpx 22rpx; color: var(--ink2); font-size: 26rpx; text-align: center; }
 .empty-icon { margin-bottom: 10rpx; color: var(--ink3); font-size: 56rpx; }
 .empty .weak { margin-top: 8rpx; font-size: 22rpx; }
 .bottom-space { height: calc(148rpx + env(safe-area-inset-bottom)); }
-
-.hover { opacity: .65; }

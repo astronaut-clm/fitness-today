@@ -4,8 +4,9 @@ const customPlans = require('../../utils/custom-plans.js')
 const account = require('../../utils/account.js')
 const onboarding = require('../../utils/onboarding.js')
 const toast = require('../../utils/toast.js')
+const prefsForm = require('../../utils/prefs-form.js')
 
-Page({
+Page(Object.assign({}, prefsForm, {
   data: {
     step: 1,
     goals: [],
@@ -33,10 +34,6 @@ Page({
     onboarding.markDone()
   },
 
-  applyCurrent() {
-    this.setData(profile.buildView(this.current))
-  },
-
   refreshCustom() {
     const parts = []
     if (customPlans.has('home')) parts.push('居家')
@@ -44,39 +41,6 @@ Page({
     this.setData({
       customHint: parts.length ? '已设置：' + parts.join(' · ') : '还没有自定义计划，去创建一个吧'
     })
-  },
-
-  toggleValue(key, value) {
-    const values = (this.current[key] || []).slice()
-    const index = values.indexOf(value)
-    if (index >= 0) values.splice(index, 1)
-    else values.push(value)
-    this.current[key] = values
-    this.applyCurrent()
-  },
-
-  onChooseGoal(e) {
-    this.current.goal = e.currentTarget.dataset.value
-    this.applyCurrent()
-  },
-
-  onToggleScene(e) { this.toggleValue('scenes', e.currentTarget.dataset.value) },
-
-  onChooseExperience(e) {
-    this.current.experience = e.currentTarget.dataset.value
-    this.applyCurrent()
-  },
-
-  onToggleEquipment(e) { this.toggleValue('equipment', e.currentTarget.dataset.value) },
-
-  onDaysChange(e) {
-    this.current.weeklyTargetDays = Number(e.detail.value)
-    this.setData({ weeklyTargetDays: this.current.weeklyTargetDays })
-  },
-
-  onMinutesChange(e) {
-    this.current.weeklyTargetMinutes = Number(e.detail.value)
-    this.setData({ weeklyTargetMinutes: this.current.weeklyTargetMinutes })
   },
 
   savePrefs() {
@@ -117,4 +81,4 @@ Page({
       fail: function () { wx.switchTab({ url: '/pages/index/index' }) }
     })
   }
-})
+}))

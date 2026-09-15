@@ -197,10 +197,6 @@ function stop() {
   }
 }
 
-function destroy() {
-  stop()
-}
-
 module.exports = {
   available: available,
   enabled: enabled,
@@ -208,6 +204,5 @@ module.exports = {
   speak: speak,
   speakAll: speakAll,
   warmup: warmup,
-  stop: stop,
-  destroy: destroy
+  stop: stop
 }

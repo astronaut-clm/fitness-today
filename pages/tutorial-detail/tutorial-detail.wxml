@@ -9,11 +9,10 @@
           <text class="h-tag">{{view.category}}</text>
           <text class="h-tag">{{view.equipment}}</text>
         </view>
-        <text class="tag hero-level {{view.lvClass}}">{{view.level}}</text>
+        <text class="tag hero-level">{{view.level}}</text>
       </view>
       <view class="hero-name">{{view.name}}</view>
       <view class="hero-meta">目标肌群：{{view.muscles}}</view>
-      <view class="hero-summary" wx:if="{{view.summary}}">{{view.summary}}</view>
     </view>
 
     <view class="g-card anim-card" wx:if="{{view.video}}">
@@ -69,12 +68,11 @@
         class="rel-item"
         wx:for="{{related}}"
         wx:key="id"
-        hover-class="hover" hover-stay-time="100"
         data-id="{{item.id}}"
         bindtap="goAction"
       >
         <text class="rel-name">{{item.name}}</text>
-        <text class="tag {{item.lvClass}}">{{item.level}}</text>
+        <text class="tag">{{item.level}}</text>
         <text class="rel-arrow">›</text>
       </view>
     </view>

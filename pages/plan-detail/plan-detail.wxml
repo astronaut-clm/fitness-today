@@ -15,10 +15,10 @@
       <view class="notice-round">{{plan.roundsText}}</view>
     </view>
 
-    <!-- 动作清单：修改组数后右上角提供「恢复默认」 -->
+    <!-- 动作清单：修改组数后右上角提供「恢复默认」（visibility 控制显隐，占位恒定避免列表位移） -->
     <view class="ex-head">
       <view class="flex1">训练动作</view>
-      <text wx:if="{{!readonly && hasAdjustments}}" class="adjust-reset" hover-class="hover" hover-stay-time="100" bindtap="onRestoreDefault">恢复默认</text>
+      <text class="adjust-reset {{!readonly && hasAdjustments ? '' : 'hide'}}" bindtap="onRestoreDefault">恢复默认</text>
     </view>
 
     <view class="g-card ex-list">
@@ -26,7 +26,6 @@
         class="ex-item"
         wx:for="{{items}}"
         wx:key="actionId"
-        hover-class="hover" hover-stay-time="100"
         data-id="{{item.actionId}}"
         bindtap="goAction"
       >
@@ -34,7 +33,7 @@
         <view class="flex1">
           <view class="ex-name">{{item.name}}</view>
           <view class="ex-meta weak">{{item.sets}} 组 × {{item.reps}}<text wx:if="{{item.rest}}"> · {{item.rest}}</text></view>
-          <view class="set-adjust" wx:if="{{!readonly}}" catchtap="onAdjustArea">
+          <view class="set-adjust" wx:if="{{!readonly}}" catchtap="noop">
             <text class="set-label">组数</text>
             <text class="set-control {{item.canReduce ? '' : 'disabled'}}" data-id="{{item.actionId}}" data-delta="-1" catchtap="onAdjustSet">−</text>
             <text class="set-value">{{item.sets}}</text>
@@ -54,16 +53,16 @@
     <view class="bar-time num">{{plan.duration}} 分钟</view>
     <view class="bar-kcal weak">约 {{plan.calories}} kcal</view>
   </view>
-  <view class="btn btn-primary bar-btn bar-main" hover-class="hover" hover-stay-time="100" bindtap="onWorkout">{{hasActiveSession ? '继续训练' : '开始训练'}}</view>
+  <view class="btn btn-primary bar-btn bar-main" bindtap="onWorkout">{{hasActiveSession ? '继续训练' : '开始训练'}}</view>
 </view>
 
-<view wx:if="{{showSwitchConfirm}}" class="switch-mask" catchtouchmove="noop">
-  <view class="switch-dialog" catchtap="noop">
-    <view class="switch-title">有未完成训练</view>
-    <view class="switch-copy">是否放弃「{{switchActiveName}}」的进度</view>
-    <view class="switch-btns">
-      <view class="switch-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelSwitch">取消</view>
-      <view class="switch-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onConfirmSwitch">放弃并开始</view>
+<view wx:if="{{showSwitchConfirm}}" class="px-mask" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">有未完成训练</view>
+    <view class="px-dialog-copy">是否放弃「{{switchActiveName}}」的进度</view>
+    <view class="px-dialog-btns">
+      <view class="px-dialog-btn cancel" bindtap="onCancelSwitch">取消</view>
+      <view class="px-dialog-btn primary" bindtap="onConfirmSwitch">放弃并开始</view>
     </view>
   </view>
 </view>

@@ -12,9 +12,9 @@ const COL_POSTS = 'ft_posts'
 const COL_LIKES = 'ft_post_likes'
 const COL_REPORTS = 'ft_post_reports'
 
-// 管理员白名单：优先读云函数环境变量 ADMIN_OPENIDS（多个用英文逗号分隔），
-// 也可直接把 openid 写进下面的数组后重新部署 social 云函数。
-const ADMIN_OPENIDS = ['oO_3mxeXiqp6gGGcgZlyE7WjLGvs']
+// 管理员白名单：读云函数环境变量 ADMIN_OPENIDS（多个用英文逗号分隔），
+// 源码不硬编码任何 openid，避免公开管理员身份标识。
+const ADMIN_OPENIDS = []
 
 function adminOpenids() {
   const list = ADMIN_OPENIDS.slice()
@@ -30,11 +30,14 @@ function isAdmin(openid) {
   return !!openid && adminOpenids().indexOf(openid) >= 0
 }
 
-// 排行榜参数：只返回前 N 名；同一自然月榜单缓存 TTL（毫秒），避免每次打开都全量聚合。
+// 榜单：返回前 N 名；同月共享缓存 TTL（毫秒）
 const RANK_TOP = 100
 const RANK_CACHE_TTL = 60 * 1000
 
-// 铁友圈参数：分页大小 / 正文上限 / 同一用户发帖最小间隔（毫秒）。
+// 举报审核：聚合后返回前 N 个被举报对象
+const REPORT_TOP = 100
+
+// 铁友圈：分页大小 / 正文上限 / 同一用户发帖最小间隔（毫秒）
 const FEED_PAGE_SIZE = 10
 const FEED_MAX_LEN = 500
 const FEED_MIN_INTERVAL = 10 * 1000
@@ -70,28 +73,32 @@ function rankName(openid, user) {
   return id ? '练友' + id.slice(-6) : '神秘练友'
 }
 
-// 批量读取用户文档并按 _id 建映射，供榜单 / 动态 join 昵称头像复用。
+// 批量读用户文档并按 _id 建映射；单次 limit 上限 1000，超量分批
 async function loadUserMap(ids) {
   const list = (ids || []).filter(Boolean)
-  if (!list.length) return {}
-  const res = await db.collection(COL_USERS).where({ _id: _.in(list) }).limit(list.length)
-    .get().catch(function () { return { data: [] } })
   const map = {}
-  ;((res && res.data) || []).forEach(function (u) { if (u && u._id) map[u._id] = u })
+  const BATCH = 1000
+  for (let i = 0; i < list.length; i += BATCH) {
+    const part = list.slice(i, i + BATCH)
+    if (!part.length) break
+    const res = await db.collection(COL_USERS).where({ _id: _.in(part) }).limit(part.length)
+      .get().catch(function () { return { data: [] } })
+    ;((res && res.data) || []).forEach(function (u) { if (u && u._id) map[u._id] = u })
+  }
   return map
 }
 
+// 累计训练分钟
 function rankMinutesExpr() {
-  const $ = db.command.aggregate
-  return $.sum('$actualMinutes')
+  return db.command.aggregate.sum('$actualMinutes')
 }
 
-// 取出当月累计分钟前 RANK_TOP 名（原始行，含 openid，仅服务端使用/缓存）。
+// 当月累计分钟前 RANK_TOP 名（含 openid，仅服务端使用 / 缓存）
 async function buildRankRows(range) {
   const $ = db.command.aggregate
   const res = await db.collection(COL_RECORDS).aggregate()
     .match({ date: _.gte(range.start).and(_.lt(range.end)) })
-    // days 用 addToSet 收集去重日期，保证「同一天多次训练」只算一天。
+    // addToSet 去重日期：同一天多次训练只算一天
     .group({ _id: '$_openid', minutes: rankMinutesExpr(), days: $.addToSet('$date') })
     .project({ _id: 1, minutes: 1, days: $.size('$days') })
     .sort({ minutes: -1, _id: 1 })
@@ -114,7 +121,7 @@ async function buildRankRows(range) {
   })
 }
 
-// 当前用户当月累计分钟与名次（名次 = 比自己分钟多的人数 + 1）。
+// 我的当月分钟与名次（名次 = 分钟比自己多的人数 + 1）
 async function myRank(range, openid) {
   const $ = db.command.aggregate
   const mineRes = await db.collection(COL_RECORDS).aggregate()
@@ -135,7 +142,7 @@ async function myRank(range, openid) {
   return { minutes: minutes, days: Number(mine.days) || 0, rank: greater + 1 }
 }
 
-// 缓存读：命中且未过期返回原始行数组，否则返回 null（任何异常都安全降级为不命中）。
+// 命中且未过期返回原始行，否则 null（异常一律视为未命中）
 async function readRankCache(month, now) {
   try {
     const res = await db.collection(COL_RANK_CACHE).doc(month).get()
@@ -182,7 +189,7 @@ async function resolveAvatarTempUrls(rows) {
   return out
 }
 
-// 排行榜（月榜）：前 N 名走 60 秒共享缓存，「我的名次」按当前 openid 实时计算。
+// 月榜：前 N 名走共享缓存，「我的名次」在榜内时直接从缓存行得出
 async function rankMonth(openid, event) {
   const range = monthRange(event && event.month)
   if (!range) return { openid: openid, ok: false, code: 'bad_month' }
@@ -192,22 +199,33 @@ async function rankMonth(openid, event) {
   let raw = await readRankCache(month, now)
   if (!raw) {
     raw = await buildRankRows(range)
+    // 换好的临时链接一并写入缓存：链接有效期约 2 小时，远长于缓存 TTL（60 秒），
+    // 缓存期内各请求无需重复调用 getTempFileURL
+    const urlMap = await resolveAvatarTempUrls(raw)
+    raw = raw.map(function (row, index) {
+      return urlMap[index] ? Object.assign({}, row, { avatar: urlMap[index] }) : row
+    })
     await writeRankCache(month, raw, now)
   }
 
-  // 换临时链接以便客户端展示；失败时保留原值由前端兜底。
-  const avatarMap = await resolveAvatarTempUrls(raw)
-  const rows = raw.map(function (row, index) {
+  const rows = raw.map(function (row) {
     return {
       rank: row.rank,
       nickname: row.nickname,
-      avatar: avatarMap[index] || row.avatar || '',
+      avatar: row.avatar || '',
       minutes: row.minutes,
       days: row.days,
       isMe: !!row.openid && row.openid === openid
     }
   })
-  const me = await myRank(range, openid)
+  // 我在 Top100 内时直接从榜单行得出名次，免去 myRank 的两次全表聚合
+  let mineRow = null
+  raw.forEach(function (row) {
+    if (row && row.openid === openid) mineRow = row
+  })
+  const me = (mineRow && mineRow.minutes > 0)
+    ? { minutes: mineRow.minutes, days: mineRow.days, rank: mineRow.rank }
+    : await myRank(range, openid)
   return { openid: openid, ok: true, month: month, rows: rows, me: me, updatedAt: now }
 }
 
@@ -251,14 +269,15 @@ async function feedList(openid, event) {
     if (p._id) postIds.push(p._id)
   })
 
-  const userMap = await loadUserMap(openids)
-
-  let likes = []
+  // 用户资料与点赞状态互不依赖，并行查询省一次往返
+  const tasks = [loadUserMap(openids)]
   if (postIds.length) {
-    const lr = await db.collection(COL_LIKES).where({ _openid: openid, postId: _.in(postIds) })
-      .limit(postIds.length).get().catch(function () { return { data: [] } })
-    likes = (lr && lr.data) || []
+    tasks.push(db.collection(COL_LIKES).where({ _openid: openid, postId: _.in(postIds) })
+      .limit(postIds.length).get().catch(function () { return { data: [] } }))
   }
+  const results = await Promise.all(tasks)
+  const userMap = results[0]
+  const likes = postIds.length ? ((results[1] && results[1].data) || []) : []
   const likedMap = {}
   likes.forEach(function (l) { if (l && l.postId) likedMap[l.postId] = true })
 
@@ -284,13 +303,11 @@ async function feedList(openid, event) {
     }
   })
 
-  const last = list[list.length - 1]
   return {
     openid: openid,
     ok: true,
     rows: rows,
-    hasMore: hasMore,
-    nextCursor: hasMore && last ? Number(last.createdAt || 0) : 0
+    hasMore: hasMore
   }
 }
 
@@ -299,16 +316,20 @@ async function feedCreate(openid, event) {
   const content = cleanText(event && event.content, FEED_MAX_LEN)
   if (!content) return { openid: openid, ok: false, code: 'empty' }
 
+  // 频率检查与内容安全检测互不依赖，并行执行缩短响应时间。
+  const checks = await Promise.all([
+    db.collection(COL_POSTS).where({ _openid: openid })
+      .orderBy('createdAt', 'desc').limit(1).get().catch(function () { return { data: [] } }),
+    checkContent(content, openid)
+  ])
   // 频率限制：同一用户 FEED_MIN_INTERVAL 内只允许发一条，避免刷屏。
-  const lastRes = await db.collection(COL_POSTS).where({ _openid: openid })
-    .orderBy('createdAt', 'desc').limit(1).get().catch(function () { return { data: [] } })
-  const last = (lastRes && lastRes.data && lastRes.data[0]) || null
+  const last = (checks[0] && checks[0].data && checks[0].data[0]) || null
   const now = Date.now()
   if (last && now - Number(last.createdAt || 0) < FEED_MIN_INTERVAL) {
     return { openid: openid, ok: false, code: 'too_fast' }
   }
 
-  const suggest = await checkContent(content, openid)
+  const suggest = checks[1]
   if (suggest !== 'pass') {
     return { openid: openid, ok: false, code: suggest === 'risky' ? 'risky' : 'review' }
   }
@@ -325,29 +346,30 @@ async function feedLike(openid, event) {
   const postId = cleanText(event && event.postId, 64)
   if (!postId) return { openid: openid, ok: false, code: 'bad_post' }
 
-  const postRes = await db.collection(COL_POSTS).doc(postId).get()
-    .catch(function () { return { data: null } })
-  const post = postRes && postRes.data
-  if (!post || post.status !== 'ok') return { openid: openid, ok: false, code: 'not_found' }
-
   const likeId = postId + '_' + openid
-  const likeRes = await db.collection(COL_LIKES).doc(likeId).get()
-    .catch(function () { return { data: null } })
-  const liked = !!(likeRes && likeRes.data)
+  // 帖子与点赞状态互不依赖，并行读取
+  const gets = await Promise.all([
+    db.collection(COL_POSTS).doc(postId).get().catch(function () { return { data: null } }),
+    db.collection(COL_LIKES).doc(likeId).get().catch(function () { return { data: null } })
+  ])
+  const post = gets[0] && gets[0].data
+  if (!post || post.status !== 'ok') return { openid: openid, ok: false, code: 'not_found' }
+  const liked = !!(gets[1] && gets[1].data)
 
-  if (liked) {
-    await db.collection(COL_LIKES).doc(likeId).remove().catch(function () {})
-    await db.collection(COL_POSTS).doc(postId).update({ data: { likeCount: _.inc(-1) } }).catch(function () {})
-  } else {
-    await db.collection(COL_LIKES).doc(likeId).set({
+  const delta = liked ? -1 : 1
+  const likeWrite = liked
+    ? db.collection(COL_LIKES).doc(likeId).remove().catch(function () {})
+    : db.collection(COL_LIKES).doc(likeId).set({
       data: { _openid: openid, postId: postId, createdAt: Date.now() }
     }).catch(function () {})
-    await db.collection(COL_POSTS).doc(postId).update({ data: { likeCount: _.inc(1) } }).catch(function () {})
-  }
+  // 两条写操作互相独立，并行执行
+  await Promise.all([
+    likeWrite,
+    db.collection(COL_POSTS).doc(postId).update({ data: { likeCount: _.inc(delta) } }).catch(function () {})
+  ])
 
-  const afterRes = await db.collection(COL_POSTS).doc(postId).get()
-    .catch(function () { return { data: null } })
-  const count = Math.max(0, Number(afterRes && afterRes.data && afterRes.data.likeCount) || 0)
+  // 计数基于操作前的值推算（与并发点赞存在小误差），省去一次读回
+  const count = Math.max(0, (Number(post.likeCount) || 0) + delta)
   return { openid: openid, ok: true, liked: !liked, likeCount: count }
 }
 
@@ -382,7 +404,7 @@ async function feedDelete(openid, event) {
 
 // 举报动态：post_targetId_openid 去重，落库时存内容快照，管理端可直接复核。
 async function feedReport(openid, event) {
-  const targetId = cleanText((event && event.targetId) || (event && event.postId), 64)
+  const targetId = cleanText(event && event.targetId, 64)
   if (!targetId) return { openid: openid, ok: false, code: 'bad_post' }
 
   const res = await db.collection(COL_POSTS).doc(targetId).get()
@@ -404,61 +426,48 @@ async function feedReport(openid, event) {
   return { openid: openid, ok: true }
 }
 
-// 管理端：待处理举报列表，按被举报对象聚合（举报次数 / 举报人 / 内容快照）。
-// 举报量小，直接取整表后在内存排序，避免依赖数据库复合索引。
+// 管理端：待处理举报，按被举报对象聚合（举报次数 / 举报人 / 内容快照）
 async function adminReportList(openid) {
   if (!isAdmin(openid)) return { openid: openid, ok: false, code: 'forbidden' }
+  const $ = db.command.aggregate
+  const res = await db.collection(COL_REPORTS).aggregate()
+    .match({ status: _.neq('resolved') })
+    .group({
+      _id: '$targetId',
+      content: $.first('$targetContent'),
+      authorOpenid: $.first('$targetOpenid'),
+      count: $.sum(1),
+      reporters: $.addToSet('$_openid'),
+      lastAt: $.max('$createdAt')
+    })
+    .sort({ lastAt: -1, _id: 1 })
+    .limit(REPORT_TOP)
+    .end()
+    .catch(function () { return { list: [] } })
 
-  const res = await db.collection(COL_REPORTS).where({ status: _.neq('resolved') })
-    .limit(100).get().catch(function () { return { data: [] } })
-  const list = (res && res.data) || []
-
-  const groups = {}
-  const order = []
-  list.forEach(function (r) {
-    if (!r || !r.targetId) return
-    const key = r.targetId
-    let g = groups[key]
-    if (!g) {
-      g = {
-        targetId: r.targetId,
-        content: cleanText(r.targetContent, 500),
-        authorOpenid: cleanText(r.targetOpenid, 64),
-        count: 0,
-        reporters: [],
-        lastAt: 0
-      }
-      groups[key] = g
-      order.push(key)
-    }
-    g.count += 1
-    if (g.reporters.indexOf(r._openid) < 0) g.reporters.push(r._openid)
-    const at = Number(r.createdAt || 0)
-    if (at > g.lastAt) g.lastAt = at
-  })
-
+  const list = (res && res.list) || []
   const openids = []
-  order.forEach(function (k) {
-    const g = groups[k]
+  list.forEach(function (g) {
+    if (!g) return
     if (g.authorOpenid && openids.indexOf(g.authorOpenid) < 0) openids.push(g.authorOpenid)
-    g.reporters.forEach(function (id) { if (id && openids.indexOf(id) < 0) openids.push(id) })
+    ;(g.reporters || []).forEach(function (id) {
+      if (id && openids.indexOf(id) < 0) openids.push(id)
+    })
   })
   const userMap = await loadUserMap(openids)
 
-  const rows = order.map(function (k) {
-    const g = groups[k]
+  const rows = list.map(function (g) {
     const author = userMap[g.authorOpenid] || {}
     return {
-      targetId: g.targetId,
-      content: g.content,
+      targetId: g._id,
+      content: cleanText(g.content, FEED_MAX_LEN),
       author: rankName(g.authorOpenid, author),
-      authorOpenid: g.authorOpenid,
-      count: g.count,
-      reporters: g.reporters.map(function (id) { return rankName(id, userMap[id] || {}) }),
-      lastAt: g.lastAt
+      authorOpenid: cleanText(g.authorOpenid, 64),
+      count: Number(g.count) || 0,
+      reporters: (g.reporters || []).map(function (id) { return rankName(id, userMap[id] || {}) }),
+      lastAt: Number(g.lastAt) || 0
     }
   })
-  rows.sort(function (a, b) { return b.lastAt - a.lastAt })
 
   return { openid: openid, ok: true, rows: rows }
 }
@@ -498,7 +507,7 @@ exports.main = async (event) => {
   if (action === 'feedDelete') return feedDelete(OPENID, event)
   if (action === 'feedReport') return feedReport(OPENID, event)
 
-  if (action === 'adminCheck') return adminCheck(OPENID, event)
+  if (action === 'adminCheck') return adminCheck(OPENID)
   if (action === 'adminReportList') return adminReportList(OPENID, event)
   if (action === 'adminReportResolve') return adminReportResolve(OPENID, event)
 

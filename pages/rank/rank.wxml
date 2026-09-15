@@ -20,7 +20,7 @@
         <view class="empty-icon">!</view>
         <view>榜单加载失败</view>
         <view class="weak empty-sub">请检查网络，或确认 social 云函数已部署</view>
-        <view class="retry-btn" hover-class="hover" hover-stay-time="100" bindtap="onRetry">重新加载</view>
+        <view class="retry-btn" bindtap="onRetry">重新加载</view>
       </view>
     </block>
 

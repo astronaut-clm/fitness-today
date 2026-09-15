@@ -1,4 +1,4 @@
-// 举报审核（仅管理员）：服务端已按被举报动态聚合，点「去复核」直达铁友圈对应动态。
+// 举报审核（仅管理员）：服务端已按被举报动态聚合，可删除内容或忽略举报。
 const feed = require('../../utils/feed.js')
 const toast = require('../../utils/toast.js')
 
@@ -47,17 +47,6 @@ Page({
 
   onRetry() {
     this.load()
-  },
-
-  // 去复核：直达铁友圈并高亮该动态
-  goReview(e) {
-    const row = this.data.rows[e.currentTarget.dataset.index]
-    if (!row) return
-    if (!row.targetId) {
-      toast.show('动态已删除')
-      return
-    }
-    wx.navigateTo({ url: '/pages/feed/feed?reviewPostId=' + row.targetId })
   },
 
   onDeleteTap(e) {

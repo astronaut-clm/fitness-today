@@ -1,4 +1,4 @@
-// wx.loadFontFace 只认 https 直链，故字体托管于 jsDelivr；按 FONT_URLS 顺序尝试，全失败则静默回退系统字体
+// wx.loadFontFace 只认 https 直链，故字体托管于 jsDelivr；加载失败则静默回退系统字体
 const config = require('./config.js')
 
 // 会话级标记：注册成功后在 wx 上打标，避免热重载重复下载
@@ -6,7 +6,7 @@ const LOADED_MARK = '__pixelFontLoaded'
 
 let loading = null
 
-// 单源超时（视为失败，回退下一个源）
+// 加载超时视为失败，回退系统字体
 const TIMEOUT = 25000
 
 // pixel=加载 Zpix；system=系统字体。注册后无法卸载，关回系统字体需重启小程序
@@ -34,7 +34,7 @@ function loadOne(url) {
     }, TIMEOUT)
 
     wx.loadFontFace({
-      family: config.FONT_FAMILY || 'Zpix',
+      family: 'Zpix',
       source: 'url("' + url + '")',
       global: true,
       success: function () {
@@ -58,7 +58,7 @@ function load() {
   if (loading) return loading
   if (wx[LOADED_MARK]) return Promise.resolve(true)
 
-  const urls = (config.FONT_URLS || []).slice()
+  const urls = config.FONT_URLS ? [config.FONT_URLS] : []
   if (!urls.length) return Promise.resolve(false)
 
   loading = urls

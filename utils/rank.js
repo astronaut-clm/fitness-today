@@ -2,17 +2,15 @@
 const cloud = require('./cloud.js')
 const dateUtil = require('./date.js')
 
-// 本机时区的自然月 key：'YYYY-MM'
 function currentMonth() {
-  const now = new Date()
-  return now.getFullYear() + '-' + dateUtil.pad(now.getMonth() + 1)
+  return dateUtil.monthKey()
 }
 
 // 'YYYY-MM' -> 'YYYY年M月'
 function monthLabel(month) {
   const parts = String(month || '').split('-')
   if (parts.length < 2) return ''
-  return Number(parts[0]) + '年' + Number(parts[1]) + '月'
+  return dateUtil.monthLabel(parts[0], parts[1])
 }
 
 function fetch(month) {

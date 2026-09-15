@@ -28,6 +28,17 @@ function todayAndYesterday() {
   return { today: t, yesterday: addDays(t, -1) }
 }
 
+// 本机时区的自然月 key：'YYYY-MM'
+function monthKey() {
+  const now = new Date()
+  return now.getFullYear() + '-' + pad(now.getMonth() + 1)
+}
+
+// 'YYYY年M月'
+function monthLabel(year, month) {
+  return Number(year) + '年' + Number(month) + '月'
+}
+
 // 中文星期标签（下标对齐 getDay()，0 = 周日）
 const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -71,6 +82,8 @@ module.exports = {
   today: today,
   addDays: addDays,
   todayAndYesterday: todayAndYesterday,
+  monthKey: monthKey,
+  monthLabel: monthLabel,
   WEEK_LABELS: WEEK_LABELS,
   WEEK_HEAD_LABELS: WEEK_HEAD_LABELS,
   monthGrid: monthGrid

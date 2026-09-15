@@ -1,5 +1,5 @@
 <navigation-bar back="{{true}}" title="铁友圈" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
-<scroll-view class="scrollarea" scroll-y type="list" scroll-into-view="{{reviewId}}" scroll-with-animation bindscrolltolower="loadMore" lower-threshold="80">
+<scroll-view class="scrollarea" scroll-y type="list" bindscrolltolower="loadMore" lower-threshold="80">
   <view class="page">
     <view class="feed-head">
       <view class="feed-title">铁友圈</view>
@@ -20,13 +20,13 @@
         <view class="empty-icon">!</view>
         <view>动态加载失败</view>
         <view class="weak empty-sub">请检查网络，或确认 social 云函数已部署</view>
-        <view class="retry-btn" hover-class="hover" hover-stay-time="100" bindtap="onRetry">重新加载</view>
+        <view class="retry-btn" bindtap="onRetry">重新加载</view>
       </view>
     </block>
 
     <block wx:else>
       <view wx:if="{{rows.length}}" class="feed-list">
-        <view wx:for="{{rows}}" wx:key="id" id="post-{{item.id}}" class="post g-card {{reviewId === 'post-' + item.id ? 'focus' : ''}}">
+        <view wx:for="{{rows}}" wx:key="id" class="post g-card">
           <view class="post-head">
             <view class="post-avatar-box">
               <image wx:if="{{item.avatar}}" class="post-avatar" src="{{item.avatar}}" mode="aspectFill" data-index="{{index}}" binderror="onAvatarError"></image>
@@ -36,14 +36,14 @@
               <view class="post-name">{{item.nickname}}<text wx:if="{{item.isMe}}" class="post-me-tag">我</text></view>
               <view class="weak post-time">{{item.timeText}}</view>
             </view>
-            <view class="post-more" hover-class="hover" hover-stay-time="100" data-index="{{index}}" bindtap="onMore">⋯</view>
+            <view class="post-more" data-index="{{index}}" bindtap="onMore">⋯</view>
           </view>
 
           <view class="post-content">{{item.content}}</view>
 
           <view class="post-foot">
-            <view class="post-act post-like {{item.liked ? 'on' : ''}}" hover-class="hover" hover-stay-time="100" data-index="{{index}}" bindtap="onLike">
-              <text class="act-text">赞</text>
+            <view class="post-act {{item.liked ? 'on' : ''}}" data-index="{{index}}" bindtap="onLike">
+              <text>赞</text>
               <text class="act-count">{{item.likeCount}}</text>
             </view>
           </view>
@@ -64,13 +64,13 @@
   </view>
 </scroll-view>
 
-<view class="fab" hover-class="hover" hover-stay-time="100" bindtap="openPost">＋ 发布</view>
+<view class="fab" bindtap="openPost">＋ 发布</view>
 
 <view class="px-mask" wx:if="{{showPostDialog}}" bindtap="closePost" catchtouchmove="noop">
   <view class="px-dialog" catchtap="noop">
     <view class="post-dialog-head">
       <view class="px-dialog-title post-dialog-title">发布动态</view>
-      <view class="post-submit {{posting ? 'off' : ''}}" hover-class="hover" hover-stay-time="100" bindtap="submitPost">{{posting ? '发布中…' : '发布'}}</view>
+      <view class="post-submit {{posting ? 'off' : ''}}" bindtap="submitPost">{{posting ? '发布中…' : '发布'}}</view>
     </view>
     <textarea class="px-dialog-textarea" value="{{draft}}" maxlength="500" placeholder="分享今天的训练感受…"
       show-confirm-bar="{{false}}" bindinput="onDraftInput"></textarea>
@@ -83,8 +83,8 @@
     <view class="px-dialog-title">删除动态</view>
     <view class="px-dialog-copy">删除后不可恢复，确定删除这条动态吗？</view>
     <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelDelete">取消</view>
-      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="confirmDelete">删除</view>
+      <view class="px-dialog-btn cancel" bindtap="onCancelDelete">取消</view>
+      <view class="px-dialog-btn danger" bindtap="confirmDelete">删除</view>
     </view>
   </view>
 </view>
@@ -94,8 +94,8 @@
     <view class="px-dialog-title">举报动态</view>
     <view class="px-dialog-copy">确定举报这条动态吗？我们会尽快核实处理。</view>
     <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelReport">取消</view>
-      <view class="px-dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="confirmReport">举报</view>
+      <view class="px-dialog-btn cancel" bindtap="onCancelReport">取消</view>
+      <view class="px-dialog-btn primary" bindtap="confirmReport">举报</view>
     </view>
   </view>
 </view>

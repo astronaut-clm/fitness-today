@@ -6,8 +6,8 @@
     <view class="g-card section">
       <view class="section-title">计划归属</view>
       <view class="seg">
-        <view class="seg-item {{scene === 'home' ? 'on' : ''}}" hover-class="hover" hover-stay-time="100" data-scene="home" bindtap="onScene">居家计划</view>
-        <view class="seg-item {{scene === 'gym' ? 'on' : ''}}" hover-class="hover" hover-stay-time="100" data-scene="gym" bindtap="onScene">健身房计划</view>
+        <view class="seg-item {{scene === 'home' ? 'on' : ''}}" data-scene="home" bindtap="onScene">居家计划</view>
+        <view class="seg-item {{scene === 'gym' ? 'on' : ''}}" data-scene="gym" bindtap="onScene">健身房计划</view>
       </view>
       <view class="weak seg-tip">设置后将展示在计划的最上方，方便快速选择</view>
     </view>
@@ -29,8 +29,8 @@
             <view class="sel-name">{{item.name}}</view>
             <view class="weak sel-meta">{{item.category}} · {{item.equipment}}</view>
           </view>
-          <text class="tag {{item.lvClass}}">{{item.level}}</text>
-          <view class="sel-del" hover-class="hover" hover-stay-time="100" data-index="{{index}}" bindtap="onRemoveAction">删除</view>
+          <text class="tag">{{item.level}}</text>
+          <view class="sel-del" data-index="{{index}}" bindtap="onRemoveAction">删除</view>
         </view>
         <view class="sel-config">
           <view class="cfg-block">
@@ -53,16 +53,16 @@
       <view class="section-title">动作库</view>
       <scroll-view scroll-x class="cat-scroll" enable-flex>
         <view class="cat-inner">
-          <view wx:for="{{cats}}" wx:key="*this" class="cat {{cat === item ? 'on' : ''}}" hover-class="hover" hover-stay-time="100" data-cat="{{item}}" bindtap="onCat">{{item}}</view>
+          <view wx:for="{{cats}}" wx:key="*this" class="cat {{cat === item ? 'on' : ''}}" data-cat="{{item}}" bindtap="onCat">{{item}}</view>
         </view>
       </scroll-view>
       <view class="pick-list">
-        <view class="pick-item {{item.checked ? 'on' : ''}}" wx:for="{{picker}}" wx:key="id" hover-class="hover" hover-stay-time="100" data-id="{{item.id}}" bindtap="onToggleAction">
+        <view class="pick-item {{item.checked ? 'on' : ''}}" wx:for="{{picker}}" wx:key="id" data-id="{{item.id}}" bindtap="onToggleAction">
           <view class="flex1">
             <view class="pick-name">{{item.name}}<text wx:if="{{item.checked}}" class="pick-check">✓</text></view>
             <view class="weak pick-meta">{{item.equipment}} · {{item.muscles}}</view>
           </view>
-          <text class="tag {{item.lvClass}}">{{item.level}}</text>
+          <text class="tag">{{item.level}}</text>
         </view>
       </view>
     </view>
@@ -71,8 +71,8 @@
   </view>
 </scroll-view>
 <view class="save-bar">
-  <view wx:if="{{hasSaved}}" class="btn btn-ghost del-btn" hover-class="hover" hover-stay-time="100" bindtap="onDelete">删除</view>
-  <view class="btn btn-primary save-btn" hover-class="hover" hover-stay-time="100" bindtap="onSave">保存计划</view>
+  <view wx:if="{{hasSaved}}" class="btn btn-ghost del-btn" bindtap="onDelete">删除</view>
+  <view class="btn btn-primary save-btn" bindtap="onSave">保存计划</view>
 </view>
 
 <view class="px-mask" wx:if="{{showDeleteConfirm}}" bindtap="onCancelDelete" catchtouchmove="noop">
@@ -80,8 +80,8 @@
     <view class="px-dialog-title">删除自定义计划？</view>
     <view class="px-dialog-copy">删除后该场景将不再显示自定义计划</view>
     <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelDelete">取消</view>
-      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmDelete">删除</view>
+      <view class="px-dialog-btn cancel" bindtap="onCancelDelete">取消</view>
+      <view class="px-dialog-btn danger" bindtap="onConfirmDelete">删除</view>
     </view>
   </view>
 </view>

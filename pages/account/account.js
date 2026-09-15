@@ -5,6 +5,7 @@ const feed = require('../../utils/feed.js')
 const login = require('../../utils/login.js')
 const font = require('../../utils/font.js')
 const toast = require('../../utils/toast.js')
+const avatarView = require('../../utils/avatar.js')
 
 function charOf(nickname) {
   const name = (nickname || '').trim()
@@ -91,12 +92,13 @@ Page({
   onConfirmLogout() {
     this.setData({ showLogoutConfirm: false })
     login.resetSession()
-    toast.back('已退出，记录已清空')
+    wx.navigateBack({ fail: function () {} })
   },
 
   noop() {},
 
   onLoad() {
+    this._avatar = avatarView.create((url) => this.setData({ avatarUrl: url }))
     const info = account.get()
     this._remoteAvatar = info.avatar
     this._savedNickname = info.nickname
@@ -127,25 +129,12 @@ Page({
 
   // 云头像存的是 fileID（cloud://），统一换临时 https 链接再渲染；本地临时图直接用。
   showAvatar(fileID) {
-    const id = String(fileID || '')
-    const seq = (this._avatarSeq || 0) + 1
-    this._avatarSeq = seq
-    if (id.indexOf('cloud://') !== 0) {
-      this.setData({ avatarUrl: id })
-      return
-    }
-    this.setData({ avatarUrl: '' })
-    account.resolveAvatar(id).then((url) => {
-      // 换链期间可能已选新头像，丢弃过期结果。
-      if (!url || seq !== this._avatarSeq) return
-      this.setData({ avatarUrl: url })
-    }).catch(() => {})
+    this._avatar.show(fileID)
   },
 
   // 头像加载失败（如临时链接过期）：回退文字头像，避免破图。
   onAvatarError() {
-    this._avatarSeq = (this._avatarSeq || 0) + 1
-    this.setData({ avatarUrl: '' })
+    this._avatar.error()
   },
 
   onChooseAvatar(e) {
@@ -210,7 +199,6 @@ Page({
         this._remoteAvatar = nextAvatar
         this._savedNickname = nickname
         this._avatarChanged = false
-        toast.show('已保存', { success: true })
       })
     }).catch(() => {
       this._finishAutoSave()

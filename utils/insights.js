@@ -50,8 +50,11 @@ function build(records, profile) {
   }
 }
 
+// 「近期疲劳肌群」窗口天数：规则打分与 AI 推荐统一口径
+const RECENT_MUSCLE_DAYS = 3
+
 function recentMuscles(records, days) {
-  const cutoff = dateUtil.addDays(dateUtil.today(), -(Number(days) || 2))
+  const cutoff = dateUtil.addDays(dateUtil.today(), -(Number(days) || RECENT_MUSCLE_DAYS))
   const categories = {}
   ;(records || []).forEach(function (record) {
     if (record.date >= cutoff && record.type === 'plan') addCategory(categories, record.planId)

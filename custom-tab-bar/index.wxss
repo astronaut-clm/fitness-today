@@ -37,10 +37,6 @@
   color: #e60012;
 }
 
-.tab-hover {
-  opacity: 0.6;
-}
-
 /* 选中标记：图标上方一条像素短线 */
 .tab-mark {
   width: 40rpx;

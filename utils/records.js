@@ -68,7 +68,8 @@ function saveStore(store) {
     records: clone((store && store.records) || {})
   }
   try { wx.setStorageSync(KEY, safe) } catch (e) {}
-  cacheStore = { version: VERSION, records: clone(safe.records) }
+  // 缓存与落库共用同一副本：读写路径均先克隆，不存在原地修改
+  cacheStore = safe
   return safe
 }
 
@@ -193,8 +194,7 @@ function computeStatsFrom(list) {
     cursor = dateUtil.addDays(cursor, -1)
   }
 
-  const now = new Date()
-  const ym = now.getFullYear() + '-' + dateUtil.pad(now.getMonth() + 1)
+  const ym = dateUtil.monthKey()
   let monthCount = 0
   let monthMinutes = 0
   dates.forEach(function (date) {

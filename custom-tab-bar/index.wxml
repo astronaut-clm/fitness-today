@@ -5,8 +5,6 @@
       wx:key="pagePath"
       class="tab-item {{selected === index ? 'on' : ''}}"
       data-index="{{index}}"
-      hover-class="tab-hover"
-      hover-stay-time="80"
       bindtap="switchTab"
     >
       <view class="tab-mark"></view>

@@ -2,7 +2,7 @@
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y>
   <view class="page">
-  <view wx:if="{{accountInfo.nickname}}" class="user-card g-card" hover-class="hover" hover-stay-time="100" bindtap="goAccount">
+  <view wx:if="{{accountInfo.nickname}}" class="user-card g-card" bindtap="goAccount">
     <view wx:if="{{accountInfo.avatar}}" class="uc-avatar-box">
       <image class="uc-avatar-img" src="{{accountInfo.avatar}}" mode="aspectFill" binderror="onAvatarError"></image>
     </view>
@@ -35,9 +35,9 @@
 
   <view class="calendar g-card">
     <view class="cal-head">
-      <view class="cal-arrow" hover-class="hover" hover-stay-time="100" bindtap="onPrevMonth">‹</view>
+      <view class="cal-arrow" bindtap="onPrevMonth">‹</view>
       <view class="cal-title">{{monthLabel}}</view>
-      <view class="cal-arrow {{canNext ? '' : 'disabled'}}" hover-class="hover" hover-stay-time="100" bindtap="onNextMonth">›</view>
+      <view class="cal-arrow {{canNext ? '' : 'disabled'}}" bindtap="onNextMonth">›</view>
     </view>
     <view class="week-row">
       <view wx:for="{{weekHead}}" wx:key="*this" class="week-day">{{item}}</view>
@@ -46,12 +46,11 @@
       <view
         wx:for="{{week.cells}}"
         wx:key="key"
-        class="date-cell {{!item.inMonth ? 'empty' : ''}} {{item.isToday ? 'today' : ''}} {{item.isSel ? 'selected' : ''}}"
+        class="date-cell {{!item.inMonth ? 'empty' : ''}} {{item.isToday ? 'today' : ''}} {{item.isSel ? 'selected' : ''}} {{item.checked ? 'has-record' : ''}}"
         data-date="{{item.date}}"
         bindtap="onSelectDay"
       >
         <text wx:if="{{item.inMonth}}">{{item.day}}</text>
-        <view wx:if="{{item.checked}}" class="date-dot">{{item.count > 1 ? item.count : ''}}</view>
       </view>
     </view>
   </view>
@@ -67,7 +66,7 @@
           <view class="rec-name">{{item.planName}}</view>
           <view class="weak rec-time">{{item.timeText}} · {{item.sceneName}}</view>
         </view>
-        <view class="rec-delete" data-id="{{item.id}}" hover-class="hover" hover-stay-time="100" bindtap="onDeleteRecord">删除</view>
+        <view class="rec-delete" data-id="{{item.id}}" bindtap="onDeleteRecord">删除</view>
       </view>
       <view class="rec-detail">{{item.detailText}}</view>
     </view>
@@ -88,13 +87,8 @@
     <view class="px-dialog-title">删除训练记录？</view>
     <view class="px-dialog-copy">{{deleteConfirm.name}} 将从记录中永久移除</view>
     <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelDelete">取消</view>
-      <view class="px-dialog-btn danger" hover-class="hover" hover-stay-time="100" bindtap="onConfirmDelete">删除</view>
+      <view class="px-dialog-btn cancel" bindtap="onCancelDelete">取消</view>
+      <view class="px-dialog-btn danger" bindtap="onConfirmDelete">删除</view>
     </view>
   </view>
 </view>
-
-
-
-
-

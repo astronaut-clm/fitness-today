@@ -3,7 +3,6 @@ const actionsData = require('../../data/actions.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
 const sessionStore = require('../../utils/workout-session.js')
-const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
 // 统一解析计划来源：先查自定义，再回落到内置计划库。
@@ -49,9 +48,6 @@ Page({
       return {
         actionId: ex.actionId,
         name: a.name || '未知动作',
-        category: a.category || '',
-        equipment: a.equipment || '',
-        muscles: (a.muscles || []).join(' · '),
         sets: ex.sets,
         reps: ex.reps,
         rest: ex.rest || '',
@@ -62,18 +58,11 @@ Page({
 
     this.setData({
       plan: {
-        id: p.id,
         name: p.name,
-        scene: p.scene,
-        sceneName: plansData.sceneName(p.scene),
-        custom: !!p.custom,
-        level: p.level,
-        lvClass: levelUtil.tagClass(p.level),
         duration: p.duration,
         calories: p.calories,
         summary: p.summary,
         notice: p.notice,
-        tags: p.tags,
         roundsText: rounds > 1 ? '整组动作循环完成 ' + rounds + ' 轮' : '单轮完成所有动作',
         exTotal: items.length * rounds
       },
@@ -140,8 +129,6 @@ Page({
     this.loadPlan()
     this.refreshStatus()
   },
-
-  onAdjustArea() {},
 
   noop() {},
 

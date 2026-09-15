@@ -9,10 +9,8 @@ function save(session) {
   if (!session) return null
   const next = {}
   Object.keys(session).forEach(function (key) { next[key] = session[key] })
-  next.version = 1
-  next.savedAt = Date.now()
-  // 异步写，避免同步 IO 阻塞训练页交互（如本组完成按钮）
-  try { wx.setStorage({ key: KEY, data: next }) } catch (e) {}
+  // 同步写：与 clear() 的同步删保持一致，避免先存后清时异步写晚到导致断点复活
+  try { wx.setStorageSync(KEY, next) } catch (e) {}
   return next
 }
 

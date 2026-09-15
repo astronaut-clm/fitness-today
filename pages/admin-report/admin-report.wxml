@@ -20,7 +20,7 @@
         <view class="empty-icon">!</view>
         <view>{{errorTip}}</view>
         <text wx:if="{{myOpenid}}" class="weak empty-sub openid" user-select>我的 openid：{{myOpenid}}</text>
-        <view class="retry-btn" hover-class="hover" hover-stay-time="100" bindtap="onRetry">重新加载</view>
+        <view class="retry-btn" bindtap="onRetry">重新加载</view>
       </view>
     </block>
 
@@ -39,9 +39,8 @@
           <view class="weak report-reporters">举报人：{{item.reportersText}}</view>
 
           <view class="report-acts">
-            <view class="report-act" hover-class="hover" hover-stay-time="100" data-index="{{index}}" bindtap="goReview">去复核</view>
-            <view class="report-act" hover-class="hover" hover-stay-time="100" data-index="{{index}}" bindtap="onIgnoreTap">忽略</view>
-            <view class="report-act danger" hover-class="hover" hover-stay-time="100" data-index="{{index}}" bindtap="onDeleteTap">删除</view>
+            <view class="report-act" data-index="{{index}}" bindtap="onIgnoreTap">忽略</view>
+            <view class="report-act danger" data-index="{{index}}" bindtap="onDeleteTap">删除</view>
           </view>
         </view>
       </view>
@@ -64,8 +63,8 @@
     <view class="px-dialog-title">{{confirmTitle}}</view>
     <view class="px-dialog-copy">{{confirmOp === 'delete' ? '内容将被永久删除，不可恢复。' : '这些举报将标记为已处理，内容保留。'}}</view>
     <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" hover-class="hover" hover-stay-time="100" bindtap="onCancelConfirm">取消</view>
-      <view class="px-dialog-btn {{confirmOp === 'delete' ? 'danger' : 'primary'}}" hover-class="hover" hover-stay-time="100" bindtap="confirmAction">确定</view>
+      <view class="px-dialog-btn cancel" bindtap="onCancelConfirm">取消</view>
+      <view class="px-dialog-btn {{confirmOp === 'delete' ? 'danger' : 'primary'}}" bindtap="confirmAction">确定</view>
     </view>
   </view>
 </view>

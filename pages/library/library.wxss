@@ -1,22 +1,6 @@
-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-}
-
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
-}
-
 .page {
   /* 底部预留自定义 tabBar 高度 */
   padding: 20rpx 32rpx calc(148rpx + env(safe-area-inset-bottom));
-}
-
-.hover {
-  opacity: 0.86;
 }
 
 .search {
@@ -140,18 +124,5 @@ page {
 }
 
 .empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   padding: 100rpx 0;
-}
-
-.empty-title {
-  font-size: 32rpx;
-  font-weight: 600;
-}
-
-.empty-sub {
-  font-size: 26rpx;
-  margin-top: 10rpx;
 }

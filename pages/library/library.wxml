@@ -12,7 +12,7 @@
         confirm-type="search"
         bindinput="onSearch"
       />
-      <text wx:if="{{keyword}}" class="search-clear" hover-class="hover" hover-stay-time="100" bindtap="onClearSearch">×</text>
+      <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearSearch">×</text>
     </view>
 
     <view class="cats">
@@ -20,7 +20,6 @@
         wx:for="{{cats}}"
         wx:key="*this"
         class="cat {{cat === item ? 'on' : ''}}"
-        hover-class="hover" hover-stay-time="100"
         data-cat="{{item}}"
         bindtap="onCatTap"
       >{{item}}</view>
@@ -34,7 +33,6 @@
       class="act g-card"
       wx:for="{{list}}"
       wx:key="id"
-      hover-class="hover" hover-stay-time="100"
       data-id="{{item.id}}"
       bindtap="goDetail"
     >
@@ -44,7 +42,7 @@
       <view class="flex1">
         <view class="act-name-row">
           <text class="act-name">{{item.name}}</text>
-          <text class="tag {{item.lvClass}}">{{item.level}}</text>
+          <text class="tag">{{item.level}}</text>
         </view>
         <view class="act-meta weak">{{item.equipment}} · {{item.muscles}}</view>
         <view class="act-key sub">{{item.key}}</view>

@@ -3,7 +3,7 @@
 
   <view class="workout-nav" style="padding-top: {{statusBarHeight}}px;">
     <view class="workout-nav-inner">
-      <view class="workout-nav-back" hover-class="hover" hover-stay-time="100" bindtap="onNavBack" aria-role="button" aria-label="返回">
+      <view class="workout-nav-back" bindtap="onNavBack" aria-role="button" aria-label="返回">
         <text class="workout-nav-arrow">‹</text>
       </view>
       <view class="workout-nav-title">训练跟练</view>
@@ -15,7 +15,7 @@
       <view class="flex1">
         <view class="plan-row">
           <view class="plan">{{planName}}</view>
-          <view wx:if="{{voiceSupported}}" class="plan-voice" hover-class="hover" hover-stay-time="100" bindtap="onToggleVoice" aria-role="button" aria-label="{{voiceOn ? '关闭语音播报' : '开启语音播报'}}">
+          <view wx:if="{{voiceSupported}}" class="plan-voice" bindtap="onToggleVoice" aria-role="button" aria-label="{{voiceOn ? '关闭语音播报' : '开启语音播报'}}">
             <text class="plan-voice-txt {{voiceOn ? 'on' : ''}}">{{voiceOn ? '语音开' : '语音关'}}</text>
           </view>
         </view>
@@ -37,21 +37,9 @@
           </view>
         </view>
 
-        <view class="badges" wx:if="{{badges.length}}">
-          <view class="badge" wx:for="{{badges}}" wx:key="title">
-            <view class="badge-ico">{{item.icon}}</view>
-            <view class="badge-txt">
-              <view class="badge-title">{{item.title}}</view>
-              <view class="badge-desc weak">{{item.desc}}</view>
-            </view>
-          </view>
-        </view>
-
         <view class="share-row">
-          <button class="share-btn primary" open-type="share" hover-class="hover">分享给好友</button>
-          <button wx:if="{{canShareFeed}}" class="share-btn {{feedPosted ? 'posted' : 'ghost'}}" hover-class="hover" bindtap="onShareToFeed">{{feedPosted ? '已发到铁友圈' : '发到铁友圈'}}</button>
+          <button wx:if="{{canShareFeed}}" class="share-btn {{feedPosted || feedPosting ? 'posted' : 'primary'}}" hover-class="none" bindtap="onShareToFeed">{{feedPosted ? '已分享铁友圈' : (feedPosting ? '分享中…' : '分享铁友圈')}}</button>
         </view>
-        <view class="done-back weak" hover-class="hover" hover-stay-time="100" bindtap="onNavBack">返回</view>
       </view>
     </block>
 
@@ -70,8 +58,8 @@
         <view class="big-unit weak">秒</view>
         <view class="rest-next weak">下一组：{{group.name}}<text wx:if="{{group.targetText}}"> · {{group.targetText}}</text></view>
         <view class="actions">
-          <view class="btn btn-ghost act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onExtendRest">+15 秒</view>
-          <view class="btn btn-primary act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onSkipRest">跳过休息</view>
+          <view class="btn btn-ghost act-btn half" bindtap="extendRest">+15 秒</view>
+          <view class="btn btn-primary act-btn half" bindtap="skipRest">跳过休息</view>
         </view>
       </view>
 
@@ -86,32 +74,32 @@
         <view class="next-preview weak" wx:if="{{nextGroup}}">下一组：{{nextGroup.name}} · {{nextGroup.targetText}}</view>
 
         <block wx:if="{{group.kind === 'time'}}">
-          <view class="big-num timer">{{left}}</view>
+          <view class="big-num timer">{{workLeft}}</view>
           <view class="big-unit weak">秒 · 倒数结束后自动进入下一组</view>
         </block>
         <view class="g-tip weak" wx:else>请按标准完成本组目标后，点击下方按钮</view>
 
         <view class="actions">
           <block wx:if="{{group.kind === 'time'}}">
-            <view wx:if="{{running}}" class="btn btn-ghost act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onPauseWork">暂停</view>
-            <view wx:else class="btn btn-ghost act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onStartWork">{{timeStarted ? '继续计时' : '开始计时'}}</view>
-            <view class="btn btn-primary act-btn half" hover-class="hover" hover-stay-time="100" bindtap="onCompleteSet">本组完成</view>
+            <view wx:if="{{running}}" class="btn btn-ghost act-btn half" bindtap="onPauseWork">暂停</view>
+            <view wx:else class="btn btn-ghost act-btn half" bindtap="onStartWork">{{timeStarted ? '继续计时' : '开始计时'}}</view>
+            <view class="btn btn-primary act-btn half" bindtap="onCompleteSet">本组完成</view>
           </block>
-          <view wx:else class="btn btn-primary act-btn" hover-class="hover" hover-stay-time="100" bindtap="onCompleteSet">本组完成</view>
+          <view wx:else class="btn btn-primary act-btn" bindtap="onCompleteSet">本组完成</view>
         </view>
-        <view class="skip-set weak" hover-class="hover" hover-stay-time="100" bindtap="onSkipSet">跳过本组</view>
+        <view class="skip-set weak" bindtap="onSkipSet">跳过本组</view>
       </view>
     </block>
   </view>
 </scroll-view>
 
-<view wx:if="{{showResumeConfirm}}" class="mask" catchtouchmove="noop">
-  <view class="dialog" catchtap="noop">
-    <view class="dialog-title">继续上次训练？</view>
-    <view class="dialog-content">已完成 {{resumeDone}}/{{total}} 组，可继续或重新开始</view>
-    <view class="dialog-btns">
-      <view class="dialog-btn ghost" hover-class="hover" hover-stay-time="100" bindtap="onResumeRestart">重新开始</view>
-      <view class="dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onResumeContinue">继续训练</view>
+<view wx:if="{{showResumeConfirm}}" class="px-mask" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">继续上次训练？</view>
+    <view class="px-dialog-copy">已完成 {{resumeDone}}/{{total}} 组，可继续或重新开始</view>
+    <view class="px-dialog-btns">
+      <view class="px-dialog-btn cancel" bindtap="onResumeRestart">重新开始</view>
+      <view class="px-dialog-btn primary" bindtap="onResumeContinue">继续训练</view>
     </view>
   </view>
 </view>

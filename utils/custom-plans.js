@@ -3,10 +3,9 @@
 const cloud = require('./cloud.js')
 const actionsData = require('../data/actions.js')
 const plansData = require('../data/plans.js')
+const levelUtil = require('./level.js')
 
 const KEY = 'ft_custom_plans_v1'
-const LEVELS = { 初级: 1, 中级: 2, 高级: 3 }
-const LEVEL_NAME = { 1: '初级', 2: '中级', 3: '高级' }
 
 function emptyStore() {
   return { plans: {}, updatedAt: 0 }
@@ -43,16 +42,21 @@ function estimate(exercises, scene) {
     totalSets += sets
     const match = /^(\d+)\s*秒/.exec(String(ex.reps || '').trim())
     workSeconds += sets * (match ? Number(match[1]) : 40)
-    if (action && LEVELS[action.level]) level = Math.max(level, LEVELS[action.level])
+    if (action && levelUtil.LEVEL_MAP[action.level]) level = Math.max(level, levelUtil.LEVEL_MAP[action.level])
   })
   const restSeconds = Math.max(0, totalSets - 1) * restPerSet
   const duration = Math.max(5, Math.round((workSeconds + restSeconds) / 60))
   const calories = Math.round(duration * (gym ? 6 : 5))
-  return { duration: duration, calories: calories, level: LEVEL_NAME[level] }
+  return { duration: duration, calories: calories, level: levelUtil.LEVEL_NAME[level] }
 }
 
 function planId(scene) {
   return 'custom_' + scene
+}
+
+// 自定义计划默认名：编辑页表单与 decorate 兜底共用
+function defaultName(scene) {
+  return scene === 'gym' ? '健身房专属' : '居家专属'
 }
 
 function decorate(stored) {
@@ -76,7 +80,7 @@ function decorate(stored) {
 
   return {
     id: planId(stored.scene),
-    name: String(stored.name || '').trim() || (stored.scene === 'gym' ? '健身房专属' : '居家专属'),
+    name: String(stored.name || '').trim() || defaultName(stored.scene),
     scene: stored.scene,
     sceneName: plansData.sceneName(stored.scene),
     custom: true,
@@ -195,6 +199,7 @@ function syncFromCloud() {
 
 module.exports = {
   get: get,
+  defaultName: defaultName,
   getById: getById,
   has: has,
   listByScene: listByScene,

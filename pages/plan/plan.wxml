@@ -7,7 +7,6 @@
         wx:for="{{sceneTabs}}"
         wx:key="value"
         class="seg-item {{scene === item.value ? 'on' : ''}}"
-        hover-class="hover" hover-stay-time="100"
         data-scene="{{item.value}}"
         bindtap="onSceneTap"
       >{{item.name}}</view>
@@ -20,7 +19,6 @@
           wx:for="{{levelTabs}}"
           wx:key="value"
           class="lv-chip {{level === item.value ? 'on' : ''}}"
-          hover-class="hover" hover-stay-time="100"
           data-level="{{item.value}}"
           bindtap="onLevelTap"
         >{{item.name}}</view>
@@ -36,7 +34,6 @@
       class="plan g-card"
       wx:for="{{list}}"
       wx:key="id"
-      hover-class="hover" hover-stay-time="100"
       data-id="{{item.id}}"
       bindtap="goDetail"
     >
@@ -44,7 +41,7 @@
         <view class="row flex1">
           <text wx:if="{{item.recommended}}" class="tag tag-rec">今日推荐</text>
           <text wx:if="{{item.custom}}" class="tag tag-custom">自定义</text>
-          <text wx:else class="tag {{item.lvClass}}">{{item.level}}</text>
+          <text wx:else class="tag">{{item.level}}</text>
         </view>
         <text wx:if="{{item.doneCount}}" class="plan-meta plan-done">已完成 x{{item.doneCount}}</text>
       </view>

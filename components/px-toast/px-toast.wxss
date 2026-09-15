@@ -21,7 +21,9 @@
   pointer-events: none;
 }
 
+/* 默认（错误/警告）：红底方框 + 叉子，置于提示开头 */
 .px-toast-icon {
+  position: relative;
   flex: none;
   display: flex;
   align-items: center;
@@ -30,15 +32,42 @@
   height: 38rpx;
   border: var(--pxs) solid var(--ink);
   border-radius: 0;
+  background: var(--primary);
+}
+
+/* 叉子：两条旋转硬边条，避免依赖像素字体是否包含 ✕ 字形 */
+.px-toast-icon::before,
+.px-toast-icon::after {
+  content: '';
+  position: absolute;
+  width: 18rpx;
+  height: 4rpx;
+  background: var(--card);
+}
+
+.px-toast-icon::before {
+  transform: rotate(45deg);
+}
+
+.px-toast-icon::after {
+  transform: rotate(-45deg);
+}
+
+/* 成功：绿底方框 + 对勾（用边框折出，同样不依赖字形） */
+.px-toast-icon.success {
   background: var(--green);
 }
 
-/* 用边框折出对勾，避免依赖像素字体是否包含 ✓ 字形 */
-.px-toast-icon::after {
-  content: '';
+.px-toast-icon.success::before {
+  content: none;
+}
+
+.px-toast-icon.success::after {
+  position: static;
   width: 8rpx;
   height: 16rpx;
   margin-top: -4rpx;
+  background: transparent;
   border: solid var(--card);
   border-width: 0 4rpx 4rpx 0;
   transform: rotate(45deg);

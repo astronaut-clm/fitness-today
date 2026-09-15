@@ -43,7 +43,6 @@ const PRAISE = {
     '一组不落，教科书级别！',
     '今天这场，无可挑剔！'
   ],
-  full: FINISH_LINES,
   partial: [
     '尽力了，就是满分！',
     '完成就好，明天继续！',
@@ -79,8 +78,9 @@ function buildGroups(plan) {
   for (let round = 1; round <= loop; round++) {
     plan.exercises.forEach(function (exercise) {
       const action = actionsData.getAction(exercise.actionId) || {}
+      const seconds = parseSeconds(exercise.reps)
+      const rest = parseRest(exercise.rest) || defRest
       for (let set = 1; set <= (exercise.sets || 1); set++) {
-        const seconds = parseSeconds(exercise.reps)
         groups.push({
           name: action.name || exercise.actionId,
           category: action.category || '训练',
@@ -88,7 +88,7 @@ function buildGroups(plan) {
           targetText: exercise.reps || '完成规定次数',
           seconds: seconds,
           kind: seconds > 0 ? 'time' : 'count',
-          rest: parseRest(exercise.rest) || defRest,
+          rest: rest,
           round: round,
           roundTotal: loop
         })
@@ -124,7 +124,7 @@ Page({
     state: 'working',
     group: null,
     nextGroup: null,
-    left: 0,
+    workLeft: 0,
     running: false,
     timeStarted: false,
     restLeft: 0,
@@ -139,9 +139,9 @@ Page({
     doneTitle: '',
     doneCheer: '',
     doneStats: [],
-    badges: [],
     canShareFeed: false,
-    feedPosted: false
+    feedPosted: false,
+    feedPosting: false
   },
 
   onLoad(options) {
@@ -182,9 +182,9 @@ Page({
     this.stopInterval()
     voice.stop()
     if (this.data.state === 'working' && this.data.running) {
-      const remain = this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : this.data.left
+      const remain = this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : this.data.workLeft
       this.endAt = 0
-      this.setData({ running: false, left: remain })
+      this.setData({ running: false, workLeft: remain })
     }
     this.persistSession()
   },
@@ -192,7 +192,7 @@ Page({
   onUnload() {
     this.stopInterval()
     this.clearTimers()
-    voice.destroy()
+    voice.stop()
     if (this.data.state !== 'finished') this.persistSession()
   },
 
@@ -250,7 +250,7 @@ Page({
       state: state,
       group: group,
       nextGroup: next,
-      left: Number(session.remainingSeconds || (group && group.seconds) || 0),
+      workLeft: Number(session.remainingSeconds || (group && group.seconds) || 0),
       restLeft: restLeft,
       running: false,
       timeStarted: !!session.timeStarted,
@@ -282,12 +282,10 @@ Page({
       current: this.data.current,
       completed: this.data.completed,
       state: this.data.state,
-      running: false,
       timeStarted: this.data.timeStarted,
-      remainingSeconds: this.data.left,
+      remainingSeconds: this.data.workLeft,
       restEndsAt: this.data.state === 'rest' ? this.endAt : 0,
-      skippedGroups: this.data.skippedGroups,
-      adjustments: adjustments.get(this.planId)
+      skippedGroups: this.data.skippedGroups
     })
   },
 
@@ -309,8 +307,7 @@ Page({
         actualMinutes: Math.max(1, Math.round(actualSeconds / 60)),
         completedGroups: this.data.completed - this.data.skippedGroups,
         totalGroups: this.data.total,
-        skippedGroups: this.data.skippedGroups,
-        adjustmentsSnapshot: adjustments.get(this.planId)
+        skippedGroups: this.data.skippedGroups
       })
       sessionStore.clear()
       return saved
@@ -320,36 +317,16 @@ Page({
     }
   },
 
-  // 完成页情绪反馈：夸赞文案 + 成就徽章，统计基于刚落库的记录
-  buildFinishFeedback(saved) {
+  // 完成页情绪反馈：夸赞文案 + 成绩统计，统计基于刚落库的记录
+  buildFinishFeedback() {
     const total = this.data.total || 1
     const skipped = this.data.skippedGroups || 0
     const done = Math.max(0, total - skipped)
-    const minutes = Math.max(1, Math.round(Math.max(0, Date.now() - this.startTs) / 60000))
     const list = store.getAllRecords()
     const stats = store.computeStatsFrom(list)
     const insight = insights.build(list)
-    const today = dateUtil.today()
-    const planId = this.planId
-    const savedId = (saved && saved.id) || ''
 
-    let titles = PRAISE.partial
-    if (skipped === 0) titles = PRAISE.perfect
-    else if (done >= total) titles = PRAISE.full
-
-    const badges = []
-    if (skipped === 0) badges.push({ icon: '全', title: '全勤通关', desc: '一组没落，全程在线' })
-    const samePlanBefore = list.filter(function (r) { return r.planId === planId && r.id !== savedId }).length
-    if (!samePlanBefore) badges.push({ icon: '首', title: '解锁新计划', desc: '第一次完成《' + this.data.planName + '》' })
-    if (stats.total <= 1) badges.push({ icon: '始', title: '第一天', desc: '好的开始，明天继续' })
-    else if (stats.total % 10 === 0) badges.push({ icon: '程', title: '第 ' + stats.total + ' 天', desc: '又一个里程碑达成' })
-    const past = list.filter(function (r) { return r.date < today }).map(function (r) { return r.date }).sort()
-    const lastDate = past.length ? past[past.length - 1] : ''
-    const gap = lastDate ? Math.round((dateUtil.parse(today) - dateUtil.parse(lastDate)) / 86400000) : 0
-    if (gap >= 7) badges.push({ icon: '回', title: '重新出发', desc: '隔了 ' + gap + ' 天，你又回来了' })
-    if (stats.streak >= 2) badges.push({ icon: '连', title: '连续 ' + stats.streak + ' 天', desc: '每天都在变强一点' })
-    if (insight.weekDays >= 3) badges.push({ icon: '周', title: '本周第 ' + insight.weekDays + ' 练', desc: '这周节奏稳住了' })
-    if (minutes >= 30) badges.push({ icon: '耐', title: '耐力全开', desc: '单次坚持 ' + minutes + ' 分钟' })
+    const titles = skipped === 0 ? PRAISE.perfect : PRAISE.partial
 
     return {
       doneTitle: pickOne(titles),
@@ -360,32 +337,19 @@ Page({
         { label: '连续打卡', value: stats.streak + ' 天' },
         { label: '本周训练', value: insight.weekDays + ' 次' }
       ],
-      badges: badges.slice(0, 3),
       canShareFeed: account.isLoggedIn(),
       feedPosted: false
     }
   },
 
-  // 分享给好友：完成后带成绩，未完成则邀约
-  onShareAppMessage() {
-    if (this.data.state !== 'finished') {
-      return { title: '我正在练《' + this.data.planName + '》，一起动起来！', path: '/pages/index/index' }
-    }
-    const done = Math.max(0, (this.data.total || 0) - (this.data.skippedGroups || 0))
-    return {
-      title: '刚完成《' + this.data.planName + '》' + done + '/' + this.data.total + ' 组，用时 ' + this.data.costText + '！',
-      path: '/pages/index/index'
-    }
-  },
-
   onShareToFeed() {
-    if (this._postingFeed) return
-    if (!account.isLoggedIn()) { toast.show('登录后才能发到铁友圈'); return }
-    this._postingFeed = true
+    if (this.data.feedPosting) return
     const done = Math.max(0, (this.data.total || 0) - (this.data.skippedGroups || 0))
     const text = '今天完成《' + this.data.planName + '》，' + done + '/' + this.data.total + ' 组，用时 ' + this.data.costText + '。' + this.data.doneCheer
+    // 点击立即进入发布中状态：云函数含内容安全检测，返回需要一定时间
+    this.setData({ feedPosting: true })
     feed.create(text).then((res) => {
-      this._postingFeed = false
+      this.setData({ feedPosting: false })
       if (!res || !res.ok) {
         const code = (res && res.code) || ''
         if (code === 'risky' || code === 'review') toast.show('内容未通过安全检测，请重试')
@@ -393,9 +357,8 @@ Page({
         return
       }
       this.setData({ feedPosted: true })
-      toast.show('已发到铁友圈', { success: true })
     }).catch(() => {
-      this._postingFeed = false
+      this.setData({ feedPosting: false })
       toast.show('发布失败，请重试')
     })
   },
@@ -429,7 +392,7 @@ Page({
     if (!this.endAt) return 0
     const remain = Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000))
     if (this.data.state === 'rest') this.setData({ restLeft: remain })
-    else this.setData({ left: remain })
+    else this.setData({ workLeft: remain })
     return remain
   },
 
@@ -499,7 +462,7 @@ Page({
       current: index,
       group: viewOf(group, index),
       nextGroup: viewOf(this.groups[index + 1], index + 1),
-      left: group.kind === 'time' ? group.seconds : 0,
+      workLeft: group.kind === 'time' ? group.seconds : 0,
       running: false,
       timeStarted: false,
       pctStyle: 'width:' + pct + '%;'
@@ -529,7 +492,8 @@ Page({
       })
       voice.speak(pickOne(FINISH_LINES), { interrupt: true })
       this.vibrate('long')
-      this.setData(this.buildFinishFeedback(this.finalizeWorkout()))
+      this.finalizeWorkout()
+      this.setData(this.buildFinishFeedback())
       return
     }
 
@@ -589,10 +553,10 @@ Page({
     if (this.data.state !== 'working' || this.data.running) return
     const group = this.groups[this.data.current]
     if (!group) return
-    let left = this.data.left
+    let left = this.data.workLeft
     if (!this.data.timeStarted) {
       left = group.seconds
-      this.setData({ left: left, timeStarted: true })
+      this.setData({ workLeft: left, timeStarted: true })
     }
     this.endAt = Date.now() + left * 1000
     this.setData({ running: true })
@@ -602,16 +566,14 @@ Page({
   onPauseWork() {
     if (this.data.state !== 'working') return
     this.stopInterval()
-    const remain = this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : this.data.left
+    const remain = this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : this.data.workLeft
     this.endAt = 0
-    this.setData({ running: false, left: remain })
+    this.setData({ running: false, workLeft: remain })
     this.persistSession()
   },
 
   onCompleteSet() { this.finishSet(false) },
   onSkipSet() { this.finishSet(true) },
-  onSkipRest() { this.skipRest() },
-  onExtendRest() { this.extendRest() },
 
   onNavBack() {
     if (this.data.state !== 'finished') {

@@ -1,58 +1,14 @@
 <navigation-bar title="偏好配置" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <px-toast></px-toast>
+<import src="../common/prefs-form.wxml" />
 <scroll-view class="scrollarea" scroll-y>
   <view class="page">
     <view class="intro">
       <view class="intro-title">让每日推荐更懂你</view>
     </view>
 
-    <view class="g-card section">
-      <view class="section-title">你的主要目标</view>
-      <view class="goal-list">
-        <view wx:for="{{goals}}" wx:key="value" class="goal-item {{item.selected ? 'on' : ''}}" data-value="{{item.value}}" hover-class="hover" hover-stay-time="100" bindtap="onChooseGoal">
-          <view class="goal-name">{{item.name}}</view>
-          <view class="goal-desc">{{item.desc}}</view>
-        </view>
-      </view>
-    </view>
-
-    <view class="g-card section">
-      <view class="section-title">常用训练地点</view>
-      <view class="chip-row">
-        <view wx:for="{{scenes}}" wx:key="value" class="chip {{item.selected ? 'on' : ''}}" data-value="{{item.value}}" hover-class="hover" hover-stay-time="100" bindtap="onToggleScene">{{item.name}}</view>
-      </view>
-    </view>
-
-    <view class="g-card section">
-      <view class="section-title">训练经验</view>
-      <view class="chip-row">
-        <view wx:for="{{experiences}}" wx:key="name" class="chip {{item.selected ? 'on' : ''}}" data-value="{{item.name}}" hover-class="hover" hover-stay-time="100" bindtap="onChooseExperience">{{item.name}}</view>
-      </view>
-    </view>
-
-    <view class="g-card section">
-      <view class="section-title">可用器械</view>
-      <view class="chip-row">
-        <view wx:for="{{equipment}}" wx:key="value" class="chip {{item.selected ? 'on' : ''}}" data-value="{{item.value}}" hover-class="hover" hover-stay-time="100" bindtap="onToggleEquipment">{{item.name}}</view>
-      </view>
-    </view>
-
-    <view class="g-card section">
-      <view class="section-title">每周目标</view>
-      <view class="slider-row">
-        <view class="slider-copy"><view>每周训练天数</view><view class="weak">{{weeklyTargetDays}} 天</view></view>
-        <view class="slider-area">
-          <slider min="1" max="7" step="1" value="{{weeklyTargetDays}}" activeColor="#E60012" bindchange="onDaysChange" />
-        </view>
-      </view>
-      <view class="slider-row">
-        <view class="slider-copy"><view>每周训练时长</view><view class="weak">{{weeklyTargetMinutes}} 分钟</view></view>
-        <view class="slider-area">
-          <slider min="30" max="600" step="30" value="{{weeklyTargetMinutes}}" activeColor="#E60012" bindchange="onWeekMinutesChange" />
-        </view>
-      </view>
-    </view>
+    <template is="prefsForm" data="{{goals, scenes, experiences, equipment, weeklyTargetDays, weeklyTargetMinutes}}" />
     <view class="bottom-space"></view>
   </view>
 </scroll-view>
-<view class="save-bar"><view class="btn btn-primary" hover-class="hover" hover-stay-time="100" bindtap="onSave">保存偏好</view></view>
+<view class="save-bar"><view class="btn btn-primary" bindtap="onSave">保存偏好</view></view>

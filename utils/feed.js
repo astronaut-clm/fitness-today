@@ -25,8 +25,7 @@ function list(cursor) {
     return {
       ok: true,
       rows: rows,
-      hasMore: !!res.hasMore,
-      nextCursor: Number(res.nextCursor) || 0
+      hasMore: !!res.hasMore
     }
   })
 }
@@ -99,6 +98,5 @@ module.exports = {
   report: report,
   adminCheck: adminCheck,
   adminReportList: adminReportList,
-  adminReportResolve: adminReportResolve,
-  timeText: timeText
+  adminReportResolve: adminReportResolve
 }

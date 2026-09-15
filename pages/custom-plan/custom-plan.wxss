@@ -1,12 +1,7 @@
-page { height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
-.scrollarea { flex: 1; overflow-y: hidden; }
 .page { padding: 24rpx 32rpx 200rpx; }
 .section { margin-top: 22rpx; }
-.section-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }
 
-.seg { display: flex; margin-top: 20rpx; padding: 8rpx; background: var(--card2); border: var(--pxs) solid var(--ink); border-radius: 0; }
-.seg-item { flex: 1; height: 76rpx; display: flex; align-items: center; justify-content: center; color: var(--ink2); font-size: 28rpx; font-weight: 600; }
-.seg-item.on { background: var(--primary); color: var(--card); }
+.seg { margin-top: 20rpx; }
 .seg-tip { margin-top: 16rpx; font-size: 22rpx; }
 
 .name-input { margin-top: 20rpx; height: 88rpx; padding: 0 22rpx; border: var(--pxs) solid var(--ink); border-radius: 0; box-sizing: border-box; color: var(--ink); background: var(--card2); font-size: 28rpx; }
@@ -38,9 +33,6 @@ page { height: 100vh; display: flex; flex-direction: column; background: var(--b
 .pick-check { margin-left: 12rpx; color: var(--green); font-weight: 700; }
 .pick-meta { margin-top: 6rpx; font-size: 22rpx; }
 
-.bottom-space { height: 24rpx; }
-
 .save-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; gap: 20rpx; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: var(--pxs) solid var(--ink); background: var(--card); }
 .del-btn { flex: none; width: 200rpx; color: var(--primary); }
 .save-btn { flex: 1; }
-.hover { opacity: .7; }

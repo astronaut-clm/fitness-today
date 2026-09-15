@@ -2,11 +2,13 @@ const store = require('../../utils/store.js')
 const dateUtil = require('../../utils/date.js')
 const profile = require('../../utils/profile.js')
 const recommend = require('../../utils/recommend.js')
+const aiRecommend = require('../../utils/ai-recommend.js')
 const insights = require('../../utils/insights.js')
 const account = require('../../utils/account.js')
 const login = require('../../utils/login.js')
 const onboarding = require('../../utils/onboarding.js')
 const toast = require('../../utils/toast.js')
+const tab = require('../../utils/tab.js')
 
 // 未登录/无数据时的默认目标统计
 const EMPTY_INSIGHT = { weekDays: 0, targetDays: 3, weekMinutes: 0, targetMinutes: 90, dayPercent: 0, minutePercent: 0, coverage: [], dayBar: '', minuteBar: '' }
@@ -26,28 +28,27 @@ Page({
   },
 
   onShow() {
-    // 自定义 tabBar 选中态（WebView 下 getTabBar 同步返回实例）
-    if (typeof this.getTabBar === 'function') {
-      const tabBar = this.getTabBar()
-      if (tabBar && tabBar.setData) tabBar.setData({ selected: 0 })
-    }
-    // 未登录：只展示登录入口，并清空上次登录残留的统计/打卡数据
-    const loggedIn = account.isLoggedIn()
-    if (!loggedIn) {
-      this.setData({
-        loggedIn: false,
-        streak: 0,
-        recPlan: null,
-        isLogged: false,
-        goalReady: false,
-        todaySummary: null,
-        insight: EMPTY_INSIGHT
-      })
+    tab.sync(this, 0)
+    if (!account.isLoggedIn()) {
+      this.resetGuestView()
       return
     }
     this.setData({ loggedIn: true })
     this.refresh()
     this.verifyAccount()
+  },
+
+  // 未登录视图：只展示登录入口，并清空上次登录残留的统计/打卡数据
+  resetGuestView() {
+    this.setData({
+      loggedIn: false,
+      streak: 0,
+      recPlan: null,
+      isLogged: false,
+      goalReady: false,
+      todaySummary: null,
+      insight: EMPTY_INSIGHT
+    })
   },
 
   // 云端账号校验：文档被清除（清库/删号）时清理本地数据并切回未登录视图
@@ -58,15 +59,7 @@ Page({
     account.fetchProfile().then((res) => {
       if (res && res.code === 'no_account') {
         login.resetLocalData()
-        this.setData({
-          loggedIn: false,
-          streak: 0,
-          recPlan: null,
-          isLogged: false,
-          goalReady: false,
-          todaySummary: null,
-          insight: EMPTY_INSIGHT
-        })
+        this.resetGuestView()
         return
       }
       // 无法判定账号状态时保留登录态，下次 onShow 重试
@@ -99,9 +92,9 @@ Page({
       latestName: latest && latest.planName
     } : null
 
-    const built = insights.build(records, currentProfile)
-    built.dayBar = 'width:' + Math.max(0, Number(built.dayPercent) || 0) + '%;'
-    built.minuteBar = 'width:' + Math.max(0, Number(built.minutePercent) || 0) + '%;'
+    const insightView = insights.build(records, currentProfile)
+    insightView.dayBar = 'width:' + Math.max(0, Number(insightView.dayPercent) || 0) + '%;'
+    insightView.minuteBar = 'width:' + Math.max(0, Number(insightView.minutePercent) || 0) + '%;'
     this.setData({
       dateText: dateText,
       streak: stats.streak,
@@ -109,7 +102,18 @@ Page({
       isLogged: todayRecords.length > 0,
       goalReady: profile.completed(currentProfile),
       todaySummary: todaySummary,
-      insight: built
+      insight: insightView
+    })
+    this.requestAI(records, currentProfile)
+  },
+
+  // AI 重排：后台进行，不阻塞首屏；结果有效才覆盖推荐卡片，失败保持规则结果
+  // 命中缓存时同步返回，登录/同步导致的多次 refresh 不会把已出的 AI 结果冲掉
+  requestAI(records, profileData) {
+    aiRecommend.fetchPlan(records, profileData).then((res) => {
+      if (!res.ok || !res.byAI) return
+      const plan = recommend.findById(res.planId)
+      if (plan) this.setData({ recPlan: recommend.decorate(plan, res.reason) })
     })
   },
 

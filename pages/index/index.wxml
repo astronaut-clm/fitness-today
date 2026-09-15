@@ -5,7 +5,7 @@
     <block wx:if="{{loggedIn}}">
     <view class="head">
       <view class="flex1">
-        <view class="head-date weak">{{dateText}}</view>
+        <view class="head-date">{{dateText}}</view>
       </view>
       <view class="head-actions">
         <view wx:if="{{streak > 0}}" class="head-note streak">连续 {{streak}} 天</view>
@@ -20,7 +20,7 @@
         <view class="hero-reason" wx:if="{{recPlan && recPlan.reason}}">{{recPlan.reason}}</view>
         <view class="hero-tags" wx:if="{{recPlan}}"><text class="h-tag">{{recPlan.sceneName}}</text><text class="h-tag">{{recPlan.level}}</text></view>
         <view class="hero-btns">
-          <view class="hbtn hbtn-solid hbtn-short" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">开始今日训练</view>
+          <view class="hbtn hbtn-solid hbtn-short" bindtap="goRecPlan">开始今日训练</view>
         </view>
       </view>
     </block>
@@ -30,7 +30,7 @@
         <view class="hero-sub">今天完成 {{todaySummary.count}} 次训练 · 共 {{todaySummary.minutes}} 分钟</view>
         <view class="hero-reason" wx:if="{{todaySummary.latestName}}">最近完成：{{todaySummary.latestName}}</view>
         <view class="hero-btns">
-          <view class="hbtn hbtn-solid hbtn-short" hover-class="hover" hover-stay-time="100" bindtap="goRecPlan">再练一次 Bro!</view>
+          <view class="hbtn hbtn-solid hbtn-short" bindtap="goRecPlan">再练一次 Bro!</view>
         </view>
       </view>
     </block>
@@ -46,7 +46,7 @@
       </view>
     </block>
     <block wx:else>
-      <view class="g-card goal-guide" hover-class="hover" hover-stay-time="100" bindtap="goProfile">
+      <view class="g-card goal-guide" bindtap="goProfile">
         <view class="row">
           <view class="flex1">
             <view class="goal-guide-title">你的本周目标</view>
@@ -58,7 +58,7 @@
     </block>
 
     <view class="entry-row">
-      <view class="entry-card g-card" hover-class="hover" hover-stay-time="100" bindtap="goRank">
+      <view class="entry-card g-card" bindtap="goRank">
         <view class="entry-badge">榜</view>
         <view class="flex1 entry-main">
           <view class="entry-title">排行榜</view>
@@ -67,7 +67,7 @@
         <view class="entry-arrow">›</view>
       </view>
 
-      <view class="entry-card g-card" hover-class="hover" hover-stay-time="100" bindtap="goFeed">
+      <view class="entry-card g-card" bindtap="goFeed">
         <view class="entry-badge blue">圈</view>
         <view class="flex1 entry-main">
           <view class="entry-title">铁友圈</view>
@@ -89,7 +89,7 @@
           <view class="login-title">请先登录</view>
           <view class="weak login-sub">可选择微信头像一键登录</view>
         </view>
-        <button class="login-pill" open-type="chooseAvatar" bindchooseavatar="onLoginOneTap" hover-class="hover" hover-stay-time="100">点击登录</button>
+        <button class="login-pill" open-type="chooseAvatar" bindchooseavatar="onLoginOneTap" hover-class="none">点击登录</button>
       </view>
     </block>
   </view>
@@ -100,7 +100,7 @@
     <view class="px-dialog-title">登录未完成</view>
     <view class="px-dialog-copy">请确认已部署 login 云函数并创建 ft_users 集合后重试。</view>
     <view class="px-dialog-btns">
-      <view class="px-dialog-btn primary" hover-class="hover" hover-stay-time="100" bindtap="onCloseLoginFail">知道了</view>
+      <view class="px-dialog-btn primary" bindtap="onCloseLoginFail">知道了</view>
     </view>
   </view>
 </view>

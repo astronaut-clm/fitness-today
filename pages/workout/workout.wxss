@@ -1,21 +1,5 @@
-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-}
-
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
-}
-
 .page {
   padding: 20rpx 32rpx 220rpx;
-}
-
-.hover {
-  opacity: 0.86;
 }
 
 /* 自绘顶部导航：返回与动作按钮用同一套事件机制 */
@@ -308,53 +292,6 @@ page {
   margin-top: 6rpx;
 }
 
-.badges {
-  margin-top: 32rpx;
-}
-
-.badge {
-  display: flex;
-  align-items: center;
-  text-align: left;
-  padding: 18rpx 20rpx;
-  background: var(--card);
-  border: var(--pxs) solid var(--ink);
-}
-
-.badge + .badge {
-  margin-top: 16rpx;
-}
-
-.badge-ico {
-  flex: none;
-  width: 68rpx;
-  height: 68rpx;
-  margin-right: 20rpx;
-  background: var(--primary-bg);
-  border: var(--pxs) solid var(--ink);
-  color: var(--ink);
-  font-size: 34rpx;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.badge-txt {
-  flex: 1;
-  min-width: 0;
-}
-
-.badge-title {
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.badge-desc {
-  font-size: 22rpx;
-  margin-top: 4rpx;
-}
-
 .share-row {
   margin-top: 44rpx;
 }
@@ -381,31 +318,14 @@ page {
   border: none;
 }
 
-.share-btn + .share-btn {
-  margin-top: 20rpx;
-}
-
 .share-btn.primary {
   background: var(--primary);
   color: var(--card);
-  box-shadow: var(--shadow);
-}
-
-.share-btn.ghost {
-  background: var(--card);
-  color: var(--ink);
 }
 
 .share-btn.posted {
   background: var(--card2);
   color: var(--ink2);
-}
-
-.done-back {
-  display: inline-block;
-  font-size: 26rpx;
-  margin-top: 32rpx;
-  padding: 10rpx 28rpx;
 }
 
 .next-preview {
@@ -418,73 +338,4 @@ page {
   font-size: 24rpx;
   margin-top: 26rpx;
   padding: 8rpx 20rpx;
-}
-
-.mask {
-  position: fixed;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(26, 26, 26, 0.5);
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dialog {
-  width: 600rpx;
-  background: var(--card);
-  border: var(--px) solid var(--ink);
-  box-shadow: var(--shadow);
-  border-radius: 0;
-  padding: 48rpx 40rpx 36rpx;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-.dialog-title {
-  font-size: 36rpx;
-  font-weight: 800;
-  color: var(--ink);
-}
-
-.dialog-content {
-  font-size: 28rpx;
-  color: var(--ink2);
-  margin-top: 18rpx;
-  line-height: 1.6;
-}
-
-.dialog-btns {
-  display: flex;
-  margin-top: 44rpx;
-}
-
-.dialog-btn {
-  flex: 1;
-  height: 88rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  font-size: 32rpx;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.dialog-btn + .dialog-btn {
-  margin-left: 20rpx;
-}
-
-.dialog-btn.ghost {
-  background: var(--card2);
-  color: var(--ink2);
-}
-
-.dialog-btn.primary {
-  background: var(--primary);
-  color: var(--card);
 }

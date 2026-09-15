@@ -1,7 +1,6 @@
 // 用户账号与个人设置：以 openid 为身份，资料存云端 ft_users
 const cloud = require('./cloud.js')
 
-const OPENID_KEY = 'ft_openid'
 const CACHE_KEY = 'ft_account_v1'
 const LOGIN_KEY = 'ft_logged_in'
 const LOGOUT_KEY = 'ft_logged_out'
@@ -12,19 +11,13 @@ function enabled() {
   return cloud.callable()
 }
 
-// 发起 login 云函数调用：云不可用 resolve(null)，调用失败 reject
-function call(action, data) {
-  return cloud.invoke(action, data)
-}
-
 // 获取 openid 并做内存缓存；失败不缓存，允许本会话重试
 function login() {
   if (!enabled()) return Promise.resolve('')
   if (openidPromise) return openidPromise
-  openidPromise = call('').then(function (r) {
+  openidPromise = cloud.invoke('').then(function (r) {
     const openid = (r && r.result && r.result.openid) || ''
     if (!openid) throw new Error('no_openid')
-    try { wx.setStorageSync(OPENID_KEY, openid) } catch (e) {}
     return openid
   }).catch(function (err) {
     openidPromise = null
@@ -39,14 +32,10 @@ function defaultNickname(openid) {
   return tail || '微信用户'
 }
 
-function cached() {
+function get() {
   let info = { nickname: '', avatar: '' }
   try { info = Object.assign(info, wx.getStorageSync(CACHE_KEY) || {}) } catch (e) {}
   return info
-}
-
-function get() {
-  return cached()
 }
 
 // 登录态语义：只有主动一键登录过才算已登录，云端资料自动拉回不建立登录态。
@@ -70,7 +59,6 @@ function markLoggedIn() {
 function logout() {
   openidPromise = null
   try {
-    wx.removeStorageSync(OPENID_KEY)
     wx.removeStorageSync(CACHE_KEY)
     wx.removeStorageSync(LOGIN_KEY)
     wx.setStorageSync(LOGOUT_KEY, 1)
@@ -95,7 +83,7 @@ function saveLocal(info) {
 // 从云端拉取资料并写本地缓存（含换机恢复）；主动登出期间不拉回
 function fetchProfile() {
   if (!enabled() || isLoggedOut()) return Promise.resolve({ ok: false })
-  return call('profile').then(function (r) {
+  return cloud.invoke('profile').then(function (r) {
     const result = (r && r.result) || {}
     if (!result.openid) return { ok: false }
     // 云端无该用户文档（清库/删号）：置为未登录并返回 no_account，由上层清理本地数据
@@ -121,7 +109,7 @@ function saveProfile(info) {
     nickname: String((info && info.nickname) || '').trim().slice(0, 30),
     avatar: String((info && info.avatar) || '')
   }
-  return call('profileSet', { profile: payload }).then(function (r) {
+  return cloud.invoke('profileSet', { profile: payload }).then(function (r) {
     const result = (r && r.result) || {}
     if (!result.openid) return { ok: false, code: 'save_error' }
     const saved = saveLocal({ nickname: result.nickname, avatar: result.avatar })
@@ -169,7 +157,7 @@ function uploadAvatar(tempFilePath) {
 // 读取云端用户资料（不依赖本机登录态）；updatedAt=0 表示新账号，读取失败返回 null
 function cloudProfile() {
   if (!enabled()) return Promise.resolve(null)
-  return call('profile').then(function (r) {
+  return cloud.invoke('profile').then(function (r) {
     const result = (r && r.result) || {}
     if (!result.openid) return null
     return result

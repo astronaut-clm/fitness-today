@@ -5,7 +5,6 @@ const customPlans = require('./custom-plans.js')
 const KEY = 'ft_user_profile_v1'
 
 const defaults = {
-  version: 1,
   goal: '',
   scenes: [],
   experience: '初级',

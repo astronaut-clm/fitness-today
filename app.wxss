@@ -63,43 +63,12 @@ page {
 .btn-primary {
   background: var(--primary);
   color: var(--card);
-  box-shadow: var(--shadow);
-}
-
-.btn.plain {
-  opacity: 0.55;
 }
 
 .btn-ghost {
   background: var(--card);
   color: var(--ink);
   border: var(--px) solid var(--ink);
-}
-
-/* 像素按键反馈（配合 hover-class="hover"）：有硬阴影的收合阴影下沉，无阴影的轻微下沉压暗；
-   不用 transition，保持像素风的瞬切手感。 */
-.btn.btn-primary.hover,
-.g-card.hover {
-  box-shadow: none;
-  transform: translate(6rpx, 6rpx);
-  opacity: 1;
-}
-
-.btn.hover,
-.hbtn.hover,
-.dialog-btn.hover,
-.logout-btn.hover,
-.switch-btn.hover,
-.goal-guide-btn.hover,
-.cal-arrow.hover,
-.chip.hover,
-.goal-item.hover,
-.rec-delete.hover,
-.adjust-reset.hover,
-.skip-set.hover,
-.px-dialog-btn.hover {
-  transform: translate(3rpx, 3rpx);
-  opacity: 0.75;
 }
 
 .tag {
@@ -111,14 +80,6 @@ page {
   border: var(--pxs) solid var(--ink);
   background: var(--card2);
   color: var(--ink2);
-}
-
-.tag-lv1,
-.tag-lv2,
-.tag-lv3 {
-  background: var(--card2);
-  color: var(--ink2);
-  border-color: var(--ink);
 }
 
 /* 自定义计划标签：黄底强调，用于卡片左上角标识来源 */
@@ -246,11 +207,7 @@ input::after {
   color: var(--ink2);
 }
 
-.px-dialog-btn.primary {
-  background: var(--primary);
-  color: var(--card);
-}
-
+.px-dialog-btn.primary,
 .px-dialog-btn.danger {
   background: var(--primary);
   color: var(--card);
@@ -295,4 +252,221 @@ input::after {
 @keyframes px-loading-blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
+}
+
+/* ===== 页面骨架与共用样板（各页 wxss 只写自身差异） ===== */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.scrollarea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: hidden;
+  background: var(--bg);
+}
+
+.bottom-space {
+  height: 24rpx;
+}
+
+/* 底部固定操作栏（profile / account 等页共用） */
+.save-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  border-top: var(--px) solid var(--ink);
+  background: var(--card);
+}
+
+/* 居中加载/空态/重试（rank / feed / admin-report 等页共用） */
+.loading-box {
+  display: flex;
+  justify-content: center;
+  padding: 60rpx 0;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 70rpx 20rpx;
+}
+
+.empty-icon {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: var(--ink3);
+  margin-bottom: 12rpx;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.empty-sub {
+  font-size: 24rpx;
+  margin-top: 10rpx;
+  text-align: center;
+}
+
+/* 场景分段选择（plan / custom-plan 页共用） */
+.seg {
+  display: flex;
+  padding: 8rpx;
+  background: var(--card2);
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+}
+
+.seg-item {
+  flex: 1;
+  height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink2);
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.seg-item.on {
+  background: var(--primary);
+  color: var(--card);
+}
+
+.retry-btn {
+  margin-top: 28rpx;
+  padding: 16rpx 48rpx;
+  border: var(--pxs) solid var(--ink);
+  background: var(--primary);
+  color: var(--card);
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+/* ===== 偏好配置表单（profile / onboarding 共用，结构见 pages/common/prefs-form.wxml） ===== */
+.intro {
+  margin: 8rpx 8rpx 24rpx;
+}
+
+.intro-title {
+  color: var(--ink);
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.intro-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+}
+
+.section {
+  margin-top: 20rpx;
+}
+
+.section-title {
+  color: var(--ink);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.required-tag {
+  margin-left: 12rpx;
+  color: var(--primary);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.goal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.goal-item {
+  flex: 0 0 calc((100% - 16rpx) / 2);
+  min-height: 126rpx;
+  box-sizing: border-box;
+  padding: 20rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  background: var(--card);
+}
+
+.goal-item.on {
+  border-color: var(--ink);
+  background: var(--primary-bg);
+}
+
+.goal-name {
+  color: var(--ink);
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.goal-desc {
+  margin-top: 7rpx;
+  color: var(--ink3);
+  font-size: 20rpx;
+  line-height: 1.35;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 20rpx;
+}
+
+.chip {
+  padding: 13rpx 22rpx;
+  border: var(--pxs) solid var(--ink);
+  border-radius: 0;
+  color: var(--ink2);
+  font-size: 24rpx;
+}
+
+.chip.on {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: var(--primary-bg);
+  font-weight: 700;
+}
+
+.slider-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding-top: 26rpx;
+  color: var(--ink);
+  font-size: 25rpx;
+}
+
+.slider-copy {
+  flex: none;
+  width: 190rpx;
+}
+
+.slider-row .weak {
+  margin-top: 5rpx;
+  font-size: 21rpx;
+}
+
+.slider-area {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2rpx;
+}
+
+.slider-row slider {
+  width: 100%;
 }

@@ -1,4 +1,4 @@
-// CloudBase 初始化协调层：调用前统一等 ready()，避免启动期竞态
+// CloudBase 初始化协调层：调用前统一等 init()（导出别名 ready），避免启动期竞态
 const config = require('./config.js')
 
 let initPromise = null
@@ -28,10 +28,6 @@ function init() {
   return initPromise
 }
 
-function ready() {
-  return init()
-}
-
 function callable() {
   try {
     return !!(config.ENABLE_CLOUD && wx.cloud && wx.cloud.callFunction)
@@ -43,23 +39,17 @@ function callable() {
 // 调用云函数（默认 login，name 可指定如 social）：云不可用 resolve(null)，调用失败 reject
 function invoke(action, data, name) {
   if (!callable()) return Promise.resolve(null)
-  return ready().then(function (ok) {
+  return init().then(function (ok) {
     if (!ok || !callable()) return null
     const payload = data ? Object.assign({ action: action }, data) : (action ? { action: action } : {})
     return wx.cloud.callFunction({ name: name || 'login', data: payload })
   })
 }
 
-// 调用 login 云函数并归一化：缺少 openid 视为失败，失败不抛错
+// 调用 login 云函数并归一化；与 callTo 的区别：失败时丢弃 code，调用方只判 ok
 function call(action, data) {
-  if (!callable()) return Promise.resolve({ ok: false })
-  return invoke(action, data).then(function (res) {
-    const result = (res && res.result) || {}
-    if (!result.openid) return { ok: false }
-    return Object.assign({ ok: true }, result)
-  }).catch(function (err) {
-    console.error('[cloud] call', action, err)
-    return { ok: false }
+  return callTo('login', action, data).then(function (res) {
+    return res && res.ok ? res : { ok: false }
   })
 }
 
@@ -78,7 +68,7 @@ function callTo(name, action, data) {
 
 module.exports = {
   init: init,
-  ready: ready,
+  ready: init,
   callable: callable,
   invoke: invoke,
   call: call,

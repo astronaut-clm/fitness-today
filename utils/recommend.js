@@ -3,8 +3,10 @@ const actionsData = require('../data/actions.js')
 const insights = require('./insights.js')
 const customPlans = require('./custom-plans.js')
 const dateUtil = require('./date.js')
+const levelUtil = require('./level.js')
 
-const LEVELS = { 初级: 1, 中级: 2, 高级: 3 }
+// 场景不匹配的淘汰分：远低于任何正常得分，排序时据此过滤
+const SCENE_MISMATCH = -9999
 
 function planCategories(plan) {
   const out = {}
@@ -22,12 +24,12 @@ function score(plan, records, profile, recentMuscles) {
   const scenes = p.scenes || []
 
   if (scenes.length) {
-    if (scenes.indexOf(plan.scene) < 0) return { value: -9999, reasons: [] }
+    if (scenes.indexOf(plan.scene) < 0) return { value: SCENE_MISMATCH, reasons: [] }
     value += 35
     reasons.push('匹配你的' + plansData.sceneName(plan.scene) + '训练地点')
   }
 
-  const levelGap = Math.abs((LEVELS[plan.level] || 1) - (LEVELS[p.experience] || 1))
+  const levelGap = Math.abs((levelUtil.LEVEL_MAP[plan.level] || 1) - (levelUtil.LEVEL_MAP[p.experience] || 1))
   value += Math.max(0, 20 - levelGap * 12)
 
   const categories = planCategories(plan)
@@ -72,6 +74,17 @@ function decorate(rawPlan, reason) {
   return plan
 }
 
+// 打分排序后的前 n 个候选（已过滤场景不符），供 AI 重排使用
+function rank(records, profile, n) {
+  const recent = insights.recentMuscles(records)
+  return candidates().map(function (plan) {
+    const result = score(plan, records, profile, recent)
+    return { plan: plan, score: result.value, reasons: result.reasons }
+  }).filter(function (item) { return item.score > SCENE_MISMATCH })
+    .sort(function (a, b) { return b.score - a.score })
+    .slice(0, n || 5)
+}
+
 function findById(id) {
   const list = candidates()
   for (let i = 0; i < list.length; i++) {
@@ -100,14 +113,7 @@ function prefsSignature(profile) {
 }
 
 function compute(records, profile) {
-  const recent = insights.recentMuscles(records, 2)
-  const scored = candidates().map(function (plan) {
-    const result = score(plan, records, profile, recent)
-    return { plan: plan, score: result.value, reasons: result.reasons }
-  }).filter(function (item) { return item.score > -9999 })
-
-  scored.sort(function (a, b) { return b.score - a.score })
-  const best = scored[0] || { plan: plansData.plans[0], reasons: ['从轻松的计划开始'] }
+  const best = rank(records, profile, 1)[0] || { plan: plansData.plans[0], reasons: ['从轻松的计划开始'] }
   return decorate(best.plan, best.reasons[0])
 }
 
@@ -133,4 +139,10 @@ function resetCache() {
   try { wx.removeStorageSync(CACHE_KEY) } catch (e) {}
 }
 
-module.exports = { pick: pick, resetCache: resetCache }
+module.exports = {
+  pick: pick,
+  rank: rank,
+  findById: findById,
+  decorate: decorate,
+  resetCache: resetCache
+}

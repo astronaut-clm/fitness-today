@@ -1,7 +1,6 @@
 const actionsData = require('../../data/actions.js')
 const customPlans = require('../../utils/custom-plans.js')
 const account = require('../../utils/account.js')
-const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
 // 新加入动作的默认目标：时长类动作给秒数，其余给次数。
@@ -10,10 +9,6 @@ function defaultReps(action) {
   if (action.category === '有氧') return '30秒'
   if (action.id === 'plank' || action.id === 'wall_sit') return '30秒'
   return '12次'
-}
-
-function defaultName(scene) {
-  return scene === 'gym' ? '健身房专属' : '居家专属'
 }
 
 Page({
@@ -43,14 +38,13 @@ Page({
         category: action.category || '',
         equipment: action.equipment || '',
         level: action.level || '初级',
-        lvClass: levelUtil.tagClass(action.level || '初级'),
         sets: ex.sets,
         reps: ex.reps
       }
     }) : []
-    this.setData({
+  this.setData({
       scene: scene,
-      name: existing ? existing.name : defaultName(scene),
+      name: existing ? existing.name : customPlans.defaultName(scene),
       selected: selected,
       hasSaved: !!existing,
       showDeleteConfirm: false
@@ -71,7 +65,6 @@ Page({
         category: action.category,
         equipment: action.equipment,
         level: action.level,
-        lvClass: levelUtil.tagClass(action.level),
         muscles: (action.muscles || []).join(' · '),
         checked: !!chosen[action.id]
       }
@@ -110,7 +103,6 @@ Page({
         category: action.category,
         equipment: action.equipment,
         level: action.level,
-        lvClass: levelUtil.tagClass(action.level),
         sets: 3,
         reps: defaultReps(action)
       }])
@@ -154,7 +146,7 @@ Page({
       return
     }
     const scene = this.data.scene
-    const name = (this.data.name || '').trim() || defaultName(scene)
+    const name = (this.data.name || '').trim() || customPlans.defaultName(scene)
     customPlans.save(scene, {
       name: name,
       exercises: this.data.selected.map(function (item) {

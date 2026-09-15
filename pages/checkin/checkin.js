@@ -3,7 +3,8 @@ const dateUtil = require('../../utils/date.js')
 const profile = require('../../utils/profile.js')
 const account = require('../../utils/account.js')
 const login = require('../../utils/login.js')
-const toast = require('../../utils/toast.js')
+const avatarView = require('../../utils/avatar.js')
+const tab = require('../../utils/tab.js')
 
 function recordView(record) {
   const time = new Date(record.createdAt)
@@ -34,6 +35,7 @@ Page({
   },
 
   onLoad() {
+    this._avatar = avatarView.create((url) => this.setData({ 'accountInfo.avatar': url }))
     const now = new Date()
     this.setData({
       todayStr: dateUtil.today(),
@@ -44,11 +46,7 @@ Page({
   },
 
   onShow() {
-    // 自定义 tabBar 选中态（WebView 下 getTabBar 同步返回实例）
-    if (typeof this.getTabBar === 'function') {
-      const tabBar = this.getTabBar()
-      if (tabBar && tabBar.setData) tabBar.setData({ selected: 2 })
-    }
+    tab.sync(this, 2)
     this.reload()
     this.pullCloud()
     this.refreshAccount()
@@ -79,21 +77,13 @@ Page({
     })
   },
 
-  // 头像存的是 cloud:// 文件 ID，统一换临时 https 链接再渲染，换不到则回退文字头像
+  // 头像存的是 cloud:// 文件 ID，换临时 https 链接渲染，换不到则回退文字头像
   renderAccount(src) {
     const nickname = (src && src.nickname) || ''
-    const fileID = (src && src.avatar) || ''
-    const seq = (this._avatarSeq || 0) + 1
-    this._avatarSeq = seq
     this.setData({
       accountInfo: { nickname: nickname, avatar: '', char: nickname ? nickname.slice(0, 1) : '练' }
     })
-    if (!fileID) return
-    account.resolveAvatar(fileID).then((url) => {
-      // 换链期间资料可能已更新，丢弃过期结果
-      if (!url || seq !== this._avatarSeq) return
-      this.setData({ 'accountInfo.avatar': url })
-    }).catch(() => {})
+    this._avatar.show((src && src.avatar) || '')
   },
 
   goAccount() {
@@ -146,7 +136,6 @@ Page({
             day: cell.day,
             inMonth: true,
             checked: count > 0,
-            count: count,
             isToday: cell.date === today,
             isSel: cell.date === selected
           }
@@ -157,7 +146,7 @@ Page({
     const curYM = now.getFullYear() * 100 + now.getMonth() + 1
     const viewYM = this.data.year * 100 + this.data.month
     this.setData({
-      monthLabel: this.data.year + '年' + this.data.month + '月',
+      monthLabel: dateUtil.monthLabel(this.data.year, this.data.month),
       canNext: viewYM < curYM,
       weeks: weeks
     })
@@ -221,13 +210,11 @@ Page({
     store.removeRecord(id)
     this.reload()
     this.setData({ deleteConfirm: { show: false, id: '', name: '' } })
-    toast.show('已删除')
   },
 
   // 头像链接失效（临时链接过期）时回退文字头像
   onAvatarError() {
-    this._avatarSeq = (this._avatarSeq || 0) + 1
-    this.setData({ 'accountInfo.avatar': '' })
+    this._avatar.error()
   },
 
   noop() {},

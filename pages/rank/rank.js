@@ -1,9 +1,9 @@
 const rank = require('../../utils/rank.js')
 const account = require('../../utils/account.js')
+const avatarView = require('../../utils/avatar.js')
 
 Page({
   data: {
-    month: '',
     monthLabel: '',
     rows: [],
     me: { minutes: 0, days: 0, rank: 0 },
@@ -24,7 +24,7 @@ Page({
   load() {
     this._lastLoad = Date.now()
     const month = rank.currentMonth()
-    this.setData({ month: month, monthLabel: rank.monthLabel(month), loading: true, error: false })
+    this.setData({ monthLabel: rank.monthLabel(month), loading: true, error: false })
     return rank.fetch(month).then((res) => {
       if (!res || !res.ok) {
         this._lastLoad = 0
@@ -32,7 +32,6 @@ Page({
         return
       }
       this.setData({
-        month: res.month,
         monthLabel: rank.monthLabel(res.month),
         rows: res.rows,
         me: res.me,
@@ -52,8 +51,6 @@ Page({
 
   // 头像链接失效时清空该行头像，落到文字头像兜底，避免破图。
   onAvatarError(e) {
-    const index = e.currentTarget.dataset.index
-    if (index == null) return
-    this.setData({ ['rows[' + index + '].avatar']: '' })
+    avatarView.clearRow(this, 'rows', e.currentTarget.dataset.index)
   }
 })

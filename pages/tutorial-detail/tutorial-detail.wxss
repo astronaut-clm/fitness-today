@@ -1,21 +1,5 @@
-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-}
-
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
-}
-
 .page {
   padding: 20rpx 32rpx 48rpx;
-}
-
-.hover {
-  opacity: 0.86;
 }
 
 .hero {
@@ -38,7 +22,7 @@ page {
   min-width: 0;
 }
 
-/* 难度置于头部卡片右上角，白底反色覆盖 tag-lv* 的底色 */
+/* 难度置于头部卡片右上角，白底反色 */
 .hero .hero-level {
   flex: none;
   margin-left: 16rpx;
@@ -66,13 +50,6 @@ page {
   font-size: 26rpx;
   opacity: 0.92;
   margin-top: 10rpx;
-}
-
-.hero-summary {
-  font-size: 26rpx;
-  line-height: 1.6;
-  opacity: 0.92;
-  margin-top: 20rpx;
 }
 
 .anim-card {
@@ -110,8 +87,6 @@ page {
 }
 
 .section-title {
-  font-size: 30rpx;
-  font-weight: 700;
   margin-bottom: 16rpx;
 }
 
@@ -195,14 +170,6 @@ page {
 
 .warn-dot {
   color: var(--ink2);
-}
-
-.caution {
-  margin-top: 24rpx;
-  background: var(--card2);
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  padding: 26rpx 28rpx;
 }
 
 .caution-title {

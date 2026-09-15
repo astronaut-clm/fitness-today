@@ -1,21 +1,5 @@
-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-}
-
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
-}
-
 .page {
   padding: 24rpx 32rpx 220rpx;
-}
-
-.hover {
-  opacity: 0.86;
 }
 
 .head {
@@ -87,6 +71,11 @@ page {
   border: var(--pxs) solid var(--ink);
   border-radius: 0;
   padding: 6rpx 18rpx;
+}
+
+/* 隐藏时保留占位：按钮出现/消失不改变行高，动作卡片不位移 */
+.ex-head .adjust-reset.hide {
+  visibility: hidden;
 }
 
 .ex-list {
@@ -211,71 +200,4 @@ page {
 
 .bar-main {
   margin-left: 16rpx;
-}
-
-.switch-mask {
-  position: fixed;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(26, 26, 26, 0.5);
-}
-
-.switch-dialog {
-  width: 600rpx;
-  box-sizing: border-box;
-  padding: 40rpx 32rpx 28rpx;
-  border: var(--px) solid var(--ink);
-  border-radius: 0;
-  box-shadow: var(--shadow);
-  background: var(--card);
-}
-
-.switch-title {
-  color: var(--ink);
-  font-size: 32rpx;
-  font-weight: 700;
-  text-align: center;
-}
-
-.switch-copy {
-  margin-top: 16rpx;
-  color: var(--ink2);
-  font-size: 25rpx;
-  line-height: 1.65;
-  text-align: center;
-}
-
-.switch-btns {
-  display: flex;
-  gap: 20rpx;
-  margin-top: 36rpx;
-}
-
-.switch-btn {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  height: 84rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  box-sizing: border-box;
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.switch-btn.cancel {
-  background: var(--card2);
-  color: var(--ink2);
-}
-
-.switch-btn.primary {
-  background: var(--primary);
-  color: var(--card);
 }

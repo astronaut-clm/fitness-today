@@ -1,7 +1,5 @@
-// pages/tutorial-detail/tutorial-detail.js
 const actionsData = require('../../data/actions.js')
 const config = require('../../utils/config.js')
-const levelUtil = require('../../utils/level.js')
 const toast = require('../../utils/toast.js')
 
 // 动作演示视频地址：<ACTION_VIDEO_PREFIX><id>.mp4，前缀留空则返回 ''，页面不展示演示卡
@@ -40,8 +38,7 @@ Page({
         return {
           id: x.id,
           name: x.name,
-          level: x.level,
-          lvClass: levelUtil.tagClass(x.level)
+          level: x.level
         }
       })
 
@@ -56,9 +53,7 @@ Page({
         category: a.category,
         equipment: a.equipment,
         level: a.level,
-        lvClass: levelUtil.tagClass(a.level),
         muscles: (a.muscles || []).join(' · '),
-        summary: a.summary,
         steps: a.steps || [],
         caution: a.caution || '',
         tempo: a.tempo || guide.tempo,

@@ -17,6 +17,19 @@
 .summary-value { color: var(--ink); font-size: 34rpx; font-weight: 700; }
 .summary-label { margin-top: 8rpx; color: var(--ink3); font-size: 20rpx; white-space: nowrap; }
 
+/* 周复盘卡片：像素标签 + 文本行，与全局卡片同一语言 */
+.weekly { padding: 22rpx 24rpx; margin-bottom: 20rpx; }
+.weekly-head { display: flex; align-items: center; justify-content: space-between; }
+.weekly-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }
+.weekly-refresh { flex: none; font-size: 22rpx; font-weight: 700; color: var(--card); background: var(--green); border: var(--pxs) solid var(--ink); border-radius: 0; padding: 6rpx 18rpx; }
+.weekly-hint { margin-top: 12rpx; font-size: 24rpx; }
+.weekly-sec { display: flex; align-items: flex-start; margin-top: 16rpx; }
+.weekly-tag { flex: none; font-size: 20rpx; font-weight: 700; line-height: 1; color: var(--card); border: var(--pxs) solid var(--ink); border-radius: 0; padding: 5rpx 12rpx; margin-top: 4rpx; }
+.weekly-tag.hl { background: var(--green); }
+.weekly-tag.imp { background: var(--ink2); }
+.weekly-tag.nxt { background: var(--primary); }
+.weekly-text { flex: 1; min-width: 0; margin-left: 14rpx; color: var(--ink); font-size: 25rpx; line-height: 1.6; }
+
 .calendar { padding: 22rpx 18rpx 18rpx; }
 .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; }
 .cal-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }

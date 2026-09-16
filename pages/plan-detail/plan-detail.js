@@ -1,4 +1,3 @@
-const plansData = require('../../data/plans.js')
 const actionsData = require('../../data/actions.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
@@ -6,9 +5,7 @@ const sessionStore = require('../../utils/workout-session.js')
 const toast = require('../../utils/toast.js')
 
 // 统一解析计划来源：先查自定义，再回落到内置计划库。
-function resolvePlan(id) {
-  return customPlans.getById(id) || plansData.getPlan(id)
-}
+const resolvePlan = customPlans.resolvePlan
 
 Page({
   data: {
@@ -137,7 +134,7 @@ Page({
     const delta = Number(e.currentTarget.dataset.delta || 0)
     const current = (this.data.items || []).filter(function (item) { return item.actionId === actionId })[0]
     if (!current || !delta) return
-    const sets = Math.max(1, Math.min(9, Number(current.sets || 1) + delta))
+    const sets = customPlans.clampSets(Number(current.sets || 1) + delta)
     if (sets === Number(current.sets || 1)) return
     adjustments.setExercise(this.planId, actionId, { sets: sets })
     this.loadPlan()

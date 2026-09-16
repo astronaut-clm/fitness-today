@@ -265,6 +265,43 @@
   line-height: 1.7;
 }
 
+/* AI 教练点评：异步到达，像素边框 + 标签与统计区同一视觉语言 */
+.done-coach {
+  margin-top: 28rpx;
+  padding: 20rpx 24rpx;
+  background: var(--card2);
+  border: var(--pxs) solid var(--ink);
+  text-align: left;
+}
+
+.done-coach-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--card);
+  background: var(--ink);
+  padding: 6rpx 12rpx;
+}
+
+.done-coach-text {
+  font-size: 26rpx;
+  color: var(--ink);
+  line-height: 1.7;
+  margin-top: 14rpx;
+}
+
+/* 流式输出中的打字光标 */
+.done-coach-text.streaming::after {
+  content: '▌';
+  color: var(--ink2);
+  animation: coach-blink 0.8s steps(2, start) infinite;
+}
+
+@keyframes coach-blink {
+  to { visibility: hidden; }
+}
+
 .done-stats {
   display: flex;
   margin-top: 40rpx;

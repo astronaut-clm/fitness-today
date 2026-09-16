@@ -4,6 +4,7 @@ const insights = require('./insights.js')
 const customPlans = require('./custom-plans.js')
 const dateUtil = require('./date.js')
 const levelUtil = require('./level.js')
+const storage = require('./storage.js')
 
 // 场景不匹配的淘汰分：远低于任何正常得分，排序时据此过滤
 const SCENE_MISMATCH = -9999
@@ -97,11 +98,11 @@ function findById(id) {
 const CACHE_KEY = 'ft_recommend_v1'
 
 function readCache() {
-  try { return wx.getStorageSync(CACHE_KEY) || null } catch (e) { return null }
+  return storage.read(CACHE_KEY)
 }
 
 function writeCache(data) {
-  try { wx.setStorageSync(CACHE_KEY, data) } catch (e) {}
+  storage.write(CACHE_KEY, data)
 }
 
 // 影响打分的偏好内容签名（场景/经验/目标/器械）；不能用 updatedAt 当键，云端同步会刷新它导致误判重选
@@ -136,7 +137,7 @@ function pick(records, profile, opts) {
 
 // 退出登录时清空当日推荐缓存，避免旧缓存与新账号数据错配
 function resetCache() {
-  try { wx.removeStorageSync(CACHE_KEY) } catch (e) {}
+  storage.remove(CACHE_KEY)
 }
 
 module.exports = {

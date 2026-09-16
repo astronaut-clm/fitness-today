@@ -1,22 +1,21 @@
 // 个人计划调整：仅存本机，不参与云端同步，不改内置计划数据
+const storage = require('./storage.js')
+
 const KEY = 'ft_plan_adjustments_v1'
 
 function emptyStore() {
   return { plans: {} }
 }
 
-function normalizeStore(raw) {
+function getStore() {
+  const raw = storage.read(KEY)
   if (!raw || typeof raw !== 'object') return emptyStore()
   return { plans: (raw.plans && typeof raw.plans === 'object') ? raw.plans : {} }
 }
 
-function getStore() {
-  try { return normalizeStore(wx.getStorageSync(KEY)) } catch (e) { return emptyStore() }
-}
-
 function saveStore(store) {
   const safe = { plans: (store && store.plans) || {} }
-  try { wx.setStorageSync(KEY, safe) } catch (e) {}
+  storage.write(KEY, safe)
   return safe
 }
 

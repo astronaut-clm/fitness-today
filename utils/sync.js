@@ -13,7 +13,7 @@ function enabled() {
 }
 
 function withDb(task, rethrow) {
-  return cloud.ready().then(function (ok) {
+  return cloud.init().then(function (ok) {
     if (!ok || !enabled()) {
       if (rethrow) throw new Error('cloud_unavailable')
       return null

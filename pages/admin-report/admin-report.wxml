@@ -1,4 +1,4 @@
-<navigation-bar back="{{true}}" title="举报审核" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<navigation-bar title="举报审核" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y>
   <view class="page">
     <view class="admin-head">
@@ -58,15 +58,8 @@
   </view>
 </scroll-view>
 
-<view class="px-mask" wx:if="{{showConfirm}}" bindtap="onCancelConfirm" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">{{confirmTitle}}</view>
-    <view class="px-dialog-copy">{{confirmOp === 'delete' ? '内容将被永久删除，不可恢复。' : '这些举报将标记为已处理，内容保留。'}}</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" bindtap="onCancelConfirm">取消</view>
-      <view class="px-dialog-btn {{confirmOp === 'delete' ? 'danger' : 'primary'}}" bindtap="confirmAction">确定</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{showConfirm}}" title="{{confirmTitle}}"
+  copy="{{confirmOp === 'delete' ? '内容将被永久删除，不可恢复。' : '这些举报将标记为已处理，内容保留。'}}"
+  confirm-text="确定" danger="{{confirmOp === 'delete'}}" bind:cancel="onCancelConfirm" bind:confirm="confirmAction" />
 
 <px-toast></px-toast>

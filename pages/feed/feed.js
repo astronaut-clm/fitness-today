@@ -2,6 +2,7 @@ const feed = require('../../utils/feed.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
 const avatarView = require('../../utils/avatar.js')
+const limit = require('../../utils/limit.js')
 
 // 超过该时长后重进页面静默刷新首页，顺带更新过期的头像临时链接（约 2 小时）。
 const FEED_REFRESH_INTERVAL = 10 * 60 * 1000
@@ -32,8 +33,7 @@ Page({
       return
     }
     // 已加载过：距上次加载超过阈值才重进刷新，避免频繁切页重复请求。
-    const now = Date.now()
-    if (this._lastLoad && now - this._lastLoad < FEED_REFRESH_INTERVAL) return
+    if (!limit.pass(this, '_lastLoad', FEED_REFRESH_INTERVAL)) return
     this.load(true)
   },
 
@@ -54,8 +54,6 @@ Page({
         loaded: true,
         error: false
       })
-    }).catch(() => {
-      this.setData(silent ? { loading: false } : { loading: false, loaded: true, error: true })
     })
   },
 
@@ -73,8 +71,6 @@ Page({
         hasMore: res.hasMore,
         loadingMore: false
       })
-    }).catch(() => {
-      this.setData({ loadingMore: false })
     })
   },
 
@@ -112,18 +108,12 @@ Page({
     feed.create(content).then((res) => {
       this.setData({ posting: false })
       if (!res || !res.ok) {
-        const code = (res && res.code) || ''
-        if (code === 'risky' || code === 'review') toast.show('内容未通过安全检测，请修改后重试')
-        else if (code === 'too_fast') toast.show('发得有点快，歇会儿再发')
-        else toast.show('发布失败，请重试')
+        toast.show(feed.createErrorText(res && res.code))
         return
       }
       this.setData({ showPostDialog: false, draft: '', draftLen: 0 })
       toast.show('发布成功', { success: true })
       this.load()
-    }).catch(() => {
-      this.setData({ posting: false })
-      toast.show('发布失败，请重试')
     })
   },
 
@@ -151,12 +141,6 @@ Page({
         ['rows[' + index + '].liked']: res.liked,
         ['rows[' + index + '].likeCount']: res.likeCount
       })
-    }).catch(() => {
-      this.setData({
-        ['rows[' + index + '].liked']: row.liked,
-        ['rows[' + index + '].likeCount']: row.likeCount
-      })
-      toast.show('操作失败，请重试')
     })
   },
 
@@ -187,8 +171,6 @@ Page({
       rows.splice(index, 1)
       this.setData({ rows: rows })
       toast.show('已删除', { success: true })
-    }).catch(() => {
-      toast.show('删除失败，请重试')
     })
   },
 
@@ -206,8 +188,6 @@ Page({
         return
       }
       toast.show('已收到举报', { success: true })
-    }).catch(() => {
-      toast.show('举报失败，请重试')
     })
   },
 

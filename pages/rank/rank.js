@@ -1,6 +1,7 @@
 const rank = require('../../utils/rank.js')
 const account = require('../../utils/account.js')
 const avatarView = require('../../utils/avatar.js')
+const limit = require('../../utils/limit.js')
 
 Page({
   data: {
@@ -16,18 +17,16 @@ Page({
     // 排行榜仅从已登录的首页进入；异常无登录态时直接返回，不发起需要 openid 的请求。
     if (!account.requireLogin()) { wx.navigateBack({ fail: function () {} }); return }
     // 30 秒内重复进入（如从详情页返回）不重复请求。
-    const now = Date.now()
-    if (this._lastLoad && now - this._lastLoad < 30000) return
+    if (!limit.pass(this, '_lastLoad', 30000)) return
     this.load()
   },
 
   load() {
-    this._lastLoad = Date.now()
     const month = rank.currentMonth()
     this.setData({ monthLabel: rank.monthLabel(month), loading: true, error: false })
     return rank.fetch(month).then((res) => {
       if (!res || !res.ok) {
-        this._lastLoad = 0
+        limit.reset(this, '_lastLoad')
         this.setData({ loading: false, loaded: true, error: true })
         return
       }
@@ -39,9 +38,6 @@ Page({
         loaded: true,
         error: false
       })
-    }).catch(() => {
-      this._lastLoad = 0
-      this.setData({ loading: false, loaded: true, error: true })
     })
   },
 

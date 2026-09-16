@@ -54,6 +54,12 @@
   font-weight: 700;
 }
 
+.plan-del {
+  color: var(--ink3);
+  font-size: 22rpx;
+  padding: 8rpx 4rpx 8rpx 20rpx;
+}
+
 .plan-name {
   font-size: 36rpx;
   font-weight: 700;

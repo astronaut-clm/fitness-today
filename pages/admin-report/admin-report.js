@@ -88,10 +88,6 @@ Page({
       rows.splice(index, 1)
       this.setData({ rows: rows })
       toast.show(op === 'delete' ? '已删除' : '已忽略', { success: true })
-    }).catch(() => {
-      toast.show('操作失败，请重试')
     })
-  },
-
-  noop() {}
+  }
 })

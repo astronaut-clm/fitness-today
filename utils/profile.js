@@ -1,6 +1,7 @@
 // 用户偏好配置与目标：本机存储，登录后按 openid 与云端双向同步，updatedAt 收敛
 const cloud = require('./cloud.js')
 const customPlans = require('./custom-plans.js')
+const storage = require('./storage.js')
 
 const KEY = 'ft_user_profile_v1'
 
@@ -55,14 +56,18 @@ function buildView(current) {
   }
 }
 
-function get() {
-  let saved = {}
-  try { saved = wx.getStorageSync(KEY) || {} } catch (e) {}
+// 按 defaults 逐键填充（缺省键回落默认值）
+function fillDefaults(src) {
+  const saved = (src && typeof src === 'object') ? src : {}
   const profile = {}
   Object.keys(defaults).forEach(function (key) {
     profile[key] = saved[key] == null ? defaults[key] : saved[key]
   })
   return profile
+}
+
+function get() {
+  return fillDefaults(storage.read(KEY, {}))
 }
 
 function save(patch) {
@@ -71,7 +76,7 @@ function save(patch) {
     if (key !== 'version' && key !== 'updatedAt') next[key] = patch[key]
   })
   next.updatedAt = Date.now()
-  try { wx.setStorageSync(KEY, next) } catch (e) {}
+  storage.write(KEY, next)
   return next
 }
 
@@ -105,12 +110,8 @@ function pushToCloud() {
 }
 
 function applyFromCloud(prefs) {
-  const src = (prefs && typeof prefs === 'object') ? prefs : {}
-  const next = {}
-  Object.keys(defaults).forEach(function (key) {
-    next[key] = src[key] == null ? defaults[key] : src[key]
-  })
-  try { wx.setStorageSync(KEY, next) } catch (e) {}
+  const next = fillDefaults(prefs)
+  storage.write(KEY, next)
   return next
 }
 
@@ -156,20 +157,16 @@ function syncFromCloudAll() {
       }
     }
 
+    // 自定义计划按场景逐条收敛（含删除墓碑补推），与偏好共用这一次 userGet 往返
     const remoteCustom = (res.customPlans && typeof res.customPlans === 'object') ? res.customPlans : {}
-    const remoteCustomTs = Number(remoteCustom.updatedAt || 0)
-    const localCustomTs = Number(customPlans.getStore().updatedAt || 0)
-    if (remoteCustomTs !== 0 || localCustomTs !== 0) {
-      if (remoteCustomTs > localCustomTs) {
-        customPlans.applyFromCloud(remoteCustom)
-        changed = true
-      } else if (localCustomTs > remoteCustomTs) {
-        pushTasks.push(customPlans.pushToCloud())
-      }
-    }
+    const customTask = customPlans.mergeFromCloud(remoteCustom).then(function (r) {
+      if (r && r.changed) changed = true
+      return !!(r && r.ok)
+    })
 
-    return Promise.all(pushTasks).then(function (results) {
-      const ok = pushTasks.length ? results.every(function (item) { return !!item }) : true
+    const tasks = pushTasks.concat([customTask])
+    return Promise.all(tasks).then(function (results) {
+      const ok = results.every(function (item) { return !!item })
       return { ok: ok, changed: changed }
     })
   })
@@ -177,10 +174,9 @@ function syncFromCloudAll() {
 
 // 退出登录时清空本机偏好（云端保留，重新登录后按账号拉回）
 function resetLocal() {
-  const next = {}
-  Object.keys(defaults).forEach(function (key) { next[key] = defaults[key] })
+  const next = fillDefaults(null)
   next.updatedAt = 0
-  try { wx.setStorageSync(KEY, next) } catch (e) {}
+  storage.write(KEY, next)
   return next
 }
 

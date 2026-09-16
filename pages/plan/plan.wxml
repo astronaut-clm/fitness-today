@@ -1,4 +1,5 @@
-<navigation-bar back="{{true}}" title="训练计划" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<navigation-bar title="训练计划" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
 
@@ -44,6 +45,7 @@
           <text wx:else class="tag">{{item.level}}</text>
         </view>
         <text wx:if="{{item.doneCount}}" class="plan-meta plan-done">已完成 x{{item.doneCount}}</text>
+        <text wx:if="{{item.custom}}" class="plan-del" data-id="{{item.id}}" data-name="{{item.name}}" catchtap="onDeletePlan">删除</text>
       </view>
       <view class="plan-name">{{item.name}}</view>
       <view class="plan-summary sub">{{item.summary}}</view>
@@ -60,3 +62,6 @@
 
   </view>
 </scroll-view>
+
+<px-dialog show="{{showDeleteConfirm}}" title="删除自定义计划？" copy="删除后「{{deletingName}}」将不再显示"
+  confirm-text="删除" danger bind:cancel="onCancelDelete" bind:confirm="onConfirmDelete" />

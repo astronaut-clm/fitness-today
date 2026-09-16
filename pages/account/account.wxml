@@ -58,16 +58,8 @@
 <view class="save-bar">
   <view class="btn logout-save-btn" bindtap="onLogout">退出登录</view>
 </view>
-<view class="px-mask" wx:if="{{showLogoutConfirm}}" bindtap="onCancelLogout" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">退出并清空记录？</view>
-    <view class="px-dialog-copy">再次登录会自动恢复全部云端数据</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" bindtap="onCancelLogout">再想想</view>
-      <view class="px-dialog-btn danger" bindtap="onConfirmLogout">退出并清空</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{showLogoutConfirm}}" title="退出并清空记录？" copy="再次登录会自动恢复全部云端数据"
+  cancel-text="再想想" confirm-text="退出并清空" danger bind:cancel="onCancelLogout" bind:confirm="onConfirmLogout" />
 
 <!-- 保存中：页内像素加载层（原生 showLoading 无法用自定义字体） -->
 <view class="px-loading-mask" wx:if="{{savingShow}}" catchtouchmove="noop">

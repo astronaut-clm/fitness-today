@@ -28,6 +28,19 @@ function todayAndYesterday() {
   return { today: t, yesterday: addDays(t, -1) }
 }
 
+// 周一为一周起点；缺省取今天所在周
+function weekStart(dateStr) {
+  const d = parse(dateStr || today())
+  const day = d.getDay() || 7
+  d.setDate(d.getDate() - day + 1)
+  return format(d)
+}
+
+// Date -> 'M月D日 周X'
+function dayLabel(date) {
+  return (date.getMonth() + 1) + '月' + date.getDate() + '日 周' + WEEK_LABELS[date.getDay()]
+}
+
 // 本机时区的自然月 key：'YYYY-MM'
 function monthKey() {
   const now = new Date()
@@ -82,6 +95,8 @@ module.exports = {
   today: today,
   addDays: addDays,
   todayAndYesterday: todayAndYesterday,
+  weekStart: weekStart,
+  dayLabel: dayLabel,
   monthKey: monthKey,
   monthLabel: monthLabel,
   WEEK_LABELS: WEEK_LABELS,

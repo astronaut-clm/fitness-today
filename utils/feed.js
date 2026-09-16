@@ -38,6 +38,13 @@ function create(content) {
   })
 }
 
+// 发布失败 code → 用户提示文案（feed 页与跟练分享页共用）
+function createErrorText(code) {
+  if (code === 'risky' || code === 'review') return '内容未通过安全检测，请修改后重试'
+  if (code === 'too_fast') return '发得有点快，歇会儿再发'
+  return '发布失败，请重试'
+}
+
 function like(postId) {
   return cloud.callTo('social', 'feedLike', { postId: postId }).then(function (res) {
     if (!res || !res.ok) return { ok: false, code: (res && res.code) || 'error' }
@@ -93,6 +100,7 @@ function adminReportResolve(targetId, op) {
 module.exports = {
   list: list,
   create: create,
+  createErrorText: createErrorText,
   like: like,
   remove: remove,
   report: report,

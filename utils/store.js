@@ -1,14 +1,14 @@
 const records = require('./records.js')
 const sync = require('./sync.js')
 const account = require('./account.js')
+const storage = require('./storage.js')
 
 // 增量同步水位：整轮拉取+推送全部成功才推进，未推成功的下一轮自动补推
 const SYNC_META_KEY = 'ft_sync_meta_v1'
 const FULL_PULL_INTERVAL = 12 * 3600 * 1000 // 每 12 小时全量拉取一次，自愈时钟偏差导致的漏拉
 
 function readSyncMeta() {
-  const fallback = { lastSyncAt: 0, lastFullPullAt: 0 }
-  try { return Object.assign(fallback, wx.getStorageSync(SYNC_META_KEY) || {}) } catch (e) { return fallback }
+  return Object.assign({ lastSyncAt: 0, lastFullPullAt: 0 }, storage.read(SYNC_META_KEY, {}))
 }
 
 function saveSyncMeta(meta) {
@@ -16,7 +16,7 @@ function saveSyncMeta(meta) {
     lastSyncAt: Number(meta && meta.lastSyncAt) || 0,
     lastFullPullAt: Number(meta && meta.lastFullPullAt) || 0
   }
-  try { wx.setStorageSync(SYNC_META_KEY, safe) } catch (e) {}
+  storage.write(SYNC_META_KEY, safe)
   return safe
 }
 

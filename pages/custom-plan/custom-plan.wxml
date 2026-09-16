@@ -75,13 +75,5 @@
   <view class="btn btn-primary save-btn" bindtap="onSave">保存计划</view>
 </view>
 
-<view class="px-mask" wx:if="{{showDeleteConfirm}}" bindtap="onCancelDelete" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">删除自定义计划？</view>
-    <view class="px-dialog-copy">删除后该场景将不再显示自定义计划</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" bindtap="onCancelDelete">取消</view>
-      <view class="px-dialog-btn danger" bindtap="onConfirmDelete">删除</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{showDeleteConfirm}}" title="删除自定义计划？" copy="删除后该场景将不再显示自定义计划"
+  confirm-text="删除" danger bind:cancel="onCancelDelete" bind:confirm="onConfirmDelete" />

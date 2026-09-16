@@ -7,6 +7,10 @@ const adjustments = require('./plan-adjustments.js')
 const onboarding = require('./onboarding.js')
 const recommend = require('./recommend.js')
 const sessionStore = require('./workout-session.js')
+const coachMemory = require('./coach-memory.js')
+const aiReview = require('./ai-review.js')
+const aiCheers = require('./ai-cheers.js')
+const aiWeekly = require('./ai-weekly.js')
 
 // 一键登录，始终 resolve：成功 { ok, nickname, avatar, newUser }，失败 { ok:false, code }。
 // newUser=写入前云端无该用户文档，即全新账号首次登录（用于决定是否引导）
@@ -62,6 +66,10 @@ function resetLocalData() {
   customPlans.resetLocal()
   onboarding.resetLocal()
   recommend.resetCache()
+  coachMemory.resetLocal()
+  aiReview.resetLocal()
+  aiCheers.resetLocal()
+  aiWeekly.resetLocal()
 }
 
 function resetSession() {
@@ -69,9 +77,17 @@ function resetSession() {
   resetLocalData()
 }
 
+// 云端账号已不存在（清库/删号）：清理本地业务数据并返回 true，由调用方重置视图
+function handleNoAccount(res) {
+  if (!res || res.code !== 'no_account') return false
+  resetLocalData()
+  return true
+}
+
 module.exports = {
   loginOneTap: loginOneTap,
   syncAfterLogin: syncAfterLogin,
   resetLocalData: resetLocalData,
-  resetSession: resetSession
+  resetSession: resetSession,
+  handleNoAccount: handleNoAccount
 }

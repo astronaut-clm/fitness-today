@@ -1,5 +1,7 @@
 // 训练语音播报（基于「微信同声传译」WechatSI 插件）
 // 预合成缓存 + 队列顺序播放（interrupt 可抢占）；插件缺失或合成失败时静默降级
+const storage = require('./storage.js')
+
 const KEY = 'ft_voice_enabled_v1'
 const LANG = 'zh_CN'
 
@@ -25,14 +27,14 @@ let enabledCache = null // 开关内存缓存：播报路径上避免每次同�
 
 function enabled() {
   if (enabledCache === null) {
-    try { enabledCache = wx.getStorageSync(KEY) !== false } catch (e) { enabledCache = true }
+    enabledCache = storage.read(KEY) !== false
   }
   return enabledCache
 }
 
 function setEnabled(on) {
   enabledCache = !!on
-  try { wx.setStorageSync(KEY, !!on) } catch (e) {}
+  storage.write(KEY, !!on)
   if (!on) stop()
 }
 

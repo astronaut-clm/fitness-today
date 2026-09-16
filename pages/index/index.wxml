@@ -95,15 +95,8 @@
   </view>
 </scroll-view>
 
-<view class="px-mask" wx:if="{{loginFailShow}}" bindtap="onCloseLoginFail" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">登录未完成</view>
-    <view class="px-dialog-copy">请确认已部署 login 云函数并创建 ft_users 集合后重试。</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn primary" bindtap="onCloseLoginFail">知道了</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{loginFailShow}}" title="登录未完成" copy="请确认已部署 login 云函数并创建 ft_users 集合后重试。"
+  cancel-text="" confirm-text="知道了" bind:cancel="onCloseLoginFail" bind:confirm="onCloseLoginFail" />
 
 <view class="px-loading-mask" wx:if="{{loginBusy}}" catchtouchmove="noop">
   <view class="px-loading">

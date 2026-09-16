@@ -1,0 +1,10 @@
+<view wx:if="{{show}}" class="px-mask" bindtap="onMask" catchtouchmove="noop">
+  <view class="px-dialog" catchtap="noop">
+    <view class="px-dialog-title">{{title}}</view>
+    <view class="px-dialog-copy">{{copy}}</view>
+    <view class="px-dialog-btns">
+      <view wx:if="{{cancelText}}" class="px-dialog-btn cancel" bindtap="onCancel">{{cancelText}}</view>
+      <view class="px-dialog-btn {{danger ? 'danger' : 'primary'}}" bindtap="onConfirm">{{confirmText}}</view>
+    </view>
+  </view>
+</view>

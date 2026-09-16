@@ -1,16 +1,24 @@
-﻿// AI 重排：规则打分出候选 → 让模型选一个并给出理由；失败时保持规则结果不变
-// 走小程序端 wx.cloud.extend.AI（provider=cloudbase，微信云开发售卖的模型）
-// 云函数侧 wx-server-sdk 的 cloud.ai() 是腾讯云 AI+ 通道，没有 cloudbase 这个 provider，会 404
+﻿// AI 重排：规则打分出候选 → 让模型选一个并给出理由；失败时保持不变
+// 模型调用统一走 ai-client（provider=cloudbase，微信云开发售卖的模型）
 const cloud = require('./cloud.js')
 const recommend = require('./recommend.js')
 const insights = require('./insights.js')
 const dateUtil = require('./date.js')
+const coachMemory = require('./coach-memory.js')
+const ai = require('./ai-client.js')
+const storage = require('./storage.js')
+
+const safeStr = ai.safeStr
+const clampNum = ai.clampNum
+const strList = ai.strList
 
 const CANDIDATE_SIZE = 5
-const RECENT_SIZE = 14
-const PROVIDER = 'cloudbase'
-const AI_MODEL = 'hy3-preview'
-const TIMEOUT = 8000
+// 细节窗口只保留近 7 条：输入越小思考越快；更早的历史由 memory 摘要覆盖
+const RECENT_SIZE = 7
+// 推理档位：推荐是首页交互场景，medium 深度推理在当前通道下频繁超时（30s 都不够），
+// 用 low 轻量推理——有 memory 画像加持，决策质量足够；周复盘类后台场景才值得 medium+
+const REASONING_EFFORT = 'low'
+const TIMEOUT = 15000
 const DAILY_LIMIT = 2
 const CACHE_KEY = 'ft_ai_rec'
 
@@ -27,21 +35,15 @@ const SYSTEM = [
   '4. 本周目标未达成 → 优先能保证完成的中短时长；已达成 → 可给更有挑战的。',
   '5. 连续训练 ≥3 天 → 安排低强度或时长最短的。',
   '6. 近期 done/total 偏低（完成率 < 60%）→ 降一档难度。',
+  '【教练记忆】memory 是该用户的长期画像，字段含义：',
+  '- since/totalSessions/totalMinutes：训练起点与积累；avgMinutes：单次平均时长（推荐时长不宜大幅超过它）。',
+  '- completionRate/recentCompletionRate：全部与近 14 天完成率；trend：近 14 天较之前 14 天完成率趋势，up/flat/down/new（刚起步）。',
+  '- topPlans：常练计划；weekdayRhythm：近 8 周每周日~周六（下标 0=周日）训练次数，反映作息节奏。',
+  '- muscles30d：近 30 天各肌群组数，长期偏科的肌群可适当补练。',
+  '记忆优先于默认经验：trend=down 或 recentCompletionRate 明显低于 completionRate → 降难度、缩短时长；trend=up 且周目标已达成 → 可进阶。',
+  '【措辞红线】totalSessions > 0 表示用户练过，禁止"首练/新用户/第一次训练"等说法；trend=new 仅表示近两周刚起步，不等于没练过。可用 since/totalSessions 体现陪伴感（如"第 2 练"），但 reason 里不许堆数字。',
   '【安全】不给医疗建议、不诊断伤痛；用户提及疼痛或伤病 → 建议休息并咨询专业人士。不承诺减重斤数与疗效。'
 ].join('\n')
-
-function safeStr(v, max) {
-  return String(v == null ? '' : v).trim().slice(0, max)
-}
-
-function clampNum(v, max) {
-  const n = Number(v)
-  return isNaN(n) ? 0 : Math.min(max, Math.max(0, n))
-}
-
-function strList(v, max, limit) {
-  return (Array.isArray(v) ? v : []).map(function (s) { return safeStr(s, max) }).slice(0, limit)
-}
 
 // 只传训练相关信号，不传 openid / 昵称 / 头像
 function buildPayload(records, profile) {
@@ -71,6 +73,7 @@ function buildPayload(records, profile) {
     scenes: strList(p.scenes, 10, 2),
     experience: safeStr(p.experience, 4),
     equipment: strList(p.equipment, 10, 3),
+    memory: coachMemory.get(records),
     week: {
       days: built.weekDays,
       targetDays: built.targetDays,
@@ -95,11 +98,11 @@ function signature(payload) {
 }
 
 function readStore() {
-  try { return wx.getStorageSync(CACHE_KEY) || null } catch (e) { return null }
+  return storage.read(CACHE_KEY)
 }
 
 function writeStore(v) {
-  try { wx.setStorageSync(CACHE_KEY, v) } catch (e) {}
+  storage.write(CACHE_KEY, v)
 }
 
 // 命中缓存直接返回，不需要云环境；多次 refresh 时不会把已出的 AI 结果冲掉
@@ -110,57 +113,6 @@ function readCached(today, sig) {
   // 当天额度用完：复用上次结果，不再打模型
   if (Number(s.calls || 0) >= DAILY_LIMIT) return Object.assign({ ok: true }, s.pick)
   return null
-}
-
-function getModel() {
-  try {
-    const ai = wx.cloud.extend && wx.cloud.extend.AI
-    if (!ai || typeof ai.createModel !== 'function') return null
-    return ai.createModel(PROVIDER)
-  } catch (e) {
-    return null
-  }
-}
-
-function extractText(res) {
-  if (!res) return ''
-  const choice = res.choices && res.choices[0]
-  const content = choice && choice.message && choice.message.content
-  if (content) return String(content)
-  return typeof res.text === 'string' ? res.text : ''
-}
-
-// 模型偶尔会包一层 ```json，取最外层花括号
-function parseJson(text) {
-  const s = String(text).trim()
-  const start = s.indexOf('{')
-  const end = s.lastIndexOf('}')
-  if (start < 0 || end <= start) throw new Error('bad_json')
-  return JSON.parse(s.slice(start, end + 1))
-}
-
-function withTimeout(promise, ms) {
-  return new Promise(function (resolve, reject) {
-    const timer = setTimeout(function () { reject(new Error('timeout')) }, ms)
-    promise.then(function (v) { clearTimeout(timer); resolve(v) }, function (e) { clearTimeout(timer); reject(e) })
-  })
-}
-
-function generateText(payload) {
-  const model = getModel()
-  if (!model) return Promise.reject(new Error('ai_unavailable'))
-  return Promise.resolve(model.generateText({
-    model: AI_MODEL,
-    temperature: 0.3,
-    messages: [
-      { role: 'system', content: SYSTEM },
-      { role: 'user', content: JSON.stringify(payload) }
-    ]
-  })).then(function (res) {
-    const text = extractText(res)
-    if (!text) throw new Error('empty_result')
-    return text
-  })
 }
 
 let inflight = null // { sig, promise }：同一输入的并发调用共用一次请求
@@ -184,7 +136,7 @@ function fetchPlan(records, profile) {
 }
 
 function run(today, sig, payload) {
-  return cloud.ready().then(function (ok) {
+  return cloud.init().then(function (ok) {
     if (!ok) return { ok: false }
     const store = readStore()
     const cur = (store && store.date === today)
@@ -200,23 +152,54 @@ function run(today, sig, payload) {
     cur.calls = Number(cur.calls || 0) + 1
     writeStore(cur)
 
-    return withTimeout(generateText(payload), TIMEOUT)
-      .then(parseJson)
-      .then(function (raw) {
-        const id = safeStr(raw && raw.planId, 40)
-        // 关键校验：planId 必须在候选集内，防模型幻觉
-        if (!payload.candidates.some(function (c) { return c.id === id })) throw new Error('bad_plan')
-        const pick = {
-          planId: id,
-          reason: safeStr(raw.reason, 40),
-          byAI: true
-        }
+    const startedAt = Date.now()
+    const req = ai.generateText({
+      // 当天超时过（cur.slow）自动降 low 档：宁要轻量推理的结果，不要 medium 的再次超时
+      reasoningEffort: cur.slow ? 'low' : REASONING_EFFORT,
+      // hy3-preview 思维链话痨会吃光输出预算（empty_result 根因）：交互场景直接关思考
+      enableThinking: false,
+      // 关思考后输出仅 ~50 token JSON，800 绰绰有余
+      maxTokens: 800,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: SYSTEM },
+        { role: 'user', content: JSON.stringify(payload) }
+      ]
+    })
+
+    function toPick(out) {
+      const raw = ai.parseJson(out.text)
+      const id = safeStr(raw && raw.planId, 40)
+      // 关键校验：planId 必须在候选集内，防模型幻觉
+      if (!payload.candidates.some(function (c) { return c.id === id })) throw new Error('bad_plan')
+      return { planId: id, reason: safeStr(raw.reason, 40), byAI: true }
+    }
+
+    // 迟到也收货：withTimeout 只是前端放弃等待，模型多半能在服务端跑完。
+    // 结果迟到时写入缓存，下次进页面（同日同签名）直接命中，超时不再是纯损失
+    req.then(function (out) {
+      try {
+        const latest = readStore()
+        if (!latest || latest.date !== today || latest.sig !== sig || latest.pick) return
+        latest.pick = toPick(out)
+        writeStore(latest)
+      } catch (e) {}
+    }, function () {})
+
+    return ai.withTimeout(req, TIMEOUT)
+      .then(function (out) {
+        const pick = toPick(out)
         cur.pick = pick
         writeStore(cur)
         return Object.assign({ ok: true, cached: false }, pick)
       })
       .catch(function (e) {
-        console.warn('[ai] recommend failed', e && e.message)
+        console.warn('[ai] recommend failed', e && e.message, (Date.now() - startedAt) + 'ms')
+        // 记录超时标记：当天后续调用降档，避免同一网络环境下反复超时
+        if (e && e.message === 'timeout' && !cur.slow) {
+          cur.slow = true
+          writeStore(cur)
+        }
         // 失败也保留上次结果，避免卡片在多次 refresh 间闪回
         if (cur.pick) return Object.assign({ ok: true }, cur.pick)
         return { ok: false }

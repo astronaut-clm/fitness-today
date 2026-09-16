@@ -1,4 +1,4 @@
-<navigation-bar back="{{true}}" title="排行榜" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<navigation-bar title="排行榜" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
     <view class="rank-head">

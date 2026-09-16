@@ -1,6 +1,6 @@
 /**app.wxss 全局样式与设计变量 —— 8-bit NES 多彩像素主题**/
 page {
-  /* NES 多彩（红黄蓝）+ 白色画布：描边/文字用黑，强调色红黄蓝，成功用绿，底色为白 */
+  /* 描边/文字用黑，强调色红黄蓝，成功用绿，底色为白 */
   --ink: #1a1a1a;        /* 黑：主文字 / 描边 */
   --ink2: #4a4a4a;       /* 灰：次级文字 */
   --ink3: #7a7a7a;       /* 中灰：弱化文字（提升白底对比度） */
@@ -23,7 +23,7 @@ page {
   color: var(--ink);
   font-size: 28rpx;
   line-height: 1.5;
-  /* 像素字体优先（运行时注册），未加载时回退系统字体栈 */
+  /* 像素字体优先，未加载时回退系统字体栈 */
   font-family: "Zpix", -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   /* 关闭抗锯齿，保留生硬锯齿，更接近像素观感 */
   -webkit-font-smoothing: none;

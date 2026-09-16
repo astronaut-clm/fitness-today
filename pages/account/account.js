@@ -47,7 +47,7 @@ Page({
   checkAdmin() {
     feed.adminCheck().then((res) => {
       this.setData({ isAdmin: !!(res && res.isAdmin) })
-    }).catch(() => {})
+    })
   },
 
   refreshFont() {
@@ -70,13 +70,11 @@ Page({
     if (!account.isLoggedIn()) return
     customPlans.syncFromCloud().then((res) => {
       if (res && res.ok) this.refreshCustomHint()
-    }).catch(() => {})
+    })
   },
 
   refreshCustomHint() {
-    const parts = []
-    if (customPlans.has('home')) parts.push('居家')
-    if (customPlans.has('gym')) parts.push('健身房')
+    const parts = customPlans.customSceneNames()
     this.setData({ customHint: parts.length ? '已设置：' + parts.join(' · ') : '自由组合动作，设置你的专属计划' })
   },
 
@@ -111,8 +109,7 @@ Page({
     // 进入时从云端刷新一次，换机场景也能取回资料。
     account.fetchProfile().then((res) => {
       // 云端账号不存在（清库/删号）：清理本地数据并退回上一页。
-      if (res && res.code === 'no_account') {
-        login.resetLocalData()
+      if (login.handleNoAccount(res)) {
         toast.back('账号已失效，请重新登录')
         return
       }

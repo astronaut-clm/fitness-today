@@ -10,11 +10,9 @@ const account = require('../../utils/account.js')
 const feed = require('../../utils/feed.js')
 const toast = require('../../utils/toast.js')
 const voice = require('../../utils/voice.js')
-
-function parseSeconds(reps) {
-  const m = /^(\d+)\s*秒/.exec(String(reps || '').trim())
-  return m ? +m[1] : 0
-}
+const profileStore = require('../../utils/profile.js')
+const aiReview = require('../../utils/ai-review.js')
+const aiCheers = require('../../utils/ai-cheers.js')
 
 function parseRest(text) {
   const m = /^组间(\d+)\s*秒/.exec(String(text || '').trim())
@@ -67,7 +65,9 @@ function setVoiceText(group) {
   return group.name + '，' + group.targetText
 }
 
-function restVoiceText(seconds) {
+// 休息播报预告下一组动作名，更像教练带练；无下一组时退化为通用句
+function restVoiceText(seconds, nextName) {
+  if (nextName) return '休息 ' + seconds + ' 秒，深呼吸，接下来是 ' + nextName
   return '休息 ' + seconds + ' 秒，深呼吸，马上继续！'
 }
 
@@ -78,7 +78,7 @@ function buildGroups(plan) {
   for (let round = 1; round <= loop; round++) {
     plan.exercises.forEach(function (exercise) {
       const action = actionsData.getAction(exercise.actionId) || {}
-      const seconds = parseSeconds(exercise.reps)
+      const seconds = customPlans.parseSeconds(exercise.reps, 0)
       const rest = parseRest(exercise.rest) || defRest
       for (let set = 1; set <= (exercise.sets || 1); set++) {
         groups.push({
@@ -118,7 +118,6 @@ Page({
     planName: '',
     sceneName: '',
     total: 0,
-    current: 0,
     completed: 0,
     pctStyle: 'width:0%;',
     state: 'working',
@@ -138,6 +137,8 @@ Page({
     resumeDone: 0,
     doneTitle: '',
     doneCheer: '',
+    doneComment: '',
+    doneCommentLive: false,
     doneStats: [],
     canShareFeed: false,
     feedPosted: false,
@@ -146,11 +147,15 @@ Page({
 
   onLoad(options) {
     this.planId = options.id || ''
+    // 当前组下标仅 JS 内部使用（wxml 渲染用 group.setNo），挂实例避免无谓的 setData 开销
+    this.current = 0
+    // 跟练期间保持屏幕常亮，避免倒计时中断
+    wx.setKeepScreenOn({ keepScreenOn: true, fail: function () {} })
     // navigationStyle: custom，需自行预留状态栏高度
     const win = wx.getWindowInfo()
     const topInset = (win && (win.statusBarHeight || (win.safeArea && win.safeArea.top))) || 0
     if (topInset) this.setData({ statusBarHeight: topInset })
-    const source = customPlans.getById(this.planId) || plansData.getPlan(this.planId)
+    const source = customPlans.resolvePlan(this.planId)
     if (!source || !source.exercises.length) {
       toast.show('计划不存在')
       this.defer(function () { wx.navigateBack() }, 800)
@@ -167,6 +172,7 @@ Page({
       voiceSupported: voice.available
     })
     this.warmupVoice()
+    this.loadAiCheers()
     this.restoreOrStart()
   },
 
@@ -193,6 +199,8 @@ Page({
     this.stopInterval()
     this.clearTimers()
     voice.stop()
+    // 退出跟练页后恢复系统默认息屏策略
+    wx.setKeepScreenOn({ keepScreenOn: false, fail: function () {} })
     if (this.data.state !== 'finished') this.persistSession()
   },
 
@@ -242,8 +250,8 @@ Page({
     const next = viewOf(this.groups[index + 1], index + 1)
     const pct = this.groups.length ? Math.round(completed / this.groups.length * 100) : 0
     const restLeft = state === 'rest' && this.endAt ? Math.max(0, Math.ceil((this.endAt - Date.now()) / 1000)) : 0
+    this.current = index
     this.setData({
-      current: index,
       completed: completed,
       pctStyle: 'width:' + pct + '%;',
       state: state,
@@ -257,11 +265,13 @@ Page({
     })
     this._countPhase = ''
     this._countValue = 0
+    this._cheerStage = 0
     // 恢复后播报当前阶段，保证每组都有语音
     if (state === 'working') {
       this.announceGroup(this.groups[index])
     } else if (restLeft > 0) {
-      voice.speak(restVoiceText(restLeft))
+      const nextGroup = this.groups[index]
+      voice.speak(restVoiceText(restLeft, nextGroup && nextGroup.name))
     }
     if (state === 'rest') {
       if (restLeft <= 0) this.skipRest()
@@ -277,7 +287,7 @@ Page({
     sessionStore.save({
       planId: this.planId,
       startedAt: this.startTs || Date.now(),
-      current: this.data.current,
+      current: this.current,
       completed: this.data.completed,
       state: this.data.state,
       timeStarted: this.data.timeStarted,
@@ -315,14 +325,13 @@ Page({
     }
   },
 
-  // 完成页文案与统计（基于刚落库的记录）
-  buildFinishFeedback() {
+  // 完成页文案与统计（基于刚落库的记录）；records 由调用方一次读取，与 AI 点评共用同一快照
+  buildFinishFeedback(records) {
     const total = this.data.total || 1
     const skipped = this.data.skippedGroups || 0
     const done = Math.max(0, total - skipped)
-    const list = store.getAllRecords()
-    const stats = store.computeStatsFrom(list)
-    const insight = insights.build(list)
+    const stats = store.computeStatsFrom(records)
+    const insight = insights.build(records)
 
     const titles = skipped === 0 ? PRAISE.perfect : PRAISE.partial
 
@@ -340,6 +349,41 @@ Page({
     }
   },
 
+  // 训练后 AI 点评：流式逐字打出，失败静默（完成页保留默认文案）
+  loadAiReview(record, skippedGroups, records) {
+    if (!record || !record.id) return
+    const total = this.data.total || 0
+    const apply = (patch) => {
+      // 页面已离开完成态（返回/重开）则不再写入
+      if (this.data.state === 'finished') this.setData(patch)
+    }
+    // 卡片立即出现（占位文案），不等模型首个字，掩盖思考延迟
+    apply({ doneComment: '', doneCommentLive: true })
+    aiReview.streamReview({
+      recordId: record.id,
+      planName: this.data.planName,
+      done: Math.max(0, total - (skippedGroups || 0)),
+      total: total,
+      skipped: skippedGroups || 0,
+      costText: this.data.costText,
+      goal: profileStore.get().goal,
+      records: records
+    }, (text) => {
+      apply({ doneComment: text, doneCommentLive: true })
+    }).then((res) => {
+      // 失败则收起占位卡片，完成页保持默认文案
+      if (res && res.ok) {
+        apply({ doneComment: res.text, doneCommentLive: false })
+        // 点评成稿后播报：排在结束语之后出声（非抢占）；语音关闭/插件不可用时静默跳过
+        if (this.data.state === 'finished' && voice.available && voice.enabled()) {
+          voice.speak(res.text)
+        }
+      } else {
+        apply({ doneComment: '', doneCommentLive: false })
+      }
+    })
+  },
+
   onShareToFeed() {
     if (this.data.feedPosting) return
     const done = Math.max(0, (this.data.total || 0) - (this.data.skippedGroups || 0))
@@ -349,15 +393,10 @@ Page({
     feed.create(text).then((res) => {
       this.setData({ feedPosting: false })
       if (!res || !res.ok) {
-        const code = (res && res.code) || ''
-        if (code === 'risky' || code === 'review') toast.show('内容未通过安全检测，请重试')
-        else toast.show('发布失败，请重试')
+        toast.show(feed.createErrorText(res && res.code))
         return
       }
       this.setData({ feedPosted: true })
-    }).catch(() => {
-      this.setData({ feedPosting: false })
-      toast.show('发布失败，请重试')
     })
   },
 
@@ -404,8 +443,22 @@ Page({
     }
     if (this.data.state === 'working' && this.data.running && this.endAt) {
       const remain = this.refreshRemain()
-      if (remain <= 0) this.finishSet(false)
-      else this.announceCountdown(remain, 'work')
+      if (remain <= 0) { this.finishSet(false); return }
+      this.announceCountdown(remain, 'work')
+      // 计时组分阶段鼓励：≥30 秒组在 2/3、1/3 处各一句，20~29 秒组中点一句；
+      // 鼓励点天然避开最后 5 秒倒数区，短组不插话避免吵
+      const group = this.groups[this.current]
+      if (group && group.kind === 'time' && group.seconds >= 20) {
+        const total = group.seconds
+        const points = total >= 30
+          ? [Math.floor(total * 2 / 3), Math.floor(total / 3)]
+          : [Math.floor(total / 2)]
+        const stage = this._cheerStage || 0
+        if (stage < points.length && remain <= points[stage]) {
+          this._cheerStage = stage + 1
+          voice.speak(this.pickCheer())
+        }
+      }
     }
   },
 
@@ -414,20 +467,60 @@ Page({
     if (!voice.available || !voice.enabled()) return
     const phrases = ['5', '4', '3', '2', '1'].concat(CHEERS).concat(FINISH_LINES)
     const seen = {}
-    this.groups.forEach(function (group) {
+    this.groups.forEach(function (group, idx) {
       const setText = setVoiceText(group)
       if (!seen[setText]) { seen[setText] = 1; phrases.push(setText) }
-      const restText = restVoiceText(group.rest || 20)
+      const next = this.groups[idx + 1]
+      const restText = restVoiceText(group.rest || 20, next && next.name)
       if (!seen[restText]) { seen[restText] = 1; phrases.push(restText) }
-    })
+    }, this)
     voice.warmup(phrases)
+  },
+
+  // 进入页面即后台生成个性化鼓励语：就绪后混入播报池并预合成，失败则全程用固定池
+  loadAiCheers() {
+    this._cheers = CHEERS
+    this._cheerBag = null
+    if (!voice.available || !voice.enabled()) return
+    aiCheers.fetch({
+      planId: this.planId,
+      planName: this.plan.name,
+      records: store.getAllRecords(),
+      goal: profileStore.get().goal,
+      groups: this.groups.length
+    }).then((res) => {
+      if (!res || !res.ok) return
+      this._cheers = res.lines.concat(CHEERS)
+      this._cheerBag = null // 换池重洗
+      voice.warmup(res.lines)
+    })
+  },
+
+  // 洗牌抽袋：每句抽完才重新洗牌，保证生成的文案都能被听到，且短期不重样
+  pickCheer() {
+    const pool = this._cheers || CHEERS
+    if (!this._cheerBag || !this._cheerBag.length) {
+      const bag = pool.slice()
+      for (let i = bag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        const t = bag[i]; bag[i] = bag[j]; bag[j] = t
+      }
+      // 新袋首句避免与上袋末句相同
+      if (this._lastCheer && bag.length > 1 && bag[bag.length - 1] === this._lastCheer) {
+        const t = bag[0]; bag[0] = bag[bag.length - 1]; bag[bag.length - 1] = t
+      }
+      this._cheerBag = bag
+    }
+    const line = this._cheerBag.pop()
+    this._lastCheer = line
+    return line
   },
 
   announceGroup(group) {
     if (!group) return
     // 动作名与口号按序合成后一次入队，避免回调乱序导致口号先播
     // interrupt：打断上一阶段残留播报（如休息句/倒数），避免新组播报被拖延
-    voice.speakAll([setVoiceText(group), pickOne(CHEERS)], { interrupt: true })
+    voice.speakAll([setVoiceText(group), this.pickCheer()], { interrupt: true })
   },
 
   // 倒数 5/4/3/2/1：仅最后 5 秒播报，同值不重复。
@@ -453,11 +546,11 @@ Page({
     const group = this.groups[index]
     if (!group) return
     this.endAt = 0
+    this.current = index
     const completed = this.data.completed || 0
     const pct = this.groups.length ? Math.round(completed / this.groups.length * 100) : 0
     this.setData({
       state: 'working',
-      current: index,
       group: viewOf(group, index),
       nextGroup: viewOf(this.groups[index + 1], index + 1),
       workLeft: group.kind === 'time' ? group.seconds : 0,
@@ -467,6 +560,7 @@ Page({
     })
     this._countPhase = ''
     this._countValue = 0
+    this._cheerStage = 0
     this.announceGroup(group)
     this.persistSession()
   },
@@ -474,13 +568,13 @@ Page({
   finishSet(skipped) {
     if (this.data.state !== 'working') return
     this.stopInterval()
-    const completed = this.data.current + 1
-    const next = this.groups[this.data.current + 1]
+    const completed = this.current + 1
+    const next = this.groups[this.current + 1]
     const skippedGroups = this.data.skippedGroups + (skipped ? 1 : 0)
     if (!next || completed >= this.groups.length) {
       this.endAt = 0
+      this.current = this.groups.length
       this.setData({
-        current: this.groups.length,
         completed: this.groups.length,
         pctStyle: 'width:100%;',
         state: 'finished',
@@ -490,30 +584,34 @@ Page({
       })
       voice.speak(pickOne(FINISH_LINES), { interrupt: true })
       this.vibrate('long')
-      this.finalizeWorkout()
-      this.setData(this.buildFinishFeedback())
+      const saved = this.finalizeWorkout()
+      // 一次全量读取，完成页统计与 AI 点评共用同一快照
+      const records = store.getAllRecords()
+      this.setData(this.buildFinishFeedback(records))
+      this.loadAiReview(saved, skippedGroups, records)
       return
     }
 
-    const rest = this.groups[this.data.current].rest || 20
+    const rest = this.groups[this.current].rest || 20
     const pct = Math.round(completed / this.groups.length * 100)
     this.endAt = Date.now() + rest * 1000
+    this.current = this.current + 1
     this.setData({
-      current: this.data.current + 1,
       completed: completed,
       pctStyle: 'width:' + pct + '%;',
       state: 'rest',
       restLeft: rest,
-      group: viewOf(next, this.data.current + 1),
-      nextGroup: viewOf(this.groups[this.data.current + 2], this.data.current + 2),
+      group: viewOf(next, this.current),
+      nextGroup: viewOf(this.groups[this.current + 1], this.current + 1),
       running: false,
       timeStarted: false,
       skippedGroups: skippedGroups
     })
     this._countPhase = ''
     this._countValue = 0
+    this._cheerStage = 0
     // 打断上一组末尾的倒数播报，休息提示立即出声
-    voice.speak(restVoiceText(rest), { interrupt: true })
+    voice.speak(restVoiceText(rest, next && next.name), { interrupt: true })
     this.vibrate('short')
     this.persistSession()
     this.startInterval()
@@ -523,7 +621,7 @@ Page({
     if (this.data.state !== 'rest') return
     this.stopInterval()
     this.endAt = 0
-    this.activate(this.data.current)
+    this.activate(this.current)
     this.vibrate('short')
   },
 
@@ -549,7 +647,7 @@ Page({
 
   onStartWork() {
     if (this.data.state !== 'working' || this.data.running) return
-    const group = this.groups[this.data.current]
+    const group = this.groups[this.current]
     if (!group) return
     let left = this.data.workLeft
     if (!this.data.timeStarted) {
@@ -580,7 +678,5 @@ Page({
       else sessionStore.clear()
     }
     wx.navigateBack({ fail: () => wx.navigateTo({ url: '/pages/plan/plan' }) })
-  },
-
-  noop() {},
+  }
 })

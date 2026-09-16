@@ -1,5 +1,6 @@
 // 用户账号与个人设置：以 openid 为身份，资料存云端 ft_users
 const cloud = require('./cloud.js')
+const storage = require('./storage.js')
 
 const CACHE_KEY = 'ft_account_v1'
 const LOGIN_KEY = 'ft_logged_in'
@@ -33,36 +34,30 @@ function defaultNickname(openid) {
 }
 
 function get() {
-  let info = { nickname: '', avatar: '' }
-  try { info = Object.assign(info, wx.getStorageSync(CACHE_KEY) || {}) } catch (e) {}
-  return info
+  return Object.assign({ nickname: '', avatar: '' }, storage.read(CACHE_KEY, {}))
 }
 
 // 登录态语义：只有主动一键登录过才算已登录，云端资料自动拉回不建立登录态。
 // 登出仅本机不再展示账号并暂停同步，云端数据保留，再次登录即恢复。
 function isLoggedOut() {
-  try { return !!wx.getStorageSync(LOGOUT_KEY) } catch (e) { return false }
+  return !!storage.read(LOGOUT_KEY)
 }
 
 function isLoggedIn() {
   if (isLoggedOut()) return false
-  try { return !!wx.getStorageSync(LOGIN_KEY) } catch (e) { return false }
+  return !!storage.read(LOGIN_KEY)
 }
 
 function markLoggedIn() {
-  try {
-    wx.setStorageSync(LOGIN_KEY, 1)
-    wx.removeStorageSync(LOGOUT_KEY)
-  } catch (e) {}
+  storage.write(LOGIN_KEY, 1)
+  storage.remove(LOGOUT_KEY)
 }
 
 function logout() {
   openidPromise = null
-  try {
-    wx.removeStorageSync(CACHE_KEY)
-    wx.removeStorageSync(LOGIN_KEY)
-    wx.setStorageSync(LOGOUT_KEY, 1)
-  } catch (e) {}
+  storage.remove(CACHE_KEY)
+  storage.remove(LOGIN_KEY)
+  storage.write(LOGOUT_KEY, 1)
 }
 
 // 训练/记录类操作的登录闸门；未登录时由调用方展示引导并跳转登录
@@ -76,7 +71,7 @@ function saveLocal(info) {
     avatar: String((info && info.avatar) || ''),
     updatedAt: Date.now()
   }
-  try { wx.setStorageSync(CACHE_KEY, next) } catch (e) {}
+  storage.write(CACHE_KEY, next)
   return next
 }
 

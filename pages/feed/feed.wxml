@@ -1,4 +1,4 @@
-<navigation-bar back="{{true}}" title="铁友圈" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<navigation-bar title="铁友圈" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list" bindscrolltolower="loadMore" lower-threshold="80">
   <view class="page">
     <view class="feed-head">
@@ -78,26 +78,10 @@
   </view>
 </view>
 
-<view class="px-mask" wx:if="{{showDeleteDialog}}" bindtap="onCancelDelete" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">删除动态</view>
-    <view class="px-dialog-copy">删除后不可恢复，确定删除这条动态吗？</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" bindtap="onCancelDelete">取消</view>
-      <view class="px-dialog-btn danger" bindtap="confirmDelete">删除</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{showDeleteDialog}}" title="删除动态" copy="删除后不可恢复，确定删除这条动态吗？"
+  confirm-text="删除" danger bind:cancel="onCancelDelete" bind:confirm="confirmDelete" />
 
-<view class="px-mask" wx:if="{{showReportDialog}}" bindtap="onCancelReport" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">举报动态</view>
-    <view class="px-dialog-copy">确定举报这条动态吗？我们会尽快核实处理。</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" bindtap="onCancelReport">取消</view>
-      <view class="px-dialog-btn primary" bindtap="confirmReport">举报</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{showReportDialog}}" title="举报动态" copy="确定举报这条动态吗？我们会尽快核实处理。"
+  confirm-text="举报" bind:cancel="onCancelReport" bind:confirm="confirmReport" />
 
 <px-toast></px-toast>

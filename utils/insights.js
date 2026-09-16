@@ -1,18 +1,10 @@
 // 训练目标达成度、趋势与肌群覆盖
 const dateUtil = require('./date.js')
-const plansData = require('../data/plans.js')
 const actionsData = require('../data/actions.js')
 const customPlans = require('./custom-plans.js')
 
-function weekStart(date) {
-  const d = dateUtil.parse(date)
-  const day = d.getDay() || 7
-  d.setDate(d.getDate() - day + 1)
-  return dateUtil.format(d)
-}
-
 function addCategory(map, planId) {
-  const plan = customPlans.getById(planId) || plansData.getPlan(planId)
+  const plan = customPlans.resolvePlan(planId)
   if (!plan) return
   plan.exercises.forEach(function (exercise) {
     const action = actionsData.getAction(exercise.actionId)
@@ -24,7 +16,7 @@ function addCategory(map, planId) {
 function build(records, profile) {
   const list = records || []
   const today = dateUtil.today()
-  const start = weekStart(today)
+  const start = dateUtil.weekStart(today)
   const weekRecords = list.filter(function (record) { return record.date >= start && record.date <= today })
   const dateSet = {}
   let minutes = 0

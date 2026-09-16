@@ -374,17 +374,19 @@ async function feedLike(openid, event) {
 }
 
 // 内容被删除后，其待处理举报自动结案，避免管理员复核已不存在的内容。
-async function resolveReports(targetId) {
+async function resolveReports(targetId, handledBy) {
+  const data = { status: 'resolved', handledAt: Date.now() }
+  if (handledBy) data.handledBy = handledBy
   await db.collection(COL_REPORTS).where({ targetId: targetId })
-    .update({ data: { status: 'resolved', handledAt: Date.now(), removed: true } })
+    .update({ data: data })
     .catch(function () {})
 }
 
 // 物理删除一条动态及其点赞（管理员与作者共用）。
-async function removePost(postId) {
+async function removePost(postId, handledBy) {
   await db.collection(COL_POSTS).doc(postId).remove().catch(function () {})
   await db.collection(COL_LIKES).where({ postId: postId }).remove().catch(function () {})
-  await resolveReports(postId)
+  await resolveReports(postId, handledBy)
 }
 
 // 删帖：仅作者可删，连带删除该帖所有点赞（server 端批量删除）。
@@ -478,11 +480,12 @@ async function adminReportResolve(openid, event) {
   const targetId = cleanText(event && event.targetId, 64)
   if (!targetId) return { openid: openid, ok: false, code: 'bad_target' }
 
-  if ((event && event.op) === 'delete') await removePost(targetId)
-
-  await db.collection(COL_REPORTS).where({ targetId: targetId })
-    .update({ data: { status: 'resolved', handledBy: openid, handledAt: Date.now() } })
-    .catch(function () {})
+  // op=delete 时 removePost 内部已结案举报，无需重复写
+  if ((event && event.op) === 'delete') {
+    await removePost(targetId, openid)
+  } else {
+    await resolveReports(targetId, openid)
+  }
   return { openid: openid, ok: true }
 }
 

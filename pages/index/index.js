@@ -9,6 +9,7 @@ const login = require('../../utils/login.js')
 const onboarding = require('../../utils/onboarding.js')
 const toast = require('../../utils/toast.js')
 const tab = require('../../utils/tab.js')
+const limit = require('../../utils/limit.js')
 
 // 未登录/无数据时的默认目标统计
 const EMPTY_INSIGHT = { weekDays: 0, targetDays: 3, weekMinutes: 0, targetMinutes: 90, dayPercent: 0, minutePercent: 0, coverage: [], dayBar: '', minuteBar: '' }
@@ -53,17 +54,14 @@ Page({
 
   // 云端账号校验：文档被清除（清库/删号）时清理本地数据并切回未登录视图
   verifyAccount() {
-    const now = Date.now()
-    if (this._lastVerifyAt && now - this._lastVerifyAt < 15000) return
-    this._lastVerifyAt = now
+    if (!limit.pass(this, '_lastVerifyAt', 15000)) return
     account.fetchProfile().then((res) => {
-      if (res && res.code === 'no_account') {
-        login.resetLocalData()
+      if (login.handleNoAccount(res)) {
         this.resetGuestView()
         return
       }
       // 无法判定账号状态时保留登录态，下次 onShow 重试
-      if (!res || !res.ok) this._lastVerifyAt = 0
+      if (!res || !res.ok) limit.reset(this, '_lastVerifyAt')
     })
   },
 
@@ -80,7 +78,7 @@ Page({
       return Number(a.createdAt) - Number(b.createdAt)
     })
 
-    const dateText = (now.getMonth() + 1) + '月' + now.getDate() + '日 周' + dateUtil.WEEK_LABELS[now.getDay()]
+    const dateText = dateUtil.dayLabel(now)
 
     const minutes = todayRecords.reduce(function (total, record) {
       return total + Number(record.actualMinutes || 0)

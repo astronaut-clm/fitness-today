@@ -1,4 +1,4 @@
-// CloudBase 初始化协调层：调用前统一等 init()（导出别名 ready），避免启动期竞态
+// CloudBase 初始化协调层：调用前统一等 init()，避免启动期竞态
 const config = require('./config.js')
 
 let initPromise = null
@@ -68,7 +68,6 @@ function callTo(name, action, data) {
 
 module.exports = {
   init: init,
-  ready: init,
   callable: callable,
   invoke: invoke,
   call: call,

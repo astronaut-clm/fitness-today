@@ -7,6 +7,8 @@ const recommend = require('../../utils/recommend.js')
 const aiRecommend = require('../../utils/ai-recommend.js')
 const profile = require('../../utils/profile.js')
 const sessionStore = require('../../utils/workout-session.js')
+const toast = require('../../utils/toast.js')
+const limit = require('../../utils/limit.js')
 
 const sceneTabs = [
   { value: 'home', name: '居家计划' },
@@ -46,7 +48,11 @@ Page({
     level: '',
     list: [],
     // 挑选模式：从首页「开始今日训练」进入，选中计划即可开始训练
-    pick: false
+    pick: false,
+    // 自定义计划删除确认弹层
+    showDeleteConfirm: false,
+    deletingId: '',
+    deletingName: ''
   },
 
   onLoad(options) {
@@ -90,13 +96,11 @@ Page({
   // 已登录时与云端收敛自定义计划，换机/他端改动可见；30 秒内只拉一次，避免频繁切页重复请求。
   syncCustomPlans(force) {
     if (!account.isLoggedIn()) return
-    const now = Date.now()
-    if (!force && this._lastCustomSyncAt && now - this._lastCustomSyncAt < 30000) return
-    this._lastCustomSyncAt = now
+    if (!force && !limit.pass(this, '_lastCustomSyncAt', 30000)) return
     customPlans.syncFromCloud().then((res) => {
       if (res && res.ok && res.changed) this.applyFilter()
-      if (!res || !res.ok) this._lastCustomSyncAt = 0
-    }).catch(() => { this._lastCustomSyncAt = 0 })
+      if (!res || !res.ok) limit.reset(this, '_lastCustomSyncAt')
+    })
   },
 
   onSceneTap(e) {
@@ -148,5 +152,31 @@ Page({
     const id = e.currentTarget.dataset.id
     // 默认仅浏览（只读详情）；首页「开始今日训练」的 pick 模式才可开始训练。
     wx.navigateTo({ url: '/pages/plan-detail/plan-detail?id=' + id + (this.data.pick ? '' : '&readonly=1') })
+  },
+
+  // 自定义卡片上的删除入口
+  onDeletePlan(e) {
+    const id = e.currentTarget.dataset.id
+    if (!id) return
+    this.setData({
+      showDeleteConfirm: true,
+      deletingId: id,
+      deletingName: e.currentTarget.dataset.name || ''
+    })
+  },
+
+  onCancelDelete() {
+    this.setData({ showDeleteConfirm: false, deletingId: '', deletingName: '' })
+  },
+
+  onConfirmDelete() {
+    const id = this.data.deletingId
+    this.setData({ showDeleteConfirm: false, deletingId: '', deletingName: '' })
+    if (!id || id.indexOf('custom_') !== 0) return
+    customPlans.removeAndSync(id.slice(7)).then(function (synced) {
+      if (synced) toast.show('计划已删除', { success: true })
+      else toast.show('已删除，云端同步失败')
+    })
+    this.applyFilter()
   }
 })

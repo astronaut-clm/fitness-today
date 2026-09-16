@@ -47,7 +47,8 @@
     ]
   },
   "usingComponents": {
-    "px-toast": "/components/px-toast/px-toast"
+    "px-toast": "/components/px-toast/px-toast",
+    "px-dialog": "/components/px-dialog/px-dialog"
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",

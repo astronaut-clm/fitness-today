@@ -56,13 +56,5 @@
   <view class="btn btn-primary bar-btn bar-main" bindtap="onWorkout">{{hasActiveSession ? '继续训练' : '开始训练'}}</view>
 </view>
 
-<view wx:if="{{showSwitchConfirm}}" class="px-mask" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">有未完成训练</view>
-    <view class="px-dialog-copy">是否放弃「{{switchActiveName}}」的进度</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" bindtap="onCancelSwitch">取消</view>
-      <view class="px-dialog-btn primary" bindtap="onConfirmSwitch">放弃并开始</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{showSwitchConfirm}}" title="有未完成训练" copy="是否放弃「{{switchActiveName}}」的进度"
+  confirm-text="放弃并开始" mask-close="{{false}}" bind:cancel="onCancelSwitch" bind:confirm="onConfirmSwitch" />

@@ -177,9 +177,8 @@ function mergeRemote(remoteRecords) {
       changed = true
     }
   })
-  // 无更新则直接返回，避免每轮同步全量重写本地存储
-  if (!changed) return { version: VERSION, records: clone(merged) }
-  return replaceAll(merged)
+  // 有更新才整量重写，避免每轮同步全量重写本地存储
+  if (changed) replaceAll(merged)
 }
 
 // 从已读取的记录数组派生统计，避免同一轮反复 getAll

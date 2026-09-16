@@ -5,6 +5,8 @@ const account = require('../../utils/account.js')
 const login = require('../../utils/login.js')
 const avatarView = require('../../utils/avatar.js')
 const tab = require('../../utils/tab.js')
+const aiWeekly = require('../../utils/ai-weekly.js')
+const limit = require('../../utils/limit.js')
 
 function recordView(record) {
   const time = new Date(record.createdAt)
@@ -20,7 +22,6 @@ function recordView(record) {
 Page({
   data: {
     accountInfo: { nickname: '', avatar: '', char: '练' },
-    todayStr: '',
     stats: { total: 0, streak: 0, monthCount: 0, monthMinutes: 0 },
     year: 0,
     month: 0,
@@ -28,20 +29,25 @@ Page({
     canNext: false,
     weekHead: dateUtil.WEEK_HEAD_LABELS,
     weeks: [],
-    selected: '',
     selectedLabel: '',
     selectedRecords: [],
+    // 周复盘：visible=已登录才展示；locked=本周次数不足；loading=生成中；review=复盘内容
+    weeklyVisible: false,
+    weeklyLocked: true,
+    weeklyLoading: false,
+    weeklyReview: null,
     deleteConfirm: { show: false, id: '', name: '' }
   },
 
   onLoad() {
     this._avatar = avatarView.create((url) => this.setData({ 'accountInfo.avatar': url }))
+    // 今天日期与选中日仅 JS 内部使用（wxml 渲染用单元格自身的 isToday/isSel），不进 data
+    this.todayStr = dateUtil.today()
+    this.selected = this.todayStr
     const now = new Date()
     this.setData({
-      todayStr: dateUtil.today(),
       year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      selected: dateUtil.today()
+      month: now.getMonth() + 1
     })
   },
 
@@ -61,19 +67,16 @@ Page({
     }
     this.renderAccount(account.get())
     // 云端资料 15 秒内只拉一次，失败允许下次重试
-    const now = Date.now()
-    if (this._lastProfileFetchAt && now - this._lastProfileFetchAt < 15000) return
-    this._lastProfileFetchAt = now
+    if (!limit.pass(this, '_lastProfileFetchAt', 15000)) return
     account.fetchProfile().then((res) => {
       if (res && res.ok) this.renderAccount(res)
       // 账号已不存在：清理本地数据并切回未登录视图
-      if (res && res.code === 'no_account') {
-        login.resetLocalData()
+      if (login.handleNoAccount(res)) {
         this.setData({ accountInfo: { nickname: '', avatar: '', char: '练' } })
         this.reload()
         return
       }
-      if (!res || !res.ok) this._lastProfileFetchAt = 0
+      if (!res || !res.ok) limit.reset(this, '_lastProfileFetchAt')
     })
   },
 
@@ -93,21 +96,17 @@ Page({
   // 登录后与云端收敛偏好与自定义计划（一次 userGet 拉回两者）；非 force 的重复 onShow 30 秒内跳过
   syncPrefs(force) {
     if (!account.isLoggedIn()) return Promise.resolve(false)
-    const now = Date.now()
-    if (!force && this._lastPrefsSyncAt && now - this._lastPrefsSyncAt < 30000) return Promise.resolve(false)
-    this._lastPrefsSyncAt = now
+    if (!force && !limit.pass(this, '_lastPrefsSyncAt', 30000)) return Promise.resolve(false)
     return profile.syncFromCloudAll().then((res) => {
       if (res && res.changed) this.reload()
-      if (!res || !res.ok) this._lastPrefsSyncAt = 0
+      if (!res || !res.ok) limit.reset(this, '_lastPrefsSyncAt')
       return !!(res && res.ok)
-    }).catch(() => { this._lastPrefsSyncAt = 0; return false })
+    })
   },
 
   pullCloud() {
     if (!store.syncEnabled()) return
-    const now = Date.now()
-    if (this._lastSync && now - this._lastSync < 15000) return
-    this._lastSync = now
+    if (!limit.pass(this, '_lastSync', 15000)) return
     store.syncFromCloud().then((ok) => { if (ok) this.reload() }).catch(() => {})
   },
 
@@ -117,12 +116,45 @@ Page({
     this.setData({ stats: store.computeStatsFrom(this._records) })
     this.renderCalendar()
     this.refreshSelected()
+    this.loadWeekly()
+  },
+
+  // 周复盘：仅登录可见（登出/未登录整卡隐藏）；本周练过 ≥2 次解锁
+  loadWeekly(force) {
+    if (!account.isLoggedIn()) {
+      this.setData({ weeklyVisible: false, weeklyLoading: false, weeklyReview: null })
+      return
+    }
+    this.setData({ weeklyVisible: true })
+    const records = this._records || store.getAllRecords()
+    if (aiWeekly.weekSessions(records) < 2) {
+      this.setData({ weeklyLocked: true, weeklyLoading: false, weeklyReview: null })
+      return
+    }
+    if (this._weeklyBusy) return
+    this._weeklyBusy = true
+    this.setData({ weeklyLocked: false, weeklyLoading: true })
+    aiWeekly.fetchWeekly({
+      records: records,
+      goal: profile.get().goal
+    }, { force: !!force }).then((res) => {
+      this._weeklyBusy = false
+      // 失败：有旧内容保留旧内容，无则结束加载态，下次 onShow 再试（6 小时失败水位限频）
+      const patch = { weeklyLoading: false }
+      if (res && res.ok) patch.weeklyReview = res.data
+      this.setData(patch)
+    })
+  },
+
+  onWeeklyRefresh() {
+    if (this._weeklyBusy) return
+    this.loadWeekly(true)
   },
 
   renderCalendar() {
     const records = store.getDateMapFrom(this._records || store.getAllRecords())
-    const selected = this.data.selected
-    const today = this.data.todayStr
+    const selected = this.selected
+    const today = this.todayStr
     // 每周行 { key, cells }：key 取该行首格标识，供 WXML wx:key 使用
     const weeks = dateUtil.monthGrid(this.data.year, this.data.month).map(function (week) {
       return {
@@ -153,16 +185,14 @@ Page({
   },
 
   refreshSelected() {
-    const selected = this.data.selected
-    const p = selected.split('-')
-    const day = new Date(+p[0], +p[1] - 1, +p[2])
+    const selected = this.selected
     const list = (this._records || store.getAllRecords()).filter(function (record) {
       return record.date === selected
     }).sort(function (a, b) {
       return Number(a.createdAt) - Number(b.createdAt)
     })
     this.setData({
-      selectedLabel: (+p[1]) + '月' + (+p[2]) + '日 周' + dateUtil.WEEK_LABELS[day.getDay()],
+      selectedLabel: dateUtil.dayLabel(dateUtil.parse(selected)),
       selectedRecords: list.map(recordView)
     })
   },
@@ -188,7 +218,7 @@ Page({
   onSelectDay(e) {
     const date = e.currentTarget.dataset.date
     if (!date) return
-    this.setData({ selected: date })
+    this.selected = date
     this.renderCalendar()
     this.refreshSelected()
   },
@@ -216,8 +246,6 @@ Page({
   onAvatarError() {
     this._avatar.error()
   },
-
-  noop() {},
 
   onShareAppMessage() {
     const stats = this.data.stats

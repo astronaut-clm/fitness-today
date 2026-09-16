@@ -5,10 +5,23 @@ const toast = require('../../utils/toast.js')
 
 // 新加入动作的默认目标：时长类动作给秒数，其余给次数。
 function defaultReps(action) {
-  if (!action) return '12次'
+  if (!action) return customPlans.DEFAULT_REPS
   if (action.category === '有氧') return '30秒'
   if (action.id === 'plank' || action.id === 'wall_sit') return '30秒'
-  return '12次'
+  return customPlans.DEFAULT_REPS
+}
+
+// 动作 → 已选条目（加载已有计划与点选新动作共用）
+function toItem(action, sets, reps) {
+  return {
+    actionId: action.id,
+    name: action.name || action.id,
+    category: action.category || '',
+    equipment: action.equipment || '',
+    level: action.level || '初级',
+    sets: sets,
+    reps: reps
+  }
 }
 
 Page({
@@ -31,18 +44,9 @@ Page({
   loadScene(scene) {
     const existing = customPlans.get(scene)
     const selected = existing ? existing.exercises.map(function (ex) {
-      const action = actionsData.getAction(ex.actionId) || {}
-      return {
-        actionId: ex.actionId,
-        name: action.name || ex.actionId,
-        category: action.category || '',
-        equipment: action.equipment || '',
-        level: action.level || '初级',
-        sets: ex.sets,
-        reps: ex.reps
-      }
+      return toItem(actionsData.getAction(ex.actionId) || { id: ex.actionId }, ex.sets, ex.reps)
     }) : []
-  this.setData({
+    this.setData({
       scene: scene,
       name: existing ? existing.name : customPlans.defaultName(scene),
       selected: selected,
@@ -97,15 +101,7 @@ Page({
       this.setData({ selected: selected })
     } else {
       const action = actionsData.getAction(actionId)
-      const selected = this.data.selected.concat([{
-        actionId: actionId,
-        name: action.name,
-        category: action.category,
-        equipment: action.equipment,
-        level: action.level,
-        sets: 3,
-        reps: defaultReps(action)
-      }])
+      const selected = this.data.selected.concat([toItem(action, 3, defaultReps(action))])
       this.setData({ selected: selected })
     }
     this.buildPicker()
@@ -126,7 +122,7 @@ Page({
     const selected = this.data.selected.slice()
     const item = selected[index]
     if (!item || !delta) return
-    const sets = Math.max(1, Math.min(9, Number(item.sets || 1) + delta))
+    const sets = customPlans.clampSets(Number(item.sets || 1) + delta)
     if (sets === item.sets) return
     selected[index] = Object.assign({}, item, { sets: sets })
     this.setData({ selected: selected })
@@ -142,7 +138,7 @@ Page({
 
   onSave() {
     if (!this.data.selected.length) {
-      toast.show('请至少添加一个动作')
+      toast.show('请添加动作')
       return
     }
     const scene = this.data.scene
@@ -153,8 +149,14 @@ Page({
         return { actionId: item.actionId, sets: item.sets, reps: item.reps }
       })
     })
-    if (account.isLoggedIn()) customPlans.pushToCloud()
-    toast.back('计划已保存', { success: true })
+    if (!account.isLoggedIn()) {
+      toast.back('计划已保存', { success: true })
+      return
+    }
+    customPlans.pushToCloud().then(function (ok) {
+      if (ok) toast.back('计划已保存', { success: true })
+      else toast.back('已保存，云端同步失败')
+    })
   },
 
   onDelete() {
@@ -166,12 +168,10 @@ Page({
   },
 
   onConfirmDelete() {
-    customPlans.remove(this.data.scene)
-    // 已登录时同步云端删除结果，避免换设备后旧计划被拉回。
-    if (account.isLoggedIn()) customPlans.pushToCloud()
     this.setData({ showDeleteConfirm: false })
-    toast.back('自定义计划已删除')
-  },
-
-  noop() {}
+    customPlans.removeAndSync(this.data.scene).then(function (synced) {
+      if (synced) toast.back('计划已删除', { success: true })
+      else toast.back('已删除，云端同步失败')
+    })
+  }
 })

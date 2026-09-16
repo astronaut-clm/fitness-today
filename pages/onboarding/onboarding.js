@@ -35,9 +35,7 @@ Page(Object.assign({}, prefsForm, {
   },
 
   refreshCustom() {
-    const parts = []
-    if (customPlans.has('home')) parts.push('居家')
-    if (customPlans.has('gym')) parts.push('健身房')
+    const parts = customPlans.customSceneNames()
     this.setData({
       customHint: parts.length ? '已设置：' + parts.join(' · ') : '还没有自定义计划，去创建一个吧'
     })

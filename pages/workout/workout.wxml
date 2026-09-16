@@ -30,6 +30,11 @@
         <view class="done-sub sub">{{planName}} · {{total - skippedGroups}}/{{total}} 组完成 · 用时 {{costText}}</view>
         <view class="done-cheer">{{doneCheer}}</view>
 
+        <view wx:if="{{doneCommentLive || doneComment}}" class="done-coach">
+          <text class="done-coach-tag">教练点评</text>
+          <view class="done-coach-text {{doneCommentLive && doneComment ? 'streaming' : ''}}">{{doneComment || '教练正在写点评…'}}</view>
+        </view>
+
         <view class="done-stats">
           <view class="ds-item" wx:for="{{doneStats}}" wx:key="label">
             <view class="ds-val">{{item.value}}</view>
@@ -93,13 +98,5 @@
   </view>
 </scroll-view>
 
-<view wx:if="{{showResumeConfirm}}" class="px-mask" catchtouchmove="noop">
-  <view class="px-dialog" catchtap="noop">
-    <view class="px-dialog-title">继续上次训练？</view>
-    <view class="px-dialog-copy">已完成 {{resumeDone}}/{{total}} 组，可继续或重新开始</view>
-    <view class="px-dialog-btns">
-      <view class="px-dialog-btn cancel" bindtap="onResumeRestart">重新开始</view>
-      <view class="px-dialog-btn primary" bindtap="onResumeContinue">继续训练</view>
-    </view>
-  </view>
-</view>
+<px-dialog show="{{showResumeConfirm}}" title="继续上次训练？" copy="已完成 {{resumeDone}}/{{total}} 组，可继续或重新开始"
+  cancel-text="重新开始" confirm-text="继续训练" mask-close="{{false}}" bind:cancel="onResumeRestart" bind:confirm="onResumeContinue" />

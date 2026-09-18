@@ -4,7 +4,6 @@ const cloud = require('../../utils/cloud.js')
 const dateUtil = require('../../utils/date.js')
 const account = require('../../utils/account.js')
 const throttle = require('../../utils/throttle.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 const RELOAD_INTERVAL = 30000 // 30 秒内重复进入（如从详情页返回）不重复请求
 
@@ -27,8 +26,6 @@ function fetchMonth(month) {
 }
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     monthLabel: '',
     rows: [],
@@ -80,8 +77,5 @@ Page({
     account.clearAvatarRow(this, 'rows', e.currentTarget.dataset.index)
   },
 
-  // 本页需登录，分享落地页统一指向首页
-  onShareAppMessage() {
-    return { title: '本月训练排行榜，一起动起来！', path: '/pages/index/index' }
-  }
+  // 分享只在主页开放：本页不声明 onShareAppMessage，右上角转发入口自动不出现
 })

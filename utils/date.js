@@ -46,6 +46,14 @@ function weekStart(dateStr) {
   return format(d)
 }
 
+// 本周日 08:00 的时间戳：周复盘的出点评时刻（周一为周起点，周日 = 周一 +6 天）
+function weekReviewAt(dateStr) {
+  const d = parse(addDays(weekStart(dateStr), 6))
+  if (!d) return 0
+  d.setHours(8, 0, 0, 0)
+  return d.getTime()
+}
+
 function dayLabel(date) {
   if (!date) return ''
   return (date.getMonth() + 1) + '月' + date.getDate() + '日 周' + WEEK_LABELS[date.getDay()]
@@ -101,6 +109,7 @@ module.exports = {
   addDays: addDays,
   todayAndYesterday: todayAndYesterday,
   weekStart: weekStart,
+  weekReviewAt: weekReviewAt,
   dayLabel: dayLabel,
   monthKey: monthKey,
   monthLabel: monthLabel,

@@ -7,7 +7,6 @@ const nav = require('../../utils/nav.js')
 const profile = require('../../utils/profile.js')
 const throttle = require('../../utils/throttle.js')
 const toast = require('../../utils/toast.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 // 未登录/登出时的占位账号
 function emptyAccount() {
@@ -40,7 +39,7 @@ function recordView(record) {
 }
 
 Page({
-  behaviors: [fontBehavior, account.avatarBehavior('accountInfo.avatar')],
+  behaviors: [account.avatarBehavior('accountInfo.avatar')],
 
   data: {
     accountInfo: emptyAccount(),
@@ -212,11 +211,5 @@ Page({
     this.setData({ deleteConfirm: emptyDeleteConfirm() })
   },
 
-  onShareAppMessage() {
-    const stats = this.data.stats
-    return {
-      title: '我已坚持打卡 ' + stats.total + ' 天，连续 ' + stats.streak + ' 天！',
-      path: '/pages/index/index'
-    }
-  }
+  // 分享只在主页开放：本页不声明 onShareAppMessage，右上角转发入口自动不出现
 })

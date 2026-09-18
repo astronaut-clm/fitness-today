@@ -2,7 +2,7 @@
   "libVersion": "3.17.2",
   "projectname": "fitness-today",
   "setting": {
-    "urlCheck": false,
+    "urlCheck": true,
     "coverView": true,
     "lazyloadPlaceholderEnable": false,
     "preloadBackgroundData": false,

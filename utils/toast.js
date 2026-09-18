@@ -1,4 +1,4 @@
-// 页内提示，替代 wx.showToast 以便用上像素字体
+// 页内提示，替代 wx.showToast 以便统一文案样式
 const registry = []
 
 function register(comp) {

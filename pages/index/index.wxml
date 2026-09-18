@@ -1,4 +1,3 @@
-<page-meta page-style="{{fontStyle}}"></page-meta>
 <navigation-bar back="{{false}}"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
@@ -60,12 +59,9 @@
 
     <!-- 周复盘：本周 ≥2 次训练才解锁 -->
     <view class="weekly g-card">
-      <view class="weekly-head">
-        <view class="weekly-title">本周复盘</view>
-        <text wx:if="{{weeklyReview && !weeklyLoading}}" class="weekly-refresh" bindtap="onWeeklyRefresh">换一版</text>
-      </view>
-      <view wx:if="{{weeklyLocked}}" class="weekly-hint weak">本周完成 2 次训练后，教练为你复盘</view>
-      <view wx:elif="{{weeklyLoading}}" class="weekly-hint weak">教练正在复盘本周训练…</view>
+      <view class="weekly-title">{{weeklyStale ? '上周复盘' : '本周复盘'}}</view>
+      <view wx:if="{{weeklyLocked}}" class="weekly-hint weak">本周完成 2 次训练后，触发 AI 复盘</view>
+      <view wx:elif="{{weeklyLoading}}" class="weekly-hint weak">AI 正在复盘本周训练（慢工夫，先去练，回头再看）</view>
       <block wx:elif="{{weeklyReview}}">
         <view class="weekly-sec">
           <text class="weekly-tag hl">亮点</text>
@@ -80,7 +76,7 @@
           <text class="weekly-text">{{weeklyReview.next}}</text>
         </view>
       </block>
-      <view wx:else class="weekly-hint weak">复盘生成失败，稍后回来看看</view>
+      <view wx:else class="weekly-hint weak">周日 08:00，AI 为你复盘本周训练</view>
     </view>
     </block>
 

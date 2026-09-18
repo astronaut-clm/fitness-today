@@ -6,7 +6,6 @@ const exerciseItem = require('../../utils/exercise-item.js')
 const account = require('../../utils/account.js')
 const nav = require('../../utils/nav.js')
 const toast = require('../../utils/toast.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 const ALL_CATS = '全部' // 分类筛选里的「不筛选」项
 const DEFAULT_SETS = 3 // 新增动作的默认组数
@@ -29,8 +28,6 @@ function toItem(action, sets, targetText) {
 }
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     sceneTabs: sceneTabs,
     scene: DEFAULT_SCENE,

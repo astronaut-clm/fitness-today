@@ -52,9 +52,4 @@
 .menu-sub { margin-top: 6rpx; font-size: 21rpx; }
 .menu-arrow { color: var(--ink3); font-size: 40rpx; line-height: 1; }
 
-/* 像素字体开关 */
-.section { margin-top: 22rpx; }
-.switch-row { display: flex; align-items: center; gap: 18rpx; }
-.switch-row switch { flex: none; }
-
 .logout-save-btn { background: #e60012; color: #ffffff; }

@@ -8,7 +8,6 @@ const aiRecommend = require('../../utils/ai/recommend.js')
 const profile = require('../../utils/profile.js')
 const sessionStore = require('../../utils/workout/session.js')
 const nav = require('../../utils/nav.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 // 场景与难度档位都从 databases/plans.js 派生
 const sceneTabs = plansData.scenes.map(function (scene) {
@@ -47,8 +46,6 @@ function toCard(p, done, recId, activeId) {
 }
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     sceneTabs: sceneTabs,
     levelTabs: levelTabsFor(plansData.SCENES[0]),

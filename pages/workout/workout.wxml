@@ -1,4 +1,3 @@
-<page-meta page-style="{{fontStyle}}"></page-meta>
 <px-toast></px-toast>
 <!-- 自绘顶部导航，返回直接绑页面方法 -->
 

@@ -1,5 +1,5 @@
-// 周复盘：hy3 深度推理（免费额度），后台任务不怕慢——45s 超时 + 按周缓存。
-// 缓存以周一日期为键，跨周自动重算
+// 周复盘：hy3 深度推理（免费额度），按周出一份——本周日 08:00 之后才生成。
+// 缓存以周一日期为键，跨周自动重算，未出新的之前继续展示上周那份
 const cloud = require('../cloud.js')
 const ai = require('./client.js')
 const coachMemory = require('./coach-profile.js')
@@ -10,8 +10,10 @@ const recordStore = require('../records.js')
 
 const store = storage.scoped('ft_ai_weekly_v1')
 const flight = throttle.flight()
-const TIMEOUT = 45000
-const RETRY_GAP = 6 * 3600 * 1000 // 失败后 6 小时内不自动重试（手动「换一版」不受限）
+// 出点评不赶时间：宁可等也不掐断，超时放宽到 5 分钟（深度推理本来就慢）
+const TIMEOUT = 5 * 60 * 1000
+// 失败后 1 小时内不自动重试。窗口只有周日一天，间隔太长等于当天再也不重试
+const RETRY_GAP = 3600 * 1000
 
 const SYSTEM = [
   '你是健身教练，为用户写本周训练复盘。',
@@ -51,24 +53,34 @@ function weekSessions(records) {
   return rangeStats(records, dateUtil.weekStart(), dateUtil.today()).sessions
 }
 
-// opts.force 跳过缓存与水位（手动「换一版」）。resolve { ok, data, cached? }
-function fetchWeekly(input, opts) {
+// 是否已到出点评的时刻（本周日 08:00）
+function due() {
+  return Date.now() >= dateUtil.weekReviewAt()
+}
+
+// 一周只出一份：命中本周缓存直接返回，且始终走单飞。resolve { ok, data, cached?, week? }
+function fetchWeekly(input) {
   const data = input || {}
-  const force = !!(opts && opts.force)
   const wk = dateUtil.weekStart()
   const today = dateUtil.today()
   const saved = store.read()
+  const ready = due()
 
-  if (!force && saved && saved.week === wk) {
-    if (saved.data) return Promise.resolve({ ok: true, cached: true, data: saved.data })
+  if (saved && saved.week === wk) {
+    if (saved.data) return Promise.resolve({ ok: true, cached: true, data: saved.data, week: wk })
     // 失败水位，免得每次进页面都重试烧额度
     if (Date.now() - Number(saved.attemptedAt || 0) < RETRY_GAP) return Promise.resolve({ ok: false })
   }
-  // 同一周的并发调用共用一次请求；「换一版」刻意要另起一次，故不进单飞
-  if (!force) {
-    const pending = flight.get(wk)
-    if (pending) return pending
+  if (!ready) {
+    // 本周还没出，上周那份继续展示，等下个周日 08:00 再算新的
+    if (saved && saved.data && saved.week === dateUtil.addDays(wk, -7)) {
+      return Promise.resolve({ ok: true, cached: true, data: saved.data, week: saved.week })
+    }
+    return Promise.resolve({ ok: false, code: 'not_due' })
   }
+  // 同一周的并发调用共用一次请求
+  const pending = flight.get(wk)
+  if (pending) return pending
 
   // 脏记录会让统计同步抛异常，转成明确的失败
   let payload
@@ -107,7 +119,7 @@ function fetchWeekly(input, opts) {
         }
         if (!review.highlight) throw new Error('bad_review')
         store.write({ week: wk, data: review, attemptedAt: Date.now() })
-        return { ok: true, data: review }
+        return { ok: true, data: review, week: wk }
       }).catch(function (e) {
         console.warn('[ai] weekly failed', e && e.message)
         return { ok: false }
@@ -115,7 +127,7 @@ function fetchWeekly(input, opts) {
     })
   }
 
-  return force ? start() : flight.run(wk, start)
+  return flight.run(wk, start)
 }
 
 function resetLocal() {
@@ -126,5 +138,6 @@ function resetLocal() {
 module.exports = {
   fetchWeekly: fetchWeekly,
   weekSessions: weekSessions,
+  due: due,
   resetLocal: resetLocal
 }

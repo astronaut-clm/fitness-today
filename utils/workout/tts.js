@@ -52,10 +52,7 @@ function enabled() {
 function setEnabled(on) {
   enabledCache = !!on
   store.write(!!on)
-  if (!on) {
-    stop()
-    releaseAllHot()
-  }
+  if (!on) stop()
 }
 
 function ensureOption() {
@@ -90,44 +87,18 @@ function synthesize(text, cb) {
   })
 }
 
-// 热实例池：path -> 已预解码的 InnerAudioContext，拿来即播（起播零解码延迟）。
-// 消费后立即补货；播完即销毁不复用——复用时 stop/play 的时序竞争会让 onEnded 不触发
-const hot = {}
-const hotText = {}
-const HOT_MAX = 20 // 实例会长期占用音频通道，超出后淘汰最早的
-
-function releaseHot(path) {
-  const ctx = hot[path]
-  delete hot[path]
-  delete hotText[path]
-  if (!ctx) return
-  try { ctx.destroy() } catch (e) {}
-}
-
-// 关语音或离开页面时必须调用，否则这批实例一直占着音频通道
-function releaseAllHot() {
-  Object.keys(hot).forEach(function (path) { releaseHot(path) })
-}
-
-// 优先消费热实例，否则新建；播完即销毁
+// 播完即销毁：复用时 stop/play 的时序竞争会让 onEnded 不触发
 function playNext() {
   // 队列是延迟消费的，期间用户可能已关掉语音
   if (playing || !enabled()) return
   const path = queue.shift()
   if (!path) return
   ensureOption()
-  let ctx = hot[path] || null
-  const wasHot = !!ctx
-  if (wasHot) {
-    delete hot[path]
-    const text = hotText[path]
-    if (text) { delete hotText[path]; heat(text) }
-  } else {
-    try {
-      ctx = wx.createInnerAudioContext()
-    } catch (e) {
-      ctx = null
-    }
+  let ctx = null
+  try {
+    ctx = wx.createInnerAudioContext()
+  } catch (e) {
+    ctx = null
   }
   if (!ctx) return
   playing = true
@@ -145,33 +116,8 @@ function playNext() {
   ctx.obeyMuteSwitch = false
   ctx.onEnded(done)
   ctx.onError(done)
-  if (!wasHot) ctx.src = path
+  ctx.src = path
   ctx.play()
-}
-
-// 对起播延迟敏感的句子（倒数读秒）：合成后常驻已解码实例
-function heat(text) {
-  if (!available || !enabled()) return
-  synthesize(text, function (path) {
-    if (!path || hot[path]) return
-    try {
-      const ctx = wx.createInnerAudioContext()
-      ctx.obeyMuteSwitch = false
-      ctx.onError(function () {
-        if (hot[path] === ctx) releaseHot(path)
-      })
-      ctx.src = path
-      hot[path] = ctx
-      hotText[path] = text
-      // 对象键按插入顺序，keys[0] 即最旧
-      const keys = Object.keys(hot)
-      if (keys.length > HOT_MAX) {
-        keys.slice(0, keys.length - HOT_MAX).forEach(function (key) {
-          if (key !== path) releaseHot(key)
-        })
-      }
-    } catch (e) {}
-  })
 }
 
 // opts.interrupt=true 时清空队列并打断当前播报
@@ -271,13 +217,12 @@ function stop() {
   }
 }
 
-// 离开训练页必须调用：只调 stop() 收不干净（抢占定时器会重新起播、热实例池不释放）
+// 离开训练页必须调用：只调 stop() 收不干净（抢占定时器会重新起播）
 function dispose() {
   clearTimers()
   stop()
   preloadQueue.length = 0
   preloading = false
-  releaseAllHot()
 }
 
 module.exports = {
@@ -286,7 +231,6 @@ module.exports = {
   setEnabled: setEnabled,
   speak: speak,
   warmup: warmup,
-  heat: heat,
   stop: stop,
   dispose: dispose
 }

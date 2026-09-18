@@ -73,6 +73,18 @@
   overflow: hidden;
 }
 
+.anim-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  background: var(--card2);
+  color: var(--ink2);
+  font-size: 24rpx;
+}
+
 .anim-img {
   display: block;
   /* 四周各大 2rpx，多出部分被 anim-frame 裁掉；background 兜底防缝隙透黑 */

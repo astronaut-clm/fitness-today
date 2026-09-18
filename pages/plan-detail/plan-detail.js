@@ -3,16 +3,14 @@ const actionsData = require('../../databases/actions.js')
 const adjustments = require('../../utils/plan-adjustments.js')
 const customPlans = require('../../utils/custom-plans.js')
 const exerciseItem = require('../../utils/exercise-item.js')
+const videoCache = require('../../utils/video-cache.js')
 const sessionStore = require('../../utils/workout/session.js')
 const toast = require('../../utils/toast.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 // 先查自定义，再回落内置计划库
 const resolvePlan = customPlans.resolvePlan
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     plan: null,
     items: [],
@@ -97,6 +95,7 @@ Page({
   goAction(e) {
     const id = e.currentTarget.dataset.id
     if (!id) return
+    videoCache.prefetch(id)
     wx.navigateTo({ url: '/pages/tutorial-detail/tutorial-detail?id=' + id })
   },
 
@@ -151,21 +150,5 @@ Page({
     this.refreshStatus()
   },
 
-  onShareAppMessage() {
-    const plan = this.data.plan
-    if (!plan) return { title: '一起来训练吧！', path: '/pages/index/index' }
-    return {
-      title: plan.name + '：' + plan.duration + ' 分钟 · 约 ' + plan.calories + ' kcal',
-      path: '/pages/plan-detail/plan-detail?id=' + this.planId
-    }
-  },
-
-  onShareTimeline() {
-    const plan = this.data.plan
-    if (!plan) return { title: '一起来训练吧！' }
-    return {
-      title: plan.name + '：' + plan.duration + ' 分钟',
-      query: 'id=' + this.planId
-    }
-  }
+  // 分享只在主页开放：本页不声明 onShareAppMessage/OnShareTimeline，右上角转发入口自动不出现
 })

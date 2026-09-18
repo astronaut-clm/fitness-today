@@ -1,4 +1,3 @@
-<page-meta page-style="{{fontStyle}}"></page-meta>
 <navigation-bar back="{{false}}"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
@@ -46,7 +45,6 @@
           <text class="tag">{{item.level}}</text>
         </view>
         <view class="act-meta weak">{{item.equipment}} · {{item.muscles}}</view>
-        <view class="act-key sub">{{item.key}}</view>
       </view>
       <text class="act-arrow">›</text>
     </view>

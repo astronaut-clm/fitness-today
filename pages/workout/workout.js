@@ -9,14 +9,11 @@ const finish = require('../../utils/workout/finish.js')
 const toast = require('../../utils/toast.js')
 const device = require('../../utils/device.js')
 const nav = require('../../utils/nav.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 const REST_EXTEND_SECONDS = 15 // 「再歇一会」单次追加秒数
 const STATE = sessionStore.STATE
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     loaded: false,
     planName: '',
@@ -165,7 +162,6 @@ Page({
       timeStarted: !!session.timeStarted,
       skippedGroups: Number(session.skippedGroups || 0)
     })
-    this.speaker.reset()
     if (state === STATE.working) {
       this.speaker.group(this.groups[index])
       return
@@ -241,15 +237,11 @@ Page({
   tick() {
     if (this.data.state === STATE.rest) {
       if (!this.endAt) { this.skipRest(); return }
-      const remain = this.refreshRemain()
-      if (remain <= 0) this.skipRest()
-      else this.speaker.countdown(remain, 'rest')
+      if (this.refreshRemain() <= 0) this.skipRest()
       return
     }
     if (this.data.state !== STATE.working || !this.data.running || !this.endAt) return
-    const remain = this.refreshRemain()
-    if (remain <= 0) { this.finishSet(false); return }
-    this.speaker.countdown(remain, 'work')
+    if (this.refreshRemain() <= 0) this.finishSet(false)
   },
 
   // ---- 按组推进 ----
@@ -269,7 +261,6 @@ Page({
       timeStarted: false,
       pctStyle: this.pctStyleOf(this.data.completed || 0)
     })
-    this.speaker.reset()
     this.speaker.group(group)
     this.persistSession()
   },
@@ -299,7 +290,6 @@ Page({
       timeStarted: false,
       skippedGroups: skippedGroups
     })
-    this.speaker.reset()
     this.speaker.rest(rest, next.name)
     this.vibrate('short')
     this.persistSession()

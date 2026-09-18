@@ -3,22 +3,19 @@ const account = require('../../utils/account.js')
 const customPlans = require('../../utils/custom-plans.js')
 const profile = require('../../utils/profile.js')
 const login = require('../../utils/login.js')
-const font = require('../../utils/font.js')
-const fontBehavior = font.behavior
 const toast = require('../../utils/toast.js')
 
 // emoji 昵称的代理对问题在 account.charOf 里处理
 const charOf = account.charOf
 
 Page({
-  behaviors: [fontBehavior, account.avatarBehavior('avatarUrl')],
+  behaviors: [account.avatarBehavior('avatarUrl')],
 
   data: {
     nickname: '',
     avatarUrl: '',
     avatarChar: account.FALLBACK_CHAR,
     customHint: '',
-    usePixelFont: false,
     showLogoutConfirm: false,
     savingShow: false
   },
@@ -33,20 +30,7 @@ Page({
 
   onShow() {
     this.refreshCustomHint()
-    this.refreshFont()
     this.syncCustomPlans()
-  },
-
-  refreshFont() {
-    this.setData({ usePixelFont: font.getChoice() === 'pixel' })
-  },
-
-  // 改页面根节点字体栈即时生效，无需重启
-  onTogglePixelFont(e) {
-    const on = !!(e.detail && e.detail.value)
-    font.setChoice(on ? 'pixel' : 'system')
-    this.setData({ usePixelFont: on, fontStyle: font.pageStyle() })
-    if (on) font.load()
   },
 
   // 用 syncPull 而非 syncFromCloud：它自带限频，否则每次从子页返回都打一次 userGet

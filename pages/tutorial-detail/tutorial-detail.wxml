@@ -1,4 +1,3 @@
-<page-meta page-style="{{fontStyle}}"></page-meta>
 <navigation-bar title="动作详情"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list" wx:if="{{view}}">
@@ -20,8 +19,9 @@
       <view class="section-title anim-title">动作演示</view>
       <view class="anim-frame">
         <video
+          wx:if="{{videoSrc}}"
           class="anim-img"
-          src="{{view.video}}"
+          src="{{videoSrc}}"
           autoplay
           loop
           muted
@@ -32,6 +32,10 @@
           enable-progress-gesture="{{false}}"
           binderror="onVideoError"
         />
+        <view wx:else class="anim-loading">
+          <view class="px-loading-dot"></view>
+          <text>演示加载中</text>
+        </view>
       </view>
     </view>
 

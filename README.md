@@ -6,7 +6,7 @@
 
 - **今日主页**：推荐训练计划、连续打卡天数与本月训练概览，一键开始跟练。
 - **训练计划**：居家 / 健身房两种场景，按等级浏览，查看动作构成与详情；支持自定义计划。
-- **教练跟练**：按组循环推进动作与组数，结束后自动记录本次训练时长。
+- **AI跟练**：按组循环推进动作与组数，结束后自动记录本次训练时长。
 - **打卡记录**：日历视图查看每日训练，同一天支持多次训练。
 - **动作库**：标准动作教学，含动作要点、步骤、节奏、常见错误与简化替代。
 - **排行榜**：按月累计训练时长排名，展示「我的名次」。
@@ -25,7 +25,7 @@
 
 ```
 app.js / app.json / app.wxss   全局入口、页面与组件注册、设计变量与共用样板
-assets/                        静态资源（fonts、videos），不进代码包，运行时走 CDN
+assets/                        静态资源（动作演示 videos），不进代码包，运行时走 CDN
 cloudfunctions/                云函数：login（身份与个人数据）、social（月榜聚合）
 components/                    复用 UI：navigation-bar、px-toast、px-dialog
                                prefs-form 是模板三件套（mixin + import 的 wxml + 全局 wxss），不是自定义组件
@@ -38,7 +38,8 @@ pages/                         页面（每个页面一个目录）
 utils/
   config storage cloud date    配置、本机存储（scoped 句柄）、云调用、日期
   throttle device              限频与单飞、设备信息兼容层
-  toast font nav               页内提示、像素字体、tabBar 清单与登录门禁
+  toast nav                    页内提示、tabBar 清单与登录门禁
+  video-cache                  动作演示视频本地缓存，登录后全量预热
   account login profile        账号资料与头像、登录编排与引导标记、训练偏好
   records insights             训练记录持久化+云端同步、统计洞察
   recommend                    规则推荐打分

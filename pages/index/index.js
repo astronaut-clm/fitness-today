@@ -11,13 +11,11 @@ const account = require('../../utils/account.js')
 const login = require('../../utils/login.js')
 const toast = require('../../utils/toast.js')
 const nav = require('../../utils/nav.js')
-const fontBehavior = require('../../utils/font.js').behavior
+const videoCache = require('../../utils/video-cache.js')
 
 const WEEKLY_UNLOCK_SESSIONS = 2 // 本周练够几次才解锁 AI 周复盘
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     dateText: '',
     streak: 0,
@@ -27,10 +25,11 @@ Page({
     goalReady: false,
     todaySummary: null,
     insight: insights.empty(),
-    // weeklyLocked=本周次数不足
+    // weeklyLocked=本周次数不足；weeklyStale=展示的是上周那份（本周还没到周日 08:00）
     weeklyLocked: true,
     weeklyLoading: false,
     weeklyReview: null,
+    weeklyStale: false,
     loginBusy: false,
     loginFailShow: false
   },
@@ -65,7 +64,8 @@ Page({
       insight: insights.empty(),
       weeklyLocked: true,
       weeklyLoading: false,
-      weeklyReview: null
+      weeklyReview: null,
+      weeklyStale: false
     })
   },
 
@@ -107,39 +107,40 @@ Page({
     this.loadWeekly()
   },
 
-  // 仅登录可见，本周练过 ≥2 次才解锁
-  loadWeekly(force) {
+  // 仅登录可见，本周练过 ≥2 次才解锁；本周日 08:00 出一份，不支持手动换。
+  // 没到点时 fetchWeekly 直接回 not_due，不发请求、不烧额度
+  loadWeekly() {
     if (!account.isLoggedIn()) {
-      this.setData({ weeklyLocked: true, weeklyLoading: false, weeklyReview: null })
+      this.setData({ weeklyLocked: true, weeklyLoading: false, weeklyReview: null, weeklyStale: false })
       return
     }
     const all = this._records || records.getAll()
     if (aiWeekly.weekSessions(all) < WEEKLY_UNLOCK_SESSIONS) {
-      this.setData({ weeklyLocked: true, weeklyLoading: false, weeklyReview: null })
+      this.setData({ weeklyLocked: true, weeklyLoading: false, weeklyReview: null, weeklyStale: false })
       return
     }
     if (this._weeklyBusy) return
     this._weeklyBusy = true
-    this.setData({ weeklyLocked: false, weeklyLoading: true })
+    // 没到点就不会发请求，别闪一下「正在复盘」
+    this.setData({ weeklyLocked: false, weeklyLoading: aiWeekly.due() })
     aiWeekly.fetchWeekly({
       records: all,
       goal: profile.get().goal
-    }, { force: !!force }).then((res) => {
+    }).then((res) => {
       this._weeklyBusy = false
-      // 失败时有旧内容就留着，下次 onShow 再试（6 小时失败水位）
+      // 失败时有旧内容就留着，下次 onShow 再试（1 小时失败水位）
       const patch = { weeklyLoading: false }
-      if (res && res.ok) patch.weeklyReview = res.data
+      if (res && res.ok) {
+        patch.weeklyReview = res.data
+        // 缓存不是本周的，说明还在展示上周日的那份
+        patch.weeklyStale = !!res.week && res.week !== dateUtil.weekStart()
+      }
       this.setData(patch)
     }).catch((err) => {
       this._weeklyBusy = false
       console.warn('[index] weekly', err)
       this.setData({ weeklyLoading: false })
     })
-  },
-
-  onWeeklyRefresh() {
-    if (this._weeklyBusy) return
-    this.loadWeekly(true)
   },
 
   // 后台进行不阻塞首屏；结果有效才覆盖卡片，失败保持规则结果
@@ -183,7 +184,10 @@ Page({
       // 同步放后台，不阻塞引导跳转
       login.syncAfterLogin().then((ok) => {
         if (ok && nav.alive(this)) this.refresh()
-      }).catch(() => {})
+      }).catch(() => {}).then(() => {
+        // 同步跑完再拉视频，别抢登录流程的带宽；此后进动作详情都是本地秒播
+        videoCache.warmup()
+      })
       if (res.newUser && !login.onboardingDone()) {
         wx.navigateTo({ url: '/pages/onboarding/onboarding' })
       }

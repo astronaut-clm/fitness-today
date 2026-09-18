@@ -1,4 +1,3 @@
-<page-meta page-style="{{fontStyle}}"></page-meta>
 <navigation-bar title="偏好配置"></navigation-bar>
 <px-toast></px-toast>
 <import src="/components/prefs-form/prefs-form.wxml" />

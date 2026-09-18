@@ -158,9 +158,7 @@
 
 /* 周复盘卡片 */
 .weekly { padding: 22rpx 24rpx; margin-top: 28rpx; }
-.weekly-head { display: flex; align-items: center; justify-content: space-between; }
 .weekly-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }
-.weekly-refresh { flex: none; font-size: 22rpx; font-weight: 700; color: var(--card); background: var(--green); border: var(--pxs) solid var(--ink); border-radius: 0; padding: 6rpx 18rpx; }
 .weekly-hint { margin-top: 12rpx; font-size: 24rpx; }
 .weekly-sec { display: flex; align-items: flex-start; margin-top: 16rpx; }
 .weekly-tag { flex: none; font-size: 20rpx; font-weight: 700; line-height: 1; color: var(--card); border: var(--pxs) solid var(--ink); border-radius: 0; padding: 5rpx 12rpx; margin-top: 4rpx; }

@@ -1,7 +1,7 @@
 // 动作库列表页：按部位/器械筛选与搜索
 const actionsData = require('../../databases/actions.js')
+const videoCache = require('../../utils/video-cache.js')
 const nav = require('../../utils/nav.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 // 视图字段与搜索文本预算一次，避免每次筛选重复 join
 const ACTIONS = actionsData.actions.map(function (a) {
@@ -12,14 +12,11 @@ const ACTIONS = actionsData.actions.map(function (a) {
     equipment: a.equipment,
     level: a.level,
     muscles: (a.muscles || []).join(' · '),
-    key: a.steps && a.steps[0] ? a.steps[0].key : '',
     searchText: (a.name + a.category + a.equipment + (a.muscles || []).join('')).toLowerCase()
   }
 })
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     cats: ['全部'].concat(actionsData.categories),
     cat: '全部',
@@ -70,8 +67,7 @@ Page({
         category: a.category,
         equipment: a.equipment,
         level: a.level,
-        muscles: a.muscles,
-        key: a.key
+        muscles: a.muscles
       })
     })
     this.setData({ list: list })
@@ -79,6 +75,8 @@ Page({
 
   goDetail(e) {
     const id = e.currentTarget.dataset.id
+    // 跳转前先起下载，与转场动画并行
+    videoCache.prefetch(id)
     wx.navigateTo({ url: '/pages/tutorial-detail/tutorial-detail?id=' + id })
   }
 })

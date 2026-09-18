@@ -1,4 +1,4 @@
-<view class="tabbar" style="{{fontStyle}}" wx:if="{{!hidden}}">
+<view class="tabbar" wx:if="{{!hidden}}">
   <view class="tabbar-inner">
     <view
       wx:for="{{list}}"

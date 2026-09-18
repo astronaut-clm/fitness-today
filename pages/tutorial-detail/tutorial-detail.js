@@ -1,14 +1,7 @@
 // 动作详情页：步骤要点、常见错误、演示视频
 const actionsData = require('../../databases/actions.js')
-const config = require('../../utils/config.js')
+const videoCache = require('../../utils/video-cache.js')
 const toast = require('../../utils/toast.js')
-const fontBehavior = require('../../utils/font.js').behavior
-
-// 前缀留空则返回 ''，页面据此不渲染演示卡
-function actionVideo(id) {
-  if (!id || !config.ACTION_VIDEO_PREFIX) return ''
-  return config.ACTION_VIDEO_PREFIX + id + '.mp4'
-}
 
 function defaultGuide() {
   return {
@@ -18,10 +11,9 @@ function defaultGuide() {
 }
 
 Page({
-  behaviors: [fontBehavior],
-
   data: {
     view: null,
+    videoSrc: '',
     related: []
   },
 
@@ -46,12 +38,11 @@ Page({
       })
 
     const guide = defaultGuide()
-    const videoUrl = actionVideo(a.id)
     this.setData({
       view: {
         id: a.id,
         name: a.name,
-        video: videoUrl,
+        video: videoCache.urlOf(a.id),
         category: a.category,
         equipment: a.equipment,
         level: a.level,
@@ -61,8 +52,20 @@ Page({
         tempo: a.tempo || guide.tempo,
         mistakes: a.mistakes || guide.mistakes
       },
+      videoSrc: videoCache.peek(a.id),
       related: related
     })
+
+    // 拿到本地路径才渲染 <video>：等待期间显示占位，避免原生黑底
+    const id = a.id
+    videoCache.resolveById(id).then((src) => {
+      if (!src || this._unloaded) return
+      this.setData({ videoSrc: src })
+    })
+  },
+
+  onUnload() {
+    this._unloaded = true
   },
 
   onVideoError() {
@@ -73,24 +76,9 @@ Page({
   goAction(e) {
     const id = e.currentTarget.dataset.id
     if (!id) return
+    videoCache.prefetch(id)
     wx.navigateTo({ url: '/pages/tutorial-detail/tutorial-detail?id=' + id })
   },
 
-  onShareAppMessage() {
-    const view = this.data.view
-    if (!view) return { title: '动作要领一看就会', path: '/pages/index/index' }
-    return {
-      title: view.name + '：' + view.category + '动作要领',
-      path: '/pages/tutorial-detail/tutorial-detail?id=' + view.id
-    }
-  },
-
-  onShareTimeline() {
-    const view = this.data.view
-    if (!view) return { title: '动作要领一看就会' }
-    return {
-      title: view.name + '：' + view.category + '动作要领',
-      query: 'id=' + view.id
-    }
-  }
+  // 分享只在主页开放：本页不声明 onShareAppMessage/OnShareTimeline，右上角转发入口自动不出现
 })

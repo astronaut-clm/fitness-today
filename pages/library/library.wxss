@@ -110,14 +110,6 @@
   margin-top: 4rpx;
 }
 
-.act-key {
-  font-size: 22rpx;
-  margin-top: 6rpx;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 .act-arrow {
   color: var(--ink3);
   font-size: 36rpx;

@@ -1,6 +1,4 @@
 // 播报与完成页文案。插件音色固定、不支持调速，只能靠文案与随机化避免听着机械。
-// 倒数数字单独列出，便于预热（见同目录 tts.js 的 heat）
-const COUNTDOWN_DIGITS = ['5', '4', '3', '2', '1']
 
 // 最后一组结束时的收官话
 const FINISH_LINES = [
@@ -48,7 +46,6 @@ function restText(seconds, nextName) {
 }
 
 module.exports = {
-  COUNTDOWN_DIGITS: COUNTDOWN_DIGITS,
   FINISH_LINES: FINISH_LINES,
   PRAISE: PRAISE,
   CHEER_LINES: CHEER_LINES,

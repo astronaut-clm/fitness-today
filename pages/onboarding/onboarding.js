@@ -5,10 +5,8 @@ const account = require('../../utils/account.js')
 const login = require('../../utils/login.js')
 const toast = require('../../utils/toast.js')
 const prefsForm = require('../../components/prefs-form/prefs-form.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 Page(Object.assign({}, prefsForm, {
-  behaviors: [fontBehavior],
   data: {
     step: 1,
     goals: [],

@@ -25,7 +25,6 @@ page {
   color: var(--ink);
   font-size: 28rpx;
   line-height: 1.5;
-  /* 像素字体由 page-meta 的 page-style 按开关切换，见 utils/font.js */
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   /* 关抗锯齿，保留硬边，更像像素 */
   -webkit-font-smoothing: none;
@@ -144,7 +143,7 @@ input::after {
   border-radius: 0;
 }
 
-/* 原生控件默认不继承页面字体，显式继承才能跟随字体开关 */
+/* 原生控件默认不继承页面字体，显式继承保持全站一致 */
 button,
 input,
 textarea {

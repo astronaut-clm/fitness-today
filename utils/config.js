@@ -14,6 +14,5 @@ const CDN_BASE = 'https://cdn.jsdelivr.net/gh/astronaut-clm/fitness-today@' + RE
 module.exports = {
   ENABLE_CLOUD: true,
   CLOUD_ENV: '',
-  ACTION_VIDEO_PREFIX: CDN_BASE + 'videos/',
-  FONT_URL: CDN_BASE + 'fonts/zpix.woff2'
+  ACTION_VIDEO_PREFIX: CDN_BASE + 'videos/'
 }

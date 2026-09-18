@@ -3,10 +3,8 @@ const profile = require('../../utils/profile.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
 const prefsForm = require('../../components/prefs-form/prefs-form.js')
-const fontBehavior = require('../../utils/font.js').behavior
 
 Page(Object.assign({}, prefsForm, {
-  behaviors: [fontBehavior],
   data: {
     goals: [],
     scenes: [],

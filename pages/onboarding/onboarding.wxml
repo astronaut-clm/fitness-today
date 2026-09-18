@@ -1,6 +1,7 @@
-<navigation-bar title="完善资料" back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar title="完善资料" back="{{false}}"></navigation-bar>
 <px-toast></px-toast>
-<import src="../common/prefs-form.wxml" />
+<import src="/components/prefs-form/prefs-form.wxml" />
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
 
@@ -50,7 +51,7 @@
   </view>
 </scroll-view>
 
-<view class="foot-bar">
+<view class="save-bar foot-bar">
   <block wx:if="{{step === 1}}">
     <view class="foot-row">
       <view class="btn btn-ghost foot-ghost" bindtap="onSkipStep">跳过</view>

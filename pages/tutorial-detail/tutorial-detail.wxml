@@ -1,4 +1,5 @@
-<navigation-bar title="动作详情" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar title="动作详情"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list" wx:if="{{view}}">
   <view class="page">

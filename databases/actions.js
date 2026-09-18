@@ -1,4 +1,8 @@
 // 动作教学库（内置演示数据），分类顺序即展示顺序
+//
+// timed: true 标记「天然按时长计量」的动作（静态支撑、有氧），新增这类动作只打标记即可，
+// 自定义计划页据此把默认目标给成秒数。目标本身存在动作条目上，语义见 utils/exercise-item.js，
+// 用户把默认的 '30秒' 改成 '12次' 照样成立——flag 只决定默认值，不决定训练怎么跑。
 
 const categories = ['胸部', '背部', '腿部', '臀部', '核心', '手臂', '肩部', '有氧']
 
@@ -139,6 +143,7 @@ const actions = [
     category: '腿部',
     level: '初级',
     equipment: '无器械',
+    timed: true,
     muscles: ['股四头肌', '臀大肌'],
     steps: [
       { step: '背靠墙站立，双脚向前迈出半步', key: '背部完全贴墙' },
@@ -169,6 +174,7 @@ const actions = [
     category: '核心',
     level: '初级',
     equipment: '瑜伽垫',
+    timed: true,
     muscles: ['腹横肌', '腹直肌', '竖脊肌'],
     steps: [
       { step: '俯身用前臂与脚尖支撑', key: '肘在肩正下方' },
@@ -246,6 +252,7 @@ const actions = [
     category: '有氧',
     level: '初级',
     equipment: '无器械',
+    timed: true,
     muscles: ['全身', '心肺'],
     steps: [
       { step: '直立站好，双脚并拢，双手垂于体侧', key: '核心微收' },
@@ -263,6 +270,7 @@ const actions = [
     category: '有氧',
     level: '中级',
     equipment: '无器械',
+    timed: true,
     muscles: ['核心', '肩部', '髋屈肌'],
     steps: [
       { step: '俯身成平板支撑，双手撑于肩下', key: '臀部保持稳定' },
@@ -278,6 +286,7 @@ const actions = [
     category: '有氧',
     level: '高级',
     equipment: '无器械',
+    timed: true,
     muscles: ['全身', '心肺'],
     steps: [
       { step: '自然站立，下蹲双手撑地', key: '背部平直' },
@@ -291,11 +300,12 @@ const actions = [
   }
 ]
 
+// 自定义计划/训练页会按 actionId 高频查表，建索引替代线性扫描
+const actionById = {}
+actions.forEach(function (action) { actionById[action.id] = action })
+
 function getAction(id) {
-  for (let i = 0; i < actions.length; i++) {
-    if (actions[i].id === id) return actions[i]
-  }
-  return null
+  return actionById[id] || null
 }
 
 module.exports = {

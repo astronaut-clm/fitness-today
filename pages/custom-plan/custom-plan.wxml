@@ -1,4 +1,5 @@
-<navigation-bar title="自定义计划" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar title="自定义计划"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
@@ -6,8 +7,13 @@
     <view class="g-card section">
       <view class="section-title">计划归属</view>
       <view class="seg">
-        <view class="seg-item {{scene === 'home' ? 'on' : ''}}" data-scene="home" bindtap="onScene">居家计划</view>
-        <view class="seg-item {{scene === 'gym' ? 'on' : ''}}" data-scene="gym" bindtap="onScene">健身房计划</view>
+        <view
+          wx:for="{{sceneTabs}}"
+          wx:key="value"
+          class="seg-item {{scene === item.value ? 'on' : ''}}"
+          data-scene="{{item.value}}"
+          bindtap="onScene"
+        >{{item.name}}</view>
       </view>
       <view class="weak seg-tip">设置后将展示在计划的最上方，方便快速选择</view>
     </view>
@@ -43,7 +49,7 @@
           </view>
           <view class="cfg-block cfg-reps">
             <text class="cfg-label">目标</text>
-            <input class="reps-input" value="{{item.reps}}" maxlength="10" placeholder="如 12次 / 30秒" placeholder-class="weak" data-index="{{index}}" bindinput="onReps" />
+            <input class="reps-input" value="{{item.targetText}}" maxlength="10" placeholder="如 12次 / 30秒 / 力竭" placeholder-class="weak" data-index="{{index}}" bindinput="onTarget" />
           </view>
         </view>
       </view>
@@ -71,9 +77,8 @@
   </view>
 </scroll-view>
 <view class="save-bar">
-  <view wx:if="{{hasSaved}}" class="btn btn-ghost del-btn" bindtap="onDelete">删除</view>
   <view class="btn btn-primary save-btn" bindtap="onSave">保存计划</view>
 </view>
 
-<px-dialog show="{{showDeleteConfirm}}" title="删除自定义计划？" copy="删除后该场景将不再显示自定义计划"
-  confirm-text="删除" danger bind:cancel="onCancelDelete" bind:confirm="onConfirmDelete" />
+<px-dialog show="{{switchConfirm}}" title="有未保存的修改" copy="切换场景会丢弃当前场景的修改，确定切换？"
+  confirm-text="放弃并切换" mask-close="{{false}}" bind:cancel="onCancelSceneSwitch" bind:confirm="onConfirmSceneSwitch" />

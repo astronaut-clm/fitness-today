@@ -1,9 +1,26 @@
-// scene: home / gym；loop 为整组循环轮数
+// 难度等级：数组顺序即由易到难，正/反映射由它派生。新增等级只改这一行。
+// 全项目「有哪几档难度、叫什么」（计划筛选、训练经验选项）都从 LEVELS 取
+const LEVELS = ['初级', '中级', '高级']
+const LEVEL_MAP = {}
+const LEVEL_NAME = {}
+LEVELS.forEach(function (name, index) {
+  LEVEL_MAP[name] = index + 1
+  LEVEL_NAME[index + 1] = name
+})
+
+// 训练场景：value 即 plan.scene（也是自定义计划 id 的后缀），name 为全站展示名。
+// 全项目「有哪些场景、叫什么」只在这里定义一次，其余模块一律从 scenes / SCENES / sceneName() 派生
 const scenes = [
   { value: 'home', name: '居家' },
   { value: 'gym', name: '健身房' }
 ]
+const SCENES = scenes.map(function (scene) { return scene.value })
 
+// 动作条目：{ actionId, sets, rest?, 目标 }。目标三选一，语义互斥，不写文案让别人再解析一遍：
+//   seconds: 30      计时组
+//   toFailure: true  力竭组
+//   reps: '8-10次'   计数组（区间、每侧等文案直接写）
+// 展示文案与训练模式由 utils/exercise-item.js 统一给出。
 const plans = [
   {
     id: 'home_wakeup',
@@ -17,10 +34,10 @@ const plans = [
     notice: '起床后先喝一杯温水再开始；动作间休息 15-20 秒，保持顺畅呼吸。',
     loop: 1,
     exercises: [
-      { actionId: 'jumping_jack', sets: 2, reps: '20秒' },
+      { actionId: 'jumping_jack', sets: 2, seconds: 20 },
       { actionId: 'squat', sets: 2, reps: '12次' },
       { actionId: 'glute_bridge', sets: 2, reps: '12次' },
-      { actionId: 'plank', sets: 2, reps: '20秒' }
+      { actionId: 'plank', sets: 2, seconds: 20 }
     ]
   },
   {
@@ -35,11 +52,11 @@ const plans = [
     notice: '完成一轮动作后休息 60 秒，再进入下一轮，共完成 3 轮；最后一轮请拼尽全力。',
     loop: 3,
     exercises: [
-      { actionId: 'jumping_jack', sets: 1, reps: '30秒' },
+      { actionId: 'jumping_jack', sets: 1, seconds: 30 },
       { actionId: 'squat', sets: 1, reps: '15次' },
       { actionId: 'pushup', sets: 1, reps: '8-10次' },
-      { actionId: 'mountain_climber', sets: 1, reps: '30秒' },
-      { actionId: 'plank', sets: 1, reps: '30秒' }
+      { actionId: 'mountain_climber', sets: 1, seconds: 30 },
+      { actionId: 'plank', sets: 1, seconds: 30 }
     ]
   },
   {
@@ -54,9 +71,9 @@ const plans = [
     notice: '每轮结束后休息 45 秒，共完成 3 轮；卷腹时务必用腹部发力而非颈部。',
     loop: 3,
     exercises: [
-      { actionId: 'plank', sets: 1, reps: '40秒' },
+      { actionId: 'plank', sets: 1, seconds: 40 },
       { actionId: 'crunch', sets: 1, reps: '15次' },
-      { actionId: 'mountain_climber', sets: 1, reps: '30秒' },
+      { actionId: 'mountain_climber', sets: 1, seconds: 30 },
       { actionId: 'glute_bridge', sets: 1, reps: '15次' }
     ]
   },
@@ -75,7 +92,7 @@ const plans = [
       { actionId: 'squat', sets: 1, reps: '15次' },
       { actionId: 'lunge', sets: 1, reps: '每侧10次' },
       { actionId: 'glute_bridge', sets: 1, reps: '20次' },
-      { actionId: 'wall_sit', sets: 1, reps: '30秒' }
+      { actionId: 'wall_sit', sets: 1, seconds: 30 }
     ]
   },
   {
@@ -92,7 +109,7 @@ const plans = [
     exercises: [
       { actionId: 'bench_press', sets: 4, reps: '8-12次', rest: '组间90秒' },
       { actionId: 'dumbbell_fly', sets: 3, reps: '12次', rest: '组间60秒' },
-      { actionId: 'pushup', sets: 3, reps: '力竭', rest: '组间60秒' }
+      { actionId: 'pushup', sets: 3, toFailure: true, rest: '组间60秒' }
     ]
   },
   {
@@ -128,7 +145,7 @@ const plans = [
       { actionId: 'bench_press', sets: 3, reps: '10次', rest: '组间90秒' },
       { actionId: 'pull_down', sets: 3, reps: '10次', rest: '组间90秒' },
       { actionId: 'shoulder_press', sets: 3, reps: '10次', rest: '组间60秒' },
-      { actionId: 'plank', sets: 3, reps: '30秒', rest: '组间45秒' }
+      { actionId: 'plank', sets: 3, seconds: 30, rest: '组间45秒' }
     ]
   },
   {
@@ -146,33 +163,43 @@ const plans = [
       { actionId: 'shoulder_press', sets: 4, reps: '10次', rest: '组间90秒' },
       { actionId: 'dumbbell_curl', sets: 3, reps: '12次', rest: '组间60秒' },
       { actionId: 'pushdown', sets: 3, reps: '12次', rest: '组间60秒' },
-      { actionId: 'pushup', sets: 3, reps: '力竭', rest: '组间60秒' }
+      { actionId: 'pushup', sets: 3, toFailure: true, rest: '组间60秒' }
     ]
   }
 ]
 
+// 内置数据不变，启动时一次性建索引：id 查表、场景分组、场景名，均为 O(1)
+const planById = {}
+const plansByScene = {}
+plans.forEach(function (plan) {
+  planById[plan.id] = plan
+  if (plansByScene[plan.scene]) plansByScene[plan.scene].push(plan)
+  else plansByScene[plan.scene] = [plan]
+})
+
+const sceneNames = {}
+scenes.forEach(function (scene) { sceneNames[scene.value] = scene.name })
+
+// 返回共享数组，调用方只读
 function listByScene(scene) {
-  return plans.filter(function (p) {
-    return p.scene === scene
-  })
+  return plansByScene[scene] || []
 }
 
 function getPlan(id) {
-  for (let i = 0; i < plans.length; i++) {
-    if (plans[i].id === id) return plans[i]
-  }
-  return null
+  return planById[id] || null
 }
 
 function sceneName(scene) {
-  for (let i = 0; i < scenes.length; i++) {
-    if (scenes[i].value === scene) return scenes[i].name
-  }
-  return ''
+  return sceneNames[scene] || ''
 }
 
 module.exports = {
   plans: plans,
+  scenes: scenes,
+  SCENES: SCENES,
+  LEVELS: LEVELS,
+  LEVEL_MAP: LEVEL_MAP,
+  LEVEL_NAME: LEVEL_NAME,
   listByScene: listByScene,
   getPlan: getPlan,
   sceneName: sceneName

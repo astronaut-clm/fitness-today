@@ -1,8 +1,16 @@
+// 日期工具：全部以本机时区的 'YYYY-MM-DD' 字符串为交换格式，
+// 字符串可直接比较大小/前缀，省去反复构造 Date
+
+// 中文星期标签（下标对齐 getDay()，0 = 周日）
+const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+
+// 月历表头：周一开头
+const WEEK_HEAD_LABELS = WEEK_LABELS.slice(1).concat(WEEK_LABELS.slice(0, 1))
+
 function pad(n) {
   return n < 10 ? '0' + n : '' + n
 }
 
-// Date -> 'YYYY-MM-DD'
 function format(date) {
   return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate())
 }
@@ -36,7 +44,6 @@ function weekStart(dateStr) {
   return format(d)
 }
 
-// Date -> 'M月D日 周X'
 function dayLabel(date) {
   return (date.getMonth() + 1) + '月' + date.getDate() + '日 周' + WEEK_LABELS[date.getDay()]
 }
@@ -47,41 +54,32 @@ function monthKey() {
   return now.getFullYear() + '-' + pad(now.getMonth() + 1)
 }
 
-// 'YYYY年M月'
 function monthLabel(year, month) {
   return Number(year) + '年' + Number(month) + '月'
 }
-
-// 中文星期标签（下标对齐 getDay()，0 = 周日）
-const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
-
-// 月历表头：周一开头
-const WEEK_HEAD_LABELS = WEEK_LABELS.slice(1).concat(WEEK_LABELS.slice(0, 1))
 
 // month: 1-12
 function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate()
 }
 
-// 周一开头，首尾补空格
+// 月历网格：周一开头，首尾补空格凑满整周
 function monthGrid(year, month) {
-  const first = new Date(year, month - 1, 1)
-  const offset = (first.getDay() + 6) % 7 // 周一开头
+  const offset = (new Date(year, month - 1, 1).getDay() + 6) % 7
   const total = daysInMonth(year, month)
-  const weeks = []
   const days = []
-  const padStart = offset
-  for (let i = 0; i < padStart; i++) {
+  for (let i = 0; i < offset; i++) {
     days.push({ key: 'p' + i, date: '', day: '', inMonth: false })
   }
+  const prefix = year + '-' + pad(month) + '-'
   for (let d = 1; d <= total; d++) {
-    const date = pad(d)
-    const key = year + '-' + pad(month) + '-' + date
+    const key = prefix + pad(d)
     days.push({ key: key, date: key, day: d, inMonth: true })
   }
   while (days.length % 7 !== 0) {
     days.push({ key: 't' + days.length, date: '', day: '', inMonth: false })
   }
+  const weeks = []
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7))
   }
@@ -90,7 +88,6 @@ function monthGrid(year, month) {
 
 module.exports = {
   pad: pad,
-  format: format,
   parse: parse,
   today: today,
   addDays: addDays,
@@ -99,7 +96,6 @@ module.exports = {
   dayLabel: dayLabel,
   monthKey: monthKey,
   monthLabel: monthLabel,
-  WEEK_LABELS: WEEK_LABELS,
   WEEK_HEAD_LABELS: WEEK_HEAD_LABELS,
   monthGrid: monthGrid
 }

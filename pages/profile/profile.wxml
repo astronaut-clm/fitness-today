@@ -1,6 +1,7 @@
-<navigation-bar title="偏好配置" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar title="偏好配置"></navigation-bar>
 <px-toast></px-toast>
-<import src="../common/prefs-form.wxml" />
+<import src="/components/prefs-form/prefs-form.wxml" />
 <scroll-view class="scrollarea" scroll-y>
   <view class="page">
     <view class="intro">

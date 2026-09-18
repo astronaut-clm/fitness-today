@@ -1,5 +1,7 @@
-const actionsData = require('../../data/actions.js')
-const tab = require('../../utils/tab.js')
+// 动作库列表页：按部位/器械筛选与搜索
+const actionsData = require('../../databases/actions.js')
+const nav = require('../../utils/nav.js')
+const fontBehavior = require('../../utils/font.js').behavior
 
 // 视图字段与搜索文本预计算一次，避免每次筛选重复 join / 取 steps
 const ACTIONS = actionsData.actions.map(function (a) {
@@ -16,6 +18,8 @@ const ACTIONS = actionsData.actions.map(function (a) {
 })
 
 Page({
+  behaviors: [fontBehavior],
+
   data: {
     cats: ['全部'].concat(actionsData.categories),
     cat: '全部',
@@ -24,11 +28,14 @@ Page({
   },
 
   onLoad() {
+    // 门禁放在 onLoad：小程序「恢复到上次退出页面」会直接打开本页，
+    // 放在 onShow 会先把整列表渲染完再被踢回首页
+    if (!nav.requireLogin()) return
     this.applyFilter()
   },
 
   onShow() {
-    tab.sync(this, 1)
+    nav.enter(this, nav.TAB.library)
   },
 
   onUnload() {
@@ -42,7 +49,6 @@ Page({
 
   onSearch(e) {
     this.setData({ keyword: e.detail.value })
-    // 输入防抖：避免每个按键都全量筛选 + setData
     if (this._searchTimer) clearTimeout(this._searchTimer)
     this._searchTimer = setTimeout(() => this.applyFilter(), 200)
   },

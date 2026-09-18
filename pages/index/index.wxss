@@ -1,5 +1,7 @@
+/* 底部预留自定义 tabBar 高度 */
 .page {
-  padding: 8rpx 32rpx calc(148rpx + env(safe-area-inset-bottom));
+  padding-top: 8rpx;
+  padding-bottom: calc(148rpx + env(safe-area-inset-bottom));
 }
 
 .head {
@@ -9,7 +11,6 @@
 }
 
 .head-date {
-  margin-top: 6rpx;
   font-size: 26rpx;
 }
 
@@ -29,63 +30,24 @@
   color: #b26a00;
 }
 
-/* 功能入口（本周目标下方） */
-.entry-row {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-  margin-top: 28rpx;
-  margin-bottom: 28rpx;
-}
-
-.entry-card {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 28rpx;
-}
-
-.entry-badge {
-  flex: none;
-  width: 64rpx;
-  height: 64rpx;
+/* 右上角排行榜入口：红底白字「排行榜」，替换原「今日开练」占位 */
+.rank-entry {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 22rpx;
+  height: 44rpx;
+  padding: 0 16rpx;
   border: var(--pxs) solid var(--ink);
-  background: var(--primary-bg);
-  font-size: 32rpx;
+  border-radius: 0;
+  background: var(--primary);
+  color: var(--card);
+  font-size: 24rpx;
   font-weight: 800;
-}
-
-.entry-badge.blue {
-  background: var(--card2);
-}
-
-.entry-main {
-  min-width: 0;
-}
-
-.entry-title {
-  font-size: 30rpx;
-  font-weight: 700;
-}
-
-.entry-sub {
-  font-size: 23rpx;
-  margin-top: 6rpx;
-}
-
-.entry-arrow {
-  flex: none;
-  margin-left: 16rpx;
-  font-size: 40rpx;
-  font-weight: 700;
-  color: var(--ink3);
+  line-height: 1;
 }
 
 .hero {
-  background: #0058f8;
+  background: var(--blue);
   /* 彩色底叠加反白网点（halftone），增强复古质感 */
   background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5rpx, transparent 1.6rpx);
   background-size: 8rpx 8rpx;
@@ -97,7 +59,7 @@
 }
 
 .hero-done {
-  background: #00a800;
+  background: var(--green);
   background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5rpx, transparent 1.6rpx);
   background-size: 8rpx 8rpx;
 }
@@ -128,8 +90,8 @@
   font-size: 22rpx;
   padding: 6rpx 18rpx;
   border-radius: 0;
-  border: var(--pxs) solid #ffd800;
-  background: #0058f8;
+  border: var(--pxs) solid var(--primary-bg);
+  background: var(--blue);
   margin-right: 14rpx;
 }
 
@@ -152,7 +114,7 @@
 }
 
 .hbtn-solid {
-  background: #ffd800;
+  background: var(--primary-bg);
   color: var(--ink);
 }
 
@@ -194,6 +156,19 @@
   font-weight: 700;
 }
 
+/* 周复盘卡片：像素标签 + 文本行，与全局卡片同一语言 */
+.weekly { padding: 22rpx 24rpx; margin-top: 28rpx; }
+.weekly-head { display: flex; align-items: center; justify-content: space-between; }
+.weekly-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }
+.weekly-refresh { flex: none; font-size: 22rpx; font-weight: 700; color: var(--card); background: var(--green); border: var(--pxs) solid var(--ink); border-radius: 0; padding: 6rpx 18rpx; }
+.weekly-hint { margin-top: 12rpx; font-size: 24rpx; }
+.weekly-sec { display: flex; align-items: flex-start; margin-top: 16rpx; }
+.weekly-tag { flex: none; font-size: 20rpx; font-weight: 700; line-height: 1; color: var(--card); border: var(--pxs) solid var(--ink); border-radius: 0; padding: 5rpx 12rpx; margin-top: 4rpx; }
+.weekly-tag.hl { background: var(--green); }
+.weekly-tag.imp { background: var(--ink2); }
+.weekly-tag.nxt { background: var(--primary); }
+.weekly-text { flex: 1; min-width: 0; margin-left: 14rpx; color: var(--ink); font-size: 25rpx; line-height: 1.6; }
+
 .progress-label {
   display: flex;
   justify-content: space-between;
@@ -220,7 +195,7 @@
 }
 
 .progress-fill.blue {
-  background: #0058f8;
+  background: var(--blue);
 }
 
 .coverage {

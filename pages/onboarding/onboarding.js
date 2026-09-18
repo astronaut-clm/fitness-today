@@ -2,19 +2,21 @@
 const profile = require('../../utils/profile.js')
 const customPlans = require('../../utils/custom-plans.js')
 const account = require('../../utils/account.js')
-const onboarding = require('../../utils/onboarding.js')
+const login = require('../../utils/login.js')
 const toast = require('../../utils/toast.js')
-const prefsForm = require('../../utils/prefs-form.js')
+const prefsForm = require('../../components/prefs-form/prefs-form.js')
+const fontBehavior = require('../../utils/font.js').behavior
 
 Page(Object.assign({}, prefsForm, {
+  behaviors: [fontBehavior],
   data: {
     step: 1,
     goals: [],
     scenes: [],
     experiences: [],
     equipment: [],
-    weeklyTargetDays: 3,
-    weeklyTargetMinutes: 90,
+    weeklyTargetDays: profile.DEFAULT_WEEKLY_TARGET.days,
+    weeklyTargetMinutes: profile.DEFAULT_WEEKLY_TARGET.minutes,
     customHint: ''
   },
 
@@ -31,7 +33,7 @@ Page(Object.assign({}, prefsForm, {
 
   // 无论「完成」还是「跳过」，离开引导即记为已看过，避免反复打扰
   onUnload() {
-    onboarding.markDone()
+    login.markOnboardingDone()
   },
 
   refreshCustom() {
@@ -43,10 +45,10 @@ Page(Object.assign({}, prefsForm, {
 
   savePrefs() {
     profile.save(this.current)
-    if (account.isLoggedIn()) profile.pushToCloud()
+    // 不阻塞引导流程，但要接住 rejection：否则云调用失败会以未处理 rejection 冒出来
+    if (account.isLoggedIn()) profile.pushToCloud().catch(() => {})
   },
 
-  // 保存偏好并进入第二步（训练目标为必选，未选择时阻止继续）
   onNextStep() {
     if (!this.current.goal) {
       toast.show('请先选择训练目标')
@@ -73,7 +75,6 @@ Page(Object.assign({}, prefsForm, {
     wx.navigateTo({ url: '/pages/custom-plan/custom-plan' })
   },
 
-  // 完成：返回首页（无上一页时兜底切回 tab）
   onExit() {
     wx.navigateBack({
       fail: function () { wx.switchTab({ url: '/pages/index/index' }) }

@@ -1,12 +1,12 @@
-﻿// AI 重排：规则打分出候选 → 让模型选一个并给出理由；失败时保持不变
-// 模型调用统一走 ai-client（provider=cloudbase，微信云开发售卖的模型）
-const cloud = require('./cloud.js')
-const recommend = require('./recommend.js')
-const insights = require('./insights.js')
-const dateUtil = require('./date.js')
-const coachMemory = require('./coach-memory.js')
-const ai = require('./ai-client.js')
-const storage = require('./storage.js')
+// AI 重排：规则打分出候选 → 模型选一个并给理由；失败保持规则结果不变
+const cloud = require('../cloud.js')
+const recommend = require('../recommend.js')
+const insights = require('../insights.js')
+const dateUtil = require('../date.js')
+const coachMemory = require('./coach-profile.js')
+const ai = require('./client.js')
+const storage = require('../storage.js')
+const throttle = require('../throttle.js')
 
 const safeStr = ai.safeStr
 const clampNum = ai.clampNum
@@ -15,12 +15,12 @@ const strList = ai.strList
 const CANDIDATE_SIZE = 5
 // 细节窗口只保留近 7 条：输入越小思考越快；更早的历史由 memory 摘要覆盖
 const RECENT_SIZE = 7
-// 推理档位：推荐是首页交互场景，medium 深度推理在当前通道下频繁超时（30s 都不够），
-// 用 low 轻量推理——有 memory 画像加持，决策质量足够；周复盘类后台场景才值得 medium+
+// 首页交互场景 medium 频繁超时，用 low 轻量推理（有 memory 画像加持，质量足够）
 const REASONING_EFFORT = 'low'
 const TIMEOUT = 15000
 const DAILY_LIMIT = 2
-const CACHE_KEY = 'ft_ai_rec'
+const store = storage.scoped('ft_ai_rec')
+const flight = throttle.flight()
 
 const SYSTEM = [
   '你是一名资深健身教练，为小程序用户推荐「今天该练哪个计划」。',
@@ -48,7 +48,7 @@ const SYSTEM = [
 // 只传训练相关信号，不传 openid / 昵称 / 头像
 function buildPayload(records, profile) {
   const p = profile || {}
-  const built = insights.build(records, p)
+  const built = insights.weekProgress(records, p)
   const recent = (records || []).slice(0, RECENT_SIZE).map(function (r) {
     return {
       date: safeStr(r.date, 10),
@@ -73,7 +73,7 @@ function buildPayload(records, profile) {
     scenes: strList(p.scenes, 10, 2),
     experience: safeStr(p.experience, 4),
     equipment: strList(p.equipment, 10, 3),
-    memory: coachMemory.get(records),
+    memory: coachMemory.get(),
     week: {
       days: built.weekDays,
       targetDays: built.targetDays,
@@ -97,65 +97,59 @@ function signature(payload) {
   ].join('|')
 }
 
-function readStore() {
-  return storage.read(CACHE_KEY)
-}
-
-function writeStore(v) {
-  storage.write(CACHE_KEY, v)
-}
-
-// 命中缓存直接返回，不需要云环境；多次 refresh 时不会把已出的 AI 结果冲掉
+// 命中缓存直接返回，不需要云环境；多次 refresh 时不会把已出的 AI 结果冲掉。
+// 额度判断必须放在「是否已有结果」之前：模型持续失败时 pick 一直为空，
+// 若先判 pick 就会每次都返回 null，导致 onShow 等触发点无限重打模型，DAILY_LIMIT 形同虚设
 function readCached(today, sig) {
-  const s = readStore()
-  if (!s || s.date !== today || !s.pick) return null
-  if (s.sig === sig) return Object.assign({ ok: true }, s.pick)
-  // 当天额度用完：复用上次结果，不再打模型
-  if (Number(s.calls || 0) >= DAILY_LIMIT) return Object.assign({ ok: true }, s.pick)
+  const s = store.read()
+  if (!s || s.date !== today) return null
+  if (s.pick && s.sig === sig) return Object.assign({ ok: true }, s.pick)
+  if (Number(s.calls || 0) >= DAILY_LIMIT) {
+    // 当天额度用完：有旧结果就复用，没有则明确失败，由调用方降级到规则推荐
+    return s.pick ? Object.assign({ ok: true }, s.pick) : { ok: false, code: 'daily_limit' }
+  }
   return null
 }
 
-let inflight = null // { sig, promise }：同一输入的并发调用共用一次请求
-
 function fetchPlan(records, profile) {
-  const payload = buildPayload(records, profile)
+  // buildPayload 会穿越 insight / recommend / date 三层，遇到脏记录会同步抛异常。
+  // 包一层转成 rejection，避免异常直接打断页面生命周期（调用方可统一 catch）
+  let payload
+  try {
+    payload = buildPayload(records, profile)
+  } catch (e) {
+    console.warn('[ai] payload failed', e && e.message)
+    return Promise.resolve({ ok: false })
+  }
   if (!payload.candidates.length) return Promise.resolve({ ok: false })
 
   const sig = signature(payload)
   const cached = readCached(dateUtil.today(), sig)
   if (cached) return Promise.resolve(cached)
-  if (inflight && inflight.sig === sig) return inflight.promise
-
-  const req = run(dateUtil.today(), sig, payload)
-  inflight = { sig: sig, promise: req }
-  // 请求结束后释放 inflight，避免后续同 sig 调用命中已 settle 的旧 promise（缓存层仍可兜底）
-  req.then(function () {
-    if (inflight && inflight.promise === req) inflight = null
-  }, function () {})
-  return req
+  // 同一输入的并发调用共用一次请求（单飞状态机见 throttle.flight）
+  return flight.run(sig, function () { return run(dateUtil.today(), sig, payload) })
 }
 
 function run(today, sig, payload) {
   return cloud.init().then(function (ok) {
     if (!ok) return { ok: false }
-    const store = readStore()
-    const cur = (store && store.date === today)
-      ? store
+    const saved = store.read()
+    const cur = (saved && saved.date === today)
+      ? saved
       : { date: today, sig: sig, pick: null, calls: 0 }
-    // 竞态：并发进来时已被兄弟请求写满额度
-    if (cur.pick && Number(cur.calls || 0) >= DAILY_LIMIT) {
-      return Object.assign({ ok: true }, cur.pick)
+    // 并发竞态：可能已被兄弟请求写满当天额度
+    if (Number(cur.calls || 0) >= DAILY_LIMIT) {
+      return cur.pick ? Object.assign({ ok: true }, cur.pick) : { ok: false, code: 'daily_limit' }
     }
 
     cur.sig = sig
     // 先计数再打模型，避免并发/重试把当天额度打穿
     cur.calls = Number(cur.calls || 0) + 1
-    writeStore(cur)
+    store.write(cur)
 
     const startedAt = Date.now()
     const req = ai.generateText({
-      // 当天超时过（cur.slow）自动降 low 档：宁要轻量推理的结果，不要 medium 的再次超时
-      reasoningEffort: cur.slow ? 'low' : REASONING_EFFORT,
+      reasoningEffort: REASONING_EFFORT,
       // hy3-preview 思维链话痨会吃光输出预算（empty_result 根因）：交互场景直接关思考
       enableThinking: false,
       // 关思考后输出仅 ~50 token JSON，800 绰绰有余
@@ -179,10 +173,10 @@ function run(today, sig, payload) {
     // 结果迟到时写入缓存，下次进页面（同日同签名）直接命中，超时不再是纯损失
     req.then(function (out) {
       try {
-        const latest = readStore()
+        const latest = store.read()
         if (!latest || latest.date !== today || latest.sig !== sig || latest.pick) return
         latest.pick = toPick(out)
-        writeStore(latest)
+        store.write(latest)
       } catch (e) {}
     }, function () {})
 
@@ -190,16 +184,11 @@ function run(today, sig, payload) {
       .then(function (out) {
         const pick = toPick(out)
         cur.pick = pick
-        writeStore(cur)
+        store.write(cur)
         return Object.assign({ ok: true, cached: false }, pick)
       })
       .catch(function (e) {
         console.warn('[ai] recommend failed', e && e.message, (Date.now() - startedAt) + 'ms')
-        // 记录超时标记：当天后续调用降档，避免同一网络环境下反复超时
-        if (e && e.message === 'timeout' && !cur.slow) {
-          cur.slow = true
-          writeStore(cur)
-        }
         // 失败也保留上次结果，避免卡片在多次 refresh 间闪回
         if (cur.pick) return Object.assign({ ok: true }, cur.pick)
         return { ok: false }
@@ -207,4 +196,10 @@ function run(today, sig, payload) {
   })
 }
 
-module.exports = { fetchPlan: fetchPlan }
+// 换号/登出必须清理：否则新账号会命中上一个用户的推荐结果与已消耗的当天额度
+function resetLocal() {
+  store.remove()
+  flight.clear()
+}
+
+module.exports = { fetchPlan: fetchPlan, resetLocal: resetLocal }

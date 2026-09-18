@@ -1,27 +1,26 @@
 // 个人设置：头像走 chooseAvatar、昵称走 nickname 输入框，资料按 openid 写入云端 ft_users
 const account = require('../../utils/account.js')
 const customPlans = require('../../utils/custom-plans.js')
-const feed = require('../../utils/feed.js')
+const profile = require('../../utils/profile.js')
 const login = require('../../utils/login.js')
 const font = require('../../utils/font.js')
+const fontBehavior = font.behavior
 const toast = require('../../utils/toast.js')
-const avatarView = require('../../utils/avatar.js')
 
-function charOf(nickname) {
-  const name = (nickname || '').trim()
-  return name ? name.slice(0, 1) : '练'
-}
+// 文字头像首字由 account.charOf 统一给出（emoji 昵称的代理对问题在那里处理）
+const charOf = account.charOf
 
 Page({
+  behaviors: [fontBehavior, account.avatarBehavior('avatarUrl')],
+
   data: {
     nickname: '',
     avatarUrl: '',
-    avatarChar: '练',
+    avatarChar: account.FALLBACK_CHAR,
     customHint: '',
     usePixelFont: false,
     showLogoutConfirm: false,
-    savingShow: false,
-    isAdmin: false
+    savingShow: false
   },
 
   goPrefs() {
@@ -32,44 +31,31 @@ Page({
     wx.navigateTo({ url: '/pages/custom-plan/custom-plan' })
   },
 
-  // 举报审核入口仅管理员可见。
-  goAdminReport() {
-    wx.navigateTo({ url: '/pages/admin-report/admin-report' })
-  },
-
   onShow() {
     this.refreshCustomHint()
     this.refreshFont()
     this.syncCustomPlans()
-    this.checkAdmin()
-  },
-
-  checkAdmin() {
-    feed.adminCheck().then((res) => {
-      this.setData({ isAdmin: !!(res && res.isAdmin) })
-    })
   },
 
   refreshFont() {
     this.setData({ usePixelFont: font.getChoice() === 'pixel' })
   },
 
-  // 像素字体开启即时生效；关闭需重启小程序（已加载字体无法卸载）。
+  // 像素字体开关即时生效：开启引用 Zpix，关闭即回系统字体（改页面根节点字体栈，无需重启）
   onTogglePixelFont(e) {
     const on = !!(e.detail && e.detail.value)
     font.setChoice(on ? 'pixel' : 'system')
-    this.setData({ usePixelFont: on })
-    if (on) {
-      font.load()
-    } else {
-      toast.show('重启小程序后生效')
-    }
+    this.setData({ usePixelFont: on, fontStyle: font.pageStyle() })
+    if (on) font.load()
   },
 
+  // 走 syncPull 而非直接 syncFromCloud：自带限频，
+  // 否则每次从子页返回都要打一次云端 userGet
   syncCustomPlans() {
     if (!account.isLoggedIn()) return
-    customPlans.syncFromCloud().then((res) => {
-      if (res && res.ok) this.refreshCustomHint()
+    return profile.syncPull(this, {
+      key: '_lastCloudSyncAt',
+      onChange: () => this.refreshCustomHint()
     })
   },
 
@@ -96,7 +82,7 @@ Page({
   noop() {},
 
   onLoad() {
-    this._avatar = avatarView.create((url) => this.setData({ avatarUrl: url }))
+    this.bindAvatar()
     const info = account.get()
     this._remoteAvatar = info.avatar
     this._savedNickname = info.nickname
@@ -106,32 +92,23 @@ Page({
       avatarChar: charOf(info.nickname)
     })
     this.showAvatar(info.avatar)
-    // 进入时从云端刷新一次，换机场景也能取回资料。
-    account.fetchProfile().then((res) => {
-      // 云端账号不存在（清库/删号）：清理本地数据并退回上一页。
-      if (login.handleNoAccount(res)) {
-        toast.back('账号已失效，请重新登录')
-        return
-      }
-      if (!res || !res.ok) return
-      this._remoteAvatar = res.avatar
-      this._savedNickname = res.nickname
-      this.setData({
-        nickname: res.nickname,
-        avatarChar: charOf(res.nickname)
-      })
-      this.showAvatar(res.avatar)
+    // force：进设置页就该看到云端最新值，不受 15 秒水位限制
+    login.refreshAccount(this, {
+      force: true,
+      onProfile: (res) => {
+        this._remoteAvatar = res.avatar
+        this._savedNickname = res.nickname
+        this.setData({
+          nickname: res.nickname,
+          avatarChar: charOf(res.nickname)
+        })
+        this.showAvatar(res.avatar)
+      },
+      onGone: () => toast.back('账号已失效，请重新登录')
+    }).then((res) => {
+      // 本地资料仍在，不影响编辑，但要让用户知道展示的可能不是云端最新值
+      if (res.code === 'failed') toast.show('云端资料读取失败，显示的可能不是最新')
     })
-  },
-
-  // 云头像存的是 fileID（cloud://），统一换临时 https 链接再渲染；本地临时图直接用。
-  showAvatar(fileID) {
-    this._avatar.show(fileID)
-  },
-
-  // 头像加载失败（如临时链接过期）：回退文字头像，避免破图。
-  onAvatarError() {
-    this._avatar.error()
   },
 
   onChooseAvatar(e) {
@@ -186,10 +163,13 @@ Page({
       return account.saveProfile({ nickname: nickname, avatar: nextAvatar }).then((res) => {
         this._finishAutoSave()
         if (!res || !res.ok) {
+          // 资料保存失败：刚上传的新头像会成为云端孤儿文件，清掉（与当前头像同图同 md5 时除外）
+          if (avatarChanged && nextAvatar && nextAvatar !== this._remoteAvatar) {
+            account.deleteFile(nextAvatar)
+          }
           toast.show('保存失败：请确认已部署 login 云函数并创建 ft_users 集合')
           return
         }
-        // 头像已更换时清理云端旧文件，避免积累。
         if (nextAvatar && this._remoteAvatar && nextAvatar !== this._remoteAvatar) {
           account.deleteFile(this._remoteAvatar)
         }

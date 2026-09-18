@@ -11,8 +11,6 @@
     "pages/account/account",
     "pages/custom-plan/custom-plan",
     "pages/rank/rank",
-    "pages/feed/feed",
-    "pages/admin-report/admin-report",
     "pages/onboarding/onboarding"
   ],
   "plugins": {
@@ -22,7 +20,6 @@
     }
   },
   "window": {
-    "navigationBarTextStyle": "black",
     "navigationStyle": "custom"
   },
   "tabBar": {
@@ -47,10 +44,11 @@
     ]
   },
   "usingComponents": {
+    "navigation-bar": "/components/navigation-bar/navigation-bar",
     "px-toast": "/components/px-toast/px-toast",
     "px-dialog": "/components/px-dialog/px-dialog"
   },
-  "style": "v2",
   "sitemapLocation": "sitemap.json",
+  "style": "v2",
   "lazyCodeLoading": "requiredComponents"
 }

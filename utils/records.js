@@ -1,226 +1,356 @@
-// 训练记录仓库（以记录 ID 为主键，支持一天多次训练）
-// 单设备语义：删除即物理删除，本地墓碑仅作离线删除待同步的临时缓冲
+// 训练记录：本机 storage 为主，登录后与云端 ft_records 集合双向收敛
+// 同步 = 全量拉取 + updatedAt 较新者胜 + 缺者补推；
+// 删除即本机物理删除，云端删除失败才进待删队列，留到下一轮重试
+const storage = require('./storage.js')
 const dateUtil = require('./date.js')
+const config = require('./config.js')
+const cloud = require('./cloud.js')
+const account = require('./account.js')
 
-const KEY = 'ft_checkin_records_v2'
-const VERSION = 2
+const KEY = 'ft_records'
+const PENDING_DELETE_KEY = 'ft_pending_deletes'
+const COLL = 'ft_records'
+// 记录种类。目前只有「跟练完一个计划」一种，但统计侧（insights / ai）都按 type 过滤，
+// 将来加别的种类（如手动补录）时不必回去改那几处的字面量
+const TYPE_PLAN = 'plan'
+// 单次全量拉取的上限：异常大的云端集合会把本地 storage 打满，
+// 届时所有写入都会静默失败，宁可少拉也不能拖垮本地存储
+const MAX_PULL_RECORDS = 2000
 
-function emptyStore() {
-  return { version: VERSION, records: {} }
-}
+// ——— 本机存储 ———
 
-function clone(obj) {
-  const out = {}
-  Object.keys(obj || {}).forEach(function (k) { out[k] = obj[k] })
-  return out
-}
-
-function makeId(date, ts, index) {
-  // 末尾随机段避免 ID 冲突
+function makeId(date, ts) {
   const random = Math.random().toString(36).slice(2, 6)
-  return 'r_' + String(date || '').replace(/-/g, '') + '_' + String(ts || Date.now()) + '_' + String(index || 0) + '_' + random
+  return 'r_' + String(date || '').replace(/-/g, '') + '_' + String(ts || Date.now()) + '_' + random
 }
 
-function normalize(record, fallbackDate, index) {
+function normalize(record) {
   if (!record) return null
-  const date = record.date || fallbackDate || dateUtil.today()
   const createdAt = Number(record.createdAt || Date.now())
-  const updatedAt = Number(record.updatedAt || createdAt)
-  const id = record.id || makeId(date, createdAt, index)
-  const next = clone(record)
-  next.id = id
-  next.date = date
-  next.createdAt = createdAt
-  next.updatedAt = updatedAt
-  next.deletedAt = Number(next.deletedAt || 0)
-  return next
-}
-
-// 进程内缓存：读写都基于缓存，写入后经 saveStore 刷新
-let cacheStore = null
-
-function readStored() {
-  try {
-    const raw = wx.getStorageSync(KEY)
-    if (raw && raw.version === VERSION && raw.records && typeof raw.records === 'object') {
-      return { version: VERSION, records: clone(raw.records) }
-    }
-  } catch (e) {}
-  return null
-}
-
-// 确保缓存就绪，返回缓存原对象供只读路径使用
-function ensureStore() {
-  if (!cacheStore) {
-    cacheStore = readStored() || emptyStore()
-  }
-  return cacheStore
-}
-
-// 写路径：返回 records 浅拷贝，避免污染缓存
-function getStore() {
-  return { version: VERSION, records: clone(ensureStore().records) }
-}
-
-function saveStore(store) {
-  const safe = {
-    version: VERSION,
-    records: clone((store && store.records) || {})
-  }
-  try { wx.setStorageSync(KEY, safe) } catch (e) {}
-  // 缓存与落库共用同一副本：读写路径均先克隆，不存在原地修改
-  cacheStore = safe
-  return safe
-}
-
-function getAll(options) {
-  const opts = options || {}
-  // 只读遍历缓存原对象；normalize 逐条 clone，调用方拿到独立副本
-  const records = ensureStore().records
-  return Object.keys(records).map(function (id) {
-    return normalize(records[id], '', id)
-  }).filter(function (record) {
-    return record && (opts.includeDeleted || !record.deletedAt)
-  }).sort(function (a, b) {
-    const byDate = String(b.date).localeCompare(String(a.date))
-    if (byDate) return byDate
-    return Number(b.createdAt) - Number(a.createdAt)
+  return Object.assign({}, record, {
+    id: record.id || makeId(record.date, createdAt),
+    date: record.date || dateUtil.today(),
+    createdAt: createdAt,
+    updatedAt: Number(record.updatedAt || createdAt)
   })
 }
 
-function getById(id, includeDeleted) {
-  const record = ensureStore().records[id]
-  const normalized = normalize(record, '', id)
-  if (!normalized || (!includeDeleted && normalized.deletedAt)) return null
-  return normalized
+// 新记录在前：同日按 createdAt 倒序
+function byNewest(a, b) {
+  const byDate = String(b.date).localeCompare(String(a.date))
+  return byDate || Number(b.createdAt) - Number(a.createdAt)
 }
 
-function getDateMapFrom(list) {
+// 读出全部记录，顺手补齐 id / date / 时间戳等缺省字段。
+// 读穿缓存：一次页面交互里 getAll / computeStatsFrom / insights / coachProfile
+// 会重复读同一张表三四遍，每次都真读 storage 并逐条归一化没必要。
+// 所有写入都收口在 saveAll，写失败时主动失效，保证内存不会和磁盘不一致。
+let cache = null
+
+// 数据版本号：每次成功写入自增。页面可用它判断「记录有没有变」，
+// 不必在每次 onShow 都把全表统计重算一遍
+let version = 0
+function revision() {
+  return version
+}
+
+function readAll() {
+  if (cache) return cache
+  const raw = storage.read(KEY)
+  const all = {}
+  if (raw && typeof raw === 'object') {
+    Object.keys(raw).forEach(function (id) {
+      const rec = normalize(raw[id])
+      if (rec) all[rec.id] = rec
+    })
+  }
+  cache = all
+  return all
+}
+
+// 持久化并返回是否成功；失败时清掉读穿缓存，下次读会回到磁盘的真实状态
+function saveAll(next) {
+  if (!storage.write(KEY, next)) {
+    cache = null
+    return false
+  }
+  cache = next
+  version++
+  return true
+}
+
+function getAll() {
+  const all = readAll()
+  return Object.keys(all).map(function (id) { return all[id] }).sort(byNewest)
+}
+
+function getById(id) {
+  return readAll()[id] || null
+}
+
+function getDateMapFrom(source) {
   const out = {}
-  ;(list || []).forEach(function (record) {
-    if (!out[record.date]) out[record.date] = []
-    out[record.date].push(record)
+  ;(source || []).forEach(function (record) {
+    if (out[record.date]) out[record.date].push(record)
+    else out[record.date] = [record]
   })
   return out
 }
 
+// 写失败（一般是配额溢出）返回 null，由调用方提示，绝不谎报成功
 function add(record) {
-  const store = getStore()
-  const now = Date.now()
-  const next = normalize(record, (record && record.date) || dateUtil.today(), now)
-  next.id = (record && record.id) || makeId(next.date, now, Object.keys(store.records).length)
-  next.createdAt = Number((record && record.createdAt) || now)
-  next.updatedAt = now
-  next.deletedAt = 0
-  store.records[next.id] = next
-  saveStore(store)
-  return next
+  const next = normalize(record)
+  if (!next) return null
+  next.updatedAt = Date.now()
+  const merged = Object.assign({}, readAll())
+  merged[next.id] = next
+  return saveAll(merged) ? next : null
 }
 
 function remove(id) {
-  const store = getStore()
-  const current = normalize(store.records[id], '', id)
-  if (!current || current.deletedAt) return null
-  const now = Date.now()
-  current.deletedAt = now
-  current.updatedAt = now
-  store.records[id] = current
-  saveStore(store)
-  return current
+  const all = readAll()
+  const rec = all[id]
+  if (!rec) return null
+  const merged = Object.assign({}, all)
+  delete merged[id]
+  return saveAll(merged) ? rec : null
 }
 
-// 硬删除：从本机移除某条记录（云端已确认物理删除后调用）
-function drop(id) {
-  const store = getStore()
-  if (!store.records[id]) return null
-  const rec = store.records[id]
-  delete store.records[id]
-  saveStore(store)
-  return rec
-}
-
-function purgeDeleted() {
-  const store = getStore()
-  let count = 0
-  Object.keys(store.records).forEach(function (id) {
-    const rec = store.records[id]
-    if (rec && Number(rec.deletedAt || 0) > 0) {
-      delete store.records[id]
-      count++
-    }
+function replaceAll(source) {
+  const next = {}
+  Object.keys(source || {}).forEach(function (id) {
+    const rec = normalize(source[id])
+    if (rec) next[rec.id] = rec
   })
-  if (count) saveStore(store)
-  return count
+  saveAll(next)
 }
 
-function replaceAll(records) {
-  const store = emptyStore()
-  Object.keys(records || {}).forEach(function (id) {
-    const rec = normalize(records[id], '', id)
-    if (rec) store.records[rec.id] = rec
-  })
-  saveStore(store)
-  return store
-}
-
-function mergeRemote(remoteRecords) {
-  // 只读缓存原对象（不修改 local.records），合并结果写入独立副本。
-  const local = ensureStore()
-  const merged = clone(local.records)
+// updatedAt 较新者胜；skipIds 中的 id 不回填（本机待删，避免复活）
+// 返回远端 id -> record 映射，供调用方计算待补推的本机记录，省去二次遍历
+function mergeRemote(remoteRecords, skipIds) {
+  const skip = skipIds || {}
+  const all = readAll()
+  const remoteMap = {}
   let changed = false
   ;(remoteRecords || []).forEach(function (remote) {
-    const r = normalize(remote, '', remote && remote.id)
+    const r = normalize(remote)
     if (!r) return
-    const localRecord = normalize(merged[r.id], '', r.id)
-    if (!localRecord || Number(r.updatedAt) > Number(localRecord.updatedAt)) {
-      merged[r.id] = r
+    remoteMap[r.id] = r
+    if (skip[r.id]) return
+    const local = all[r.id]
+    if (!local || r.updatedAt > local.updatedAt) {
+      all[r.id] = r
       changed = true
     }
   })
-  // 有更新才整量重写，避免每轮同步全量重写本地存储
-  if (changed) replaceAll(merged)
+  if (changed) saveAll(all)
+  return remoteMap
 }
 
-// 从已读取的记录数组派生统计，避免同一轮反复 getAll
-function computeStatsFrom(list) {
-  const dateMap = getDateMapFrom(list)
-  const dates = Object.keys(dateMap).sort()
-  const { today, yesterday } = dateUtil.todayAndYesterday()
+// 统计四个数：累计训练天数、连续天数、本月天数、本月分钟。
+// total / monthCount 算的是「天数」，所以同一天练两次只算一天，用 seen 去重
+function computeStatsFrom(source) {
+  const ym = dateUtil.monthKey()
+  const seen = {}
+  let total = 0
+  let monthCount = 0
+  let monthMinutes = 0
+  ;(source || []).forEach(function (record) {
+    const date = record.date
+    const inMonth = date.indexOf(ym) === 0
+    if (!seen[date]) {
+      seen[date] = true
+      total++
+      if (inMonth) monthCount++
+    }
+    if (inMonth) monthMinutes += Number(record.actualMinutes || 0)
+  })
+
+  // 连续天数：从今天（今天没练就从昨天）往前一天天回退，断了就停
+  const bounds = dateUtil.todayAndYesterday()
   let streak = 0
-  let cursor = dateMap[today] ? today : yesterday
-  while (dateMap[cursor] && dateMap[cursor].length) {
+  let cursor = seen[bounds.today] ? bounds.today : bounds.yesterday
+  while (seen[cursor]) {
     streak++
     cursor = dateUtil.addDays(cursor, -1)
   }
 
-  const ym = dateUtil.monthKey()
-  let monthCount = 0
-  let monthMinutes = 0
-  dates.forEach(function (date) {
-    if (date.indexOf(ym) !== 0) return
-    monthCount++
-    dateMap[date].forEach(function (record) {
-      monthMinutes += Number(record.actualMinutes || 0)
-    })
-  })
+  return { total: total, streak: streak, monthCount: monthCount, monthMinutes: monthMinutes }
+}
 
-  return {
-    total: dates.length,
-    streak: streak,
-    monthCount: monthCount,
-    monthMinutes: monthMinutes
+// ——— 云端读写 ———
+
+function syncEnabled() {
+  try {
+    return !!(config.ENABLE_CLOUD && wx.cloud && wx.cloud.database)
+  } catch (e) {
+    return false
   }
 }
 
+function withDb(task) {
+  return cloud.init().then(function (ok) {
+    if (!ok || !syncEnabled()) return null
+    try {
+      return task(wx.cloud.database())
+    } catch (e) {
+      return null
+    }
+  }).catch(function () {
+    return null
+  })
+}
+
+function clean(record) {
+  const out = {}
+  Object.keys(record || {}).forEach(function (key) {
+    if (key.charAt(0) !== '_') out[key] = record[key]
+  })
+  return out
+}
+
+function saveOne(record) {
+  if (!record || !record.id) return Promise.resolve(false)
+  return withDb(function (db) {
+    return db.collection(COLL).doc(record.id).set({ data: clean(record) })
+      .then(function () { return true })
+      .catch(function () { return false })
+  }).then(function (result) { return !!result })
+}
+
+function removeOne(id) {
+  if (!id) return Promise.resolve(false)
+  return withDb(function (db) {
+    // 文档不存在也视为删除成功
+    return db.collection(COLL).doc(id).remove()
+      .then(function () { return true })
+      .catch(function () { return false })
+  }).then(function (result) { return !!result })
+}
+
+function pushAll(list) {
+  const records = Array.isArray(list) ? list : []
+  const QUEUE_SIZE = 8
+  let index = 0
+  let allSucceeded = true
+  function next() {
+    if (index >= records.length) return Promise.resolve(allSucceeded)
+    const batch = records.slice(index, index + QUEUE_SIZE)
+    index += QUEUE_SIZE
+    return Promise.all(batch.map(saveOne)).then(function (results) {
+      if (results.some(function (result) { return !result })) allSucceeded = false
+      return next()
+    })
+  }
+  return next()
+}
+
+function pullAll() {
+  return withDb(function (db) {
+    const col = db.collection(COLL)
+    const out = []
+    const PAGE = 20
+    // _id 游标分页，避免 skip 深分页在并发写入时漏读/重读
+    function load(lastId) {
+      const query = lastId ? col.where({ _id: db.command.gt(lastId) }) : col
+      return query.orderBy('_id', 'asc').limit(PAGE).get().then(function (res) {
+        const data = (res && res.data) || []
+        let dropped = 0
+        data.forEach(function (doc) {
+          const rec = clean(doc)
+          if (rec.id && rec.updatedAt) out.push(rec)
+          else dropped++
+        })
+        if (dropped) console.warn('[records] 丢弃 ' + dropped + ' 条缺 id/updatedAt 的远端记录')
+        return (data.length < PAGE || out.length >= MAX_PULL_RECORDS) ? out : load(data[data.length - 1]._id)
+      })
+    }
+    return load('')
+  })
+}
+
+// ——— 待删队列（离线删除的兜底） ———
+
+function readPendingDeletes() {
+  const list = storage.read(PENDING_DELETE_KEY, [])
+  return Array.isArray(list) ? list : []
+}
+
+function addPendingDelete(id) {
+  const list = readPendingDeletes()
+  if (list.indexOf(id) < 0) list.push(id)
+  storage.write(PENDING_DELETE_KEY, list)
+}
+
+// 重试待删队列，返回仍失败的 id
+function flushPendingDeletes() {
+  const list = readPendingDeletes()
+  if (!list.length) return Promise.resolve([])
+  return Promise.all(list.map(function (id) {
+    return removeOne(id).then(function (ok) { return ok ? '' : id })
+  })).then(function (results) {
+    const left = results.filter(Boolean)
+    storage.write(PENDING_DELETE_KEY, left)
+    return left
+  })
+}
+
+// ——— 对外：写操作与同步 ———
+
+function addRecord(record) {
+  const saved = add(record)
+  if (saved && account.isLoggedIn()) saveOne(saved)
+  return saved
+}
+
+function removeRecord(id) {
+  const removed = remove(id)
+  if (removed && account.isLoggedIn()) {
+    removeOne(id).then(function (ok) {
+      if (!ok) addPendingDelete(id)
+    })
+  }
+  return removed
+}
+
+// 仅清本机，云端记录不受影响
+function clearLocal() {
+  replaceAll({})
+  storage.write(PENDING_DELETE_KEY, [])
+}
+
+function syncFromCloud() {
+  if (!syncEnabled() || !account.isLoggedIn()) return Promise.resolve(false)
+
+  return flushPendingDeletes().then(function (leftDeletes) {
+    return pullAll().then(function (remote) {
+      // 拉取期间已登出则禁止回填，否则清空的记录会被复活
+      if (!remote || !account.isLoggedIn()) return false
+
+      const skip = {}
+      leftDeletes.forEach(function (id) { skip[id] = true })
+      // mergeRemote 顺带返回远端映射，无需为了算 toPush 再遍历一遍 remote
+      const remoteMap = mergeRemote(remote, skip)
+
+      const toPush = getAll().filter(function (record) {
+        const r = remoteMap[record.id]
+        return !r || record.updatedAt > r.updatedAt
+      })
+      return pushAll(toPush)
+    })
+  })
+}
+
 module.exports = {
+  TYPE_PLAN: TYPE_PLAN,
+  revision: revision,
   getAll: getAll,
-  getById: getById,
-  add: add,
-  remove: remove,
-  drop: drop,
-  purgeDeleted: purgeDeleted,
-  replaceAll: replaceAll,
-  mergeRemote: mergeRemote,
+  getRecord: getById,
+  getDateMapFrom: getDateMapFrom,
   computeStatsFrom: computeStatsFrom,
-  getDateMapFrom: getDateMapFrom
+  syncEnabled: syncEnabled,
+  addRecord: addRecord,
+  removeRecord: removeRecord,
+  clearLocal: clearLocal,
+  syncFromCloud: syncFromCloud
 }

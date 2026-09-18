@@ -10,7 +10,6 @@ Component({
 
   lifetimes: {
     attached() {
-      // 记录所属页面，供 toast 匹配栈顶页
       const pages = getCurrentPages()
       this._page = pages[pages.length - 1]
       toast.register(this)
@@ -22,10 +21,8 @@ Component({
   },
 
   methods: {
+    // toast.js 只会挑栈顶页的实例来调，这里不用再判断一次
     play(text, opts) {
-      // 仅栈顶页实例响应，避免多页重复弹提示
-      const pages = getCurrentPages()
-      if (pages[pages.length - 1] !== this._page) return
       if (this._timer) clearTimeout(this._timer)
       this.setData({ show: true, text: text, success: !!(opts && opts.success) })
       const duration = (opts && opts.duration) || 1800

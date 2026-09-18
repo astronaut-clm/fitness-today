@@ -1,6 +1,6 @@
-﻿// 偏好表单共用交互：profile 与 onboarding 两页复用。
+// 偏好表单共用交互：profile 与 onboarding 两页复用。
 // 用法：Page(Object.assign({}, prefsForm, { ...页面自身配置 }))，页面需持有 this.current（当前偏好对象）。
-const profile = require('./profile.js')
+const profile = require('../../utils/profile.js')
 
 module.exports = {
   applyCurrent() {

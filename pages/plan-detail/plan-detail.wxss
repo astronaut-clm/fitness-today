@@ -1,5 +1,5 @@
 .page {
-  padding: 24rpx 32rpx 220rpx;
+  padding-bottom: 220rpx;
 }
 
 .head {

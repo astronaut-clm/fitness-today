@@ -1,28 +1,14 @@
-// 教练记忆：从训练记录派生的长期画像，规则计算、不消耗模型额度
-// 设计要点：画像是派生数据，训练记录本身已云端同步，任意设备都可重建，
-// 因此只本机缓存（指纹失效即重算），不参与同步、不占云函数往返
-const dateUtil = require('./date.js')
-const insights = require('./insights.js')
-const storage = require('./storage.js')
-const safeStr = require('./ai-client.js').safeStr
+// 教练记忆：从训练记录算出来的长期画像，纯规则计算，只在拼 AI 提问时用。
+// 它完全由记录派生，所以既不存本机也不参与同步——每次要用就现算一遍
+const dateUtil = require('../date.js')
+const insights = require('../insights.js')
+const recordStore = require('../records.js')
+const safeStr = require('./client.js').safeStr
 
-const KEY = 'ft_coach_memory_v1'
 const RECENT_DAYS = 14 // 近期完成率窗口
 const MUSCLE_DAYS = 30 // 肌群分布窗口
 const RHYTHM_DAYS = 56 // 星期节奏窗口（近 8 周）
 const TREND_THRESHOLD = 10 // 完成率变化 ≥10pp 判定趋势升/降
-
-let cache = null // { fp, memory }：进程内缓存，避免同页多次 get 重算
-
-// 输入指纹：记录数、最新更新时间、当天日期；任一变化则画像过期
-function fingerprint(records) {
-  let maxTs = 0
-  ;(records || []).forEach(function (r) {
-    const ts = Number(r.updatedAt || 0)
-    if (ts > maxTs) maxTs = ts
-  })
-  return (records || []).length + '|' + maxTs + '|' + dateUtil.today()
-}
 
 function completionOf(list) {
   let done = 0
@@ -38,9 +24,8 @@ function topKeys(map, limit) {
   return Object.keys(map).sort(function (a, b) { return map[b] - map[a] }).slice(0, limit)
 }
 
-// records：store.getAllRecords() 的全量列表（日期倒序）
 function build(records) {
-  const list = (records || []).filter(function (r) { return r.type === 'plan' })
+  const list = (records || []).filter(function (r) { return r.type === recordStore.TYPE_PLAN })
   if (!list.length) return { totalSessions: 0 }
 
   const today = dateUtil.today()
@@ -93,28 +78,11 @@ function build(records) {
   }
 }
 
-// 主入口：传入全量记录，命中缓存直接返回，否则重算并落本机
-function get(records) {
-  const fp = fingerprint(records)
-  if (cache && cache.fp === fp) return cache.memory
-  const stored = storage.read(KEY)
-  if (stored && stored.fp === fp && stored.memory) {
-    cache = stored
-    return stored.memory
-  }
-  const memory = build(records)
-  cache = { fp: fp, memory: memory }
-  storage.write(KEY, cache)
-  return memory
-}
-
-// 登出清空本机数据时调用，避免画像跨账号残留
-function resetLocal() {
-  cache = null
-  storage.remove(KEY)
+// 画像自己去仓库取全量记录，调用方不用传参
+function get() {
+  return build(recordStore.getAll())
 }
 
 module.exports = {
-  get: get,
-  resetLocal: resetLocal
+  get: get
 }

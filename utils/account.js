@@ -1,23 +1,38 @@
-// 用户账号与个人设置：以 openid 为身份，资料存云端 ft_users
+// 用户账号：以 openid 为身份，资料存云端 ft_users，本机仅缓存
 const cloud = require('./cloud.js')
 const storage = require('./storage.js')
+const throttle = require('./throttle.js')
 
-const CACHE_KEY = 'ft_account_v1'
-const LOGIN_KEY = 'ft_logged_in'
-const LOGOUT_KEY = 'ft_logged_out'
+const cache = storage.scoped('ft_account_v1')
+const loginFlag = storage.scoped('ft_logged_in')
+const logoutFlag = storage.scoped('ft_logged_out')
 
 let openidPromise = null
+// 云请求单飞：
+//   'userGet'    打卡页会同时触发「资料刷新」与「偏好同步」，合并成一次云往返
+//   'avatar:<id>' 打卡页与账号页可能同时渲染同一个头像
+const flight = throttle.flight()
+
+// fileID → https 临时链接内存缓存 90 分钟，换取失败回退旧链接。
+// 只解析当前用户自己的头像，键数量天然有限；登出时清空，避免切换账号命中他人头像
+const AVATAR_CACHE = {}
+const AVATAR_TTL = 90 * 60 * 1000
+
+function clearAvatarCache() {
+  Object.keys(AVATAR_CACHE).forEach(function (id) { delete AVATAR_CACHE[id] })
+  flight.clear()
+}
 
 function enabled() {
   return cloud.callable()
 }
 
-// 获取 openid 并做内存缓存；失败不缓存，允许本会话重试
+// openid 内存缓存；失败不缓存，允许本会话重试
 function login() {
   if (!enabled()) return Promise.resolve('')
   if (openidPromise) return openidPromise
-  openidPromise = cloud.invoke('').then(function (r) {
-    const openid = (r && r.result && r.result.openid) || ''
+  openidPromise = cloud.call('login', 'openid').then(function (res) {
+    const openid = (res.ok && res.openid) || ''
     if (!openid) throw new Error('no_openid')
     return openid
   }).catch(function (err) {
@@ -34,35 +49,28 @@ function defaultNickname(openid) {
 }
 
 function get() {
-  return Object.assign({ nickname: '', avatar: '' }, storage.read(CACHE_KEY, {}))
+  return Object.assign({ nickname: '', avatar: '' }, cache.read({}))
 }
 
-// 登录态语义：只有主动一键登录过才算已登录，云端资料自动拉回不建立登录态。
-// 登出仅本机不再展示账号并暂停同步，云端数据保留，再次登录即恢复。
-function isLoggedOut() {
-  return !!storage.read(LOGOUT_KEY)
-}
-
+// 只有主动一键登录过才算已登录；登出仅暂停同步与展示，云端数据保留
 function isLoggedIn() {
-  if (isLoggedOut()) return false
-  return !!storage.read(LOGIN_KEY)
+  if (logoutFlag.read()) return false
+  return !!loginFlag.read()
 }
 
 function markLoggedIn() {
-  storage.write(LOGIN_KEY, 1)
-  storage.remove(LOGOUT_KEY)
+  loginFlag.write(1)
+  logoutFlag.remove()
 }
 
 function logout() {
   openidPromise = null
-  storage.remove(CACHE_KEY)
-  storage.remove(LOGIN_KEY)
-  storage.write(LOGOUT_KEY, 1)
-}
-
-// 训练/记录类操作的登录闸门；未登录时由调用方展示引导并跳转登录
-function requireLogin() {
-  return isLoggedIn()
+  cache.remove()
+  loginFlag.remove()
+  logoutFlag.write(1)
+  // 头像临时链接有 90 分钟 TTL，不清的话同设备切换账号可能命中他人头像；
+  // 顺带作废在飞的 userGet / 头像解析
+  clearAvatarCache()
 }
 
 function saveLocal(info) {
@@ -71,55 +79,51 @@ function saveLocal(info) {
     avatar: String((info && info.avatar) || ''),
     updatedAt: Date.now()
   }
-  storage.write(CACHE_KEY, next)
+  cache.write(next)
   return next
 }
 
-// 从云端拉取资料并写本地缓存（含换机恢复）；主动登出期间不拉回
+// 裸读云端用户文档（userGet：资料+偏好+自定义计划），失败 resolve null，无副作用。
+// 同一 tick 内的并发调用共用一次云请求（单飞），成功失败都放行下一次
+function readCloud() {
+  if (!enabled()) return Promise.resolve(null)
+  return flight.run('userGet', function () {
+    return cloud.call('login', 'userGet').then(function (res) {
+      return res.ok ? res : null
+    })
+  })
+}
+
+// 拉取云端资料并写本地缓存；云端无文档（清库/删号）时登出并返回 no_account
 function fetchProfile() {
-  if (!enabled() || isLoggedOut()) return Promise.resolve({ ok: false })
-  return cloud.invoke('profile').then(function (r) {
-    const result = (r && r.result) || {}
-    if (!result.openid) return { ok: false }
-    // 云端无该用户文档（清库/删号）：置为未登录并返回 no_account，由上层清理本地数据
-    const hasDoc = Number(result.updatedAt || 0) > 0 || !!result.nickname || !!result.avatar
+  return readCloud().then(function (res) {
+    if (!res) return { ok: false }
+    const hasDoc = Number(res.updatedAt || 0) > 0 || !!res.nickname || !!res.avatar
     if (!hasDoc) {
       logout()
       return { ok: false, code: 'no_account' }
     }
-    const info = saveLocal({
-      nickname: result.nickname || '',
-      avatar: result.avatar || ''
-    })
-    return Object.assign({ ok: true, openid: result.openid }, info)
-  }).catch(function (err) {
-    console.error('[account] fetchProfile', err)
-    return { ok: false }
+    const info = saveLocal({ nickname: res.nickname || '', avatar: res.avatar || '' })
+    return Object.assign({ ok: true }, info)
   })
 }
 
-// 保存资料到云端（ft_users，doc id = openid）
 function saveProfile(info) {
   const payload = {
     nickname: String((info && info.nickname) || '').trim().slice(0, 30),
     avatar: String((info && info.avatar) || '')
   }
-  return cloud.invoke('profileSet', { profile: payload }).then(function (r) {
-    const result = (r && r.result) || {}
-    if (!result.openid) return { ok: false, code: 'save_error' }
-    const saved = saveLocal({ nickname: result.nickname, avatar: result.avatar })
+  return cloud.call('login', 'profileSet', { profile: payload }).then(function (res) {
+    if (!res.ok) return { ok: false, code: res.code || 'save_error' }
+    const saved = saveLocal({ nickname: res.nickname, avatar: res.avatar })
     markLoggedIn()
     return Object.assign({ ok: true }, saved)
-  }).catch(function (err) {
-    console.error('[account] saveProfile', err)
-    return { ok: false, code: 'save_error', err: err }
   })
 }
 
 function fileDigest(filePath) {
   return new Promise(function (resolve) {
-    const fs = wx.getFileSystemManager()
-    fs.getFileInfo({
+    wx.getFileSystemManager().getFileInfo({
       filePath: filePath,
       digestAlgorithm: 'md5',
       success: function (res) { resolve((res && res.digest) || '') },
@@ -128,7 +132,7 @@ function fileDigest(filePath) {
   })
 }
 
-// 上传头像到云存储并返回 fileID；文件名取内容 md5，避免同图重复占位
+// 文件名取内容 md5，同图重传覆盖同路径，避免重复占位
 function uploadAvatar(tempFilePath) {
   if (!enabled() || !tempFilePath) return Promise.resolve({ ok: false })
   return login().then(function (openid) {
@@ -136,8 +140,7 @@ function uploadAvatar(tempFilePath) {
     const ext = String(tempFilePath).match(/\.(png|jpe?g|gif|webp)$/i)
     const suffix = ext ? ext[0].toLowerCase() : '.jpg'
     return fileDigest(tempFilePath).then(function (digest) {
-      const name = digest || String(Date.now())
-      const cloudPath = 'avatars/' + openid + '/' + name + suffix
+      const cloudPath = 'avatars/' + openid + '/' + (digest || String(Date.now())) + suffix
       return wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: tempFilePath }).then(function (res) {
         const fileID = (res && res.fileID) || ''
         return fileID ? { ok: true, fileID: fileID } : { ok: false, code: 'upload_error' }
@@ -149,29 +152,17 @@ function uploadAvatar(tempFilePath) {
   })
 }
 
-// 读取云端用户资料（不依赖本机登录态）；updatedAt=0 表示新账号，读取失败返回 null
-function cloudProfile() {
-  if (!enabled()) return Promise.resolve(null)
-  return cloud.invoke('profile').then(function (r) {
-    const result = (r && r.result) || {}
-    if (!result.openid) return null
-    return result
-  }).catch(function () {
-    return null
-  })
-}
-
 function deleteFile(fileID) {
-  if (!enabled() || !fileID) return Promise.resolve()
-  return wx.cloud.deleteFile({ fileList: [fileID] }).catch(function () {})
+  const id = String(fileID || '')
+  if (!id) return Promise.resolve()
+  // 文件已删，顺带失效它的临时链接缓存
+  delete AVATAR_CACHE[id]
+  if (!enabled()) return Promise.resolve()
+  return wx.cloud.deleteFile({ fileList: [id] }).catch(function () {})
 }
 
-// 云文件 fileID → https 临时链接（image 组件不能直接用 cloud://）。
-// 统一走云函数 fileUrl：服务端管理员 token 绕过存储权限规则，用于用户头像等云端资源。
-// 内存缓存 90 分钟，换取失败回退旧链接，彻底失败返回空串。
-const AVATAR_CACHE = {}
-const AVATAR_TTL = 90 * 60 * 1000
-
+// fileID → https 临时链接（image 组件不能用 cloud://），走云函数 fileUrl 绕过存储权限；
+// 缓存与单飞状态见文件顶部
 function resolveAvatar(fileID) {
   const id = String(fileID || '')
   if (!id) return Promise.resolve('')
@@ -182,14 +173,87 @@ function resolveAvatar(fileID) {
   if (cached && cached.expireAt > Date.now()) return Promise.resolve(cached.url)
 
   const fallback = (cached && cached.url) || ''
-  // 用 invoke 直接调用 fileUrl，避免 cloud.call 要求 openid
-  return cloud.invoke('fileUrl', { fileList: [id] }).then(function (res) {
-    const list = (res && res.result && res.result.fileList) || []
-    const url = (list[0] && list[0].tempFileURL) || ''
-    if (url) AVATAR_CACHE[id] = { url: url, expireAt: Date.now() + AVATAR_TTL }
-    return url || fallback
-  }).catch(function () {
-    return fallback
+  return flight.run('avatar:' + id, function () {
+    return cloud.call('login', 'fileUrl', { fileList: [id] }).then(function (res) {
+      const list = res.fileList || []
+      const url = (list[0] && list[0].tempFileURL) || ''
+      if (url) AVATAR_CACHE[id] = { url: url, expireAt: Date.now() + AVATAR_TTL }
+      return url || fallback
+    })
+  })
+}
+
+// ——— 头像渲染助手 ———
+// cloud:// 换临时 https 链接 + seq 防过期覆盖 + 失败回退文字头像。
+// 页面直接用 avatarBehavior()（把创建与 binderror 回退都收进去）；列表行用 clearAvatarRow()
+// apply(url) 由页面实现（setData 写头像字段，空串即回退文字头像）
+
+// 文字头像的首字：昵称首字符，空则兜底。
+// Array.from 而非 slice：emoji 昵称是代理对，slice(0,1) 会切出半个字符
+const FALLBACK_CHAR = '练'
+
+function charOf(nickname) {
+  const name = String(nickname == null ? '' : nickname).trim()
+  return name ? Array.from(name)[0] : FALLBACK_CHAR
+}
+
+function createAvatar(apply) {
+  let seq = 0
+  return {
+    // 非 cloud://（本地临时图/空值）直接渲染；cloud:// 先清空再异步换链，过期结果丢弃
+    show(fileID) {
+      const id = String(fileID || '')
+      seq += 1
+      const current = seq
+      if (id.indexOf('cloud://') !== 0) {
+        apply(id)
+        return
+      }
+      apply('')
+      resolveAvatar(id).then(function (url) {
+        if (!url || current !== seq) return
+        apply(url)
+      }).catch(function () {})
+    },
+
+    // image binderror（如临时链接过期）：作废旧结果并回退文字头像
+    error() {
+      seq += 1
+      apply('')
+    }
+  }
+}
+
+// 列表行头像失效回退：清空该行 avatar，落到文字头像
+function clearAvatarRow(page, listKey, index) {
+  if (index == null) return
+  const patch = {}
+  patch[listKey + '[' + index + '].avatar'] = ''
+  page.setData(patch)
+}
+
+// 页面侧样板：创建助手 + 统一 binderror 回退，省掉每个页面重复的一份接线。
+// dataKey 是头像字段在 data 中的路径，支持嵌套（'avatarUrl' / 'accountInfo.avatar'）
+function avatarBehavior(dataKey) {
+  return Behavior({
+    methods: {
+      // 在 onLoad 里最先调用：之后用 showAvatar / onAvatarError 即可
+      bindAvatar() {
+        const page = this
+        this._avatar = createAvatar(function (url) {
+          const patch = {}
+          patch[dataKey] = url
+          page.setData(patch)
+        })
+      },
+      showAvatar(fileID) {
+        if (this._avatar) this._avatar.show(fileID)
+      },
+      // image binderror（如临时链接过期）：作废旧结果并回退文字头像
+      onAvatarError() {
+        if (this._avatar) this._avatar.error()
+      }
+    }
   })
 }
 
@@ -198,12 +262,14 @@ module.exports = {
   defaultNickname: defaultNickname,
   get: get,
   isLoggedIn: isLoggedIn,
-  requireLogin: requireLogin,
   logout: logout,
+  readCloud: readCloud,
   fetchProfile: fetchProfile,
   saveProfile: saveProfile,
   uploadAvatar: uploadAvatar,
-  cloudProfile: cloudProfile,
   deleteFile: deleteFile,
-  resolveAvatar: resolveAvatar
+  charOf: charOf,
+  FALLBACK_CHAR: FALLBACK_CHAR,
+  clearAvatarRow: clearAvatarRow,
+  avatarBehavior: avatarBehavior
 }

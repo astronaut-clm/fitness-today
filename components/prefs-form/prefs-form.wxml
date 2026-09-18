@@ -1,4 +1,4 @@
-﻿<!-- 偏好配置表单：profile 与 onboarding 两页共用（事件方法见 utils/prefs-form.js，样式在 app.wxss） -->
+<!-- 偏好配置表单：profile 与 onboarding 两页共用（事件方法与样式见同目录 prefs-form.js / prefs-form.wxss） -->
 <template name="prefsForm">
   <view class="g-card section">
     <view class="section-title">你的主要目标<text wx:if="{{required}}" class="required-tag">必选</text></view>

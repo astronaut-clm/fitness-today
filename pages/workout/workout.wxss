@@ -1,5 +1,6 @@
 .page {
-  padding: 20rpx 32rpx 220rpx;
+  padding-top: 20rpx;
+  padding-bottom: 220rpx;
 }
 
 /* 自绘顶部导航：返回与动作按钮用同一套事件机制 */
@@ -265,43 +266,6 @@
   line-height: 1.7;
 }
 
-/* AI 教练点评：异步到达，像素边框 + 标签与统计区同一视觉语言 */
-.done-coach {
-  margin-top: 28rpx;
-  padding: 20rpx 24rpx;
-  background: var(--card2);
-  border: var(--pxs) solid var(--ink);
-  text-align: left;
-}
-
-.done-coach-tag {
-  display: inline-block;
-  font-size: 20rpx;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--card);
-  background: var(--ink);
-  padding: 6rpx 12rpx;
-}
-
-.done-coach-text {
-  font-size: 26rpx;
-  color: var(--ink);
-  line-height: 1.7;
-  margin-top: 14rpx;
-}
-
-/* 流式输出中的打字光标 */
-.done-coach-text.streaming::after {
-  content: '▌';
-  color: var(--ink2);
-  animation: coach-blink 0.8s steps(2, start) infinite;
-}
-
-@keyframes coach-blink {
-  to { visibility: hidden; }
-}
-
 .done-stats {
   display: flex;
   margin-top: 40rpx;
@@ -327,42 +291,6 @@
 .ds-label {
   font-size: 20rpx;
   margin-top: 6rpx;
-}
-
-.share-row {
-  margin-top: 44rpx;
-}
-
-/* button 需重置默认样式才能贴合像素风 */
-.share-btn {
-  width: 100%;
-  height: 96rpx;
-  margin: 0;
-  padding: 0;
-  border: var(--px) solid var(--ink);
-  border-radius: 0;
-  font-size: 32rpx;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 2rpx;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.share-btn::after {
-  border: none;
-}
-
-.share-btn.primary {
-  background: var(--primary);
-  color: var(--card);
-}
-
-.share-btn.posted {
-  background: var(--card2);
-  color: var(--ink2);
 }
 
 .next-preview {

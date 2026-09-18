@@ -1,4 +1,5 @@
-<navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar back="{{false}}"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
 

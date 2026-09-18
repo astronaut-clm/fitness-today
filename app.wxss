@@ -1,3 +1,5 @@
+@import "./components/prefs-form/prefs-form.wxss";
+
 /**app.wxss 全局样式与设计变量 —— 8-bit NES 多彩像素主题**/
 page {
   /* 描边/文字用黑，强调色红黄蓝，成功用绿，底色为白 */
@@ -9,10 +11,10 @@ page {
   --card: #ffffff;       /* 卡片底色：白 */
   --card2: #cfe3ff;      /* 浅蓝：次级填充（标签 / 轨道 / 提示框） */
   --primary: #e60012;    /* NES 红：主按钮 / 选中 / 进度 */
-  --primary2: #0058f8;   /* NES 蓝 */
   --primary-bg: #ffd800; /* NES 黄：芯片 / 徽章 / 高亮 */
   --green: #00a800;      /* NES 绿：成功 */
   --green-bg: #c8f000;   /* 浅绿 */
+  --blue: #0058f8;       /* NES 蓝：hero 主视觉 / 时长进度 */
 
   /* 像素风尺寸：统一描边与硬阴影 */
   --px: 4rpx;
@@ -23,8 +25,8 @@ page {
   color: var(--ink);
   font-size: 28rpx;
   line-height: 1.5;
-  /* 像素字体优先，未加载时回退系统字体栈 */
-  font-family: "Zpix", -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  /* 默认系统字体栈；像素字体由页面根节点样式（page-meta page-style）按开关切换 */
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   /* 关闭抗锯齿，保留生硬锯齿，更接近像素观感 */
   -webkit-font-smoothing: none;
   font-smooth: never;
@@ -142,6 +144,13 @@ cover-view {
 button::after,
 input::after {
   border-radius: 0;
+}
+
+/* 原生表单控件默认不继承页面字体，显式继承以便跟随像素字体开关 */
+button,
+input,
+textarea {
+  font-family: inherit;
 }
 
 /* 统一像素弹窗，跟随全局像素字体。用法：.px-mask > .px-dialog > 标题/正文/输入/按钮 */
@@ -269,6 +278,13 @@ page {
   background: var(--bg);
 }
 
+/* 页面内容容器：横向内边距与顶部留白全站一致，各页 wxss 只覆盖 padding-bottom
+   （底部固定操作栏 200rpx 上下、自定义 tabBar 148rpx + 安全区） */
+.page {
+  padding: 24rpx 32rpx 48rpx;
+  box-sizing: border-box;
+}
+
 .bottom-space {
   height: 24rpx;
 }
@@ -284,7 +300,7 @@ page {
   background: var(--card);
 }
 
-/* 居中加载/空态/重试（rank / feed / admin-report 等页共用） */
+/* 居中加载/空态/重试（排行榜等需要请求云端的页面共用） */
 .loading-box {
   display: flex;
   justify-content: center;
@@ -351,122 +367,3 @@ page {
   font-weight: 700;
 }
 
-/* ===== 偏好配置表单（profile / onboarding 共用，结构见 pages/common/prefs-form.wxml） ===== */
-.intro {
-  margin: 8rpx 8rpx 24rpx;
-}
-
-.intro-title {
-  color: var(--ink);
-  font-size: 42rpx;
-  font-weight: 800;
-}
-
-.intro-sub {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-}
-
-.section {
-  margin-top: 20rpx;
-}
-
-.section-title {
-  color: var(--ink);
-  font-size: 30rpx;
-  font-weight: 700;
-}
-
-.required-tag {
-  margin-left: 12rpx;
-  color: var(--primary);
-  font-size: 22rpx;
-  font-weight: 700;
-}
-
-.goal-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  margin-top: 20rpx;
-}
-
-.goal-item {
-  flex: 0 0 calc((100% - 16rpx) / 2);
-  min-height: 126rpx;
-  box-sizing: border-box;
-  padding: 20rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  background: var(--card);
-}
-
-.goal-item.on {
-  border-color: var(--ink);
-  background: var(--primary-bg);
-}
-
-.goal-name {
-  color: var(--ink);
-  font-size: 26rpx;
-  font-weight: 700;
-}
-
-.goal-desc {
-  margin-top: 7rpx;
-  color: var(--ink3);
-  font-size: 20rpx;
-  line-height: 1.35;
-}
-
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14rpx;
-  margin-top: 20rpx;
-}
-
-.chip {
-  padding: 13rpx 22rpx;
-  border: var(--pxs) solid var(--ink);
-  border-radius: 0;
-  color: var(--ink2);
-  font-size: 24rpx;
-}
-
-.chip.on {
-  border-color: var(--ink);
-  color: var(--ink);
-  background: var(--primary-bg);
-  font-weight: 700;
-}
-
-.slider-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20rpx;
-  padding-top: 26rpx;
-  color: var(--ink);
-  font-size: 25rpx;
-}
-
-.slider-copy {
-  flex: none;
-  width: 190rpx;
-}
-
-.slider-row .weak {
-  margin-top: 5rpx;
-  font-size: 21rpx;
-}
-
-.slider-area {
-  flex: 1;
-  min-width: 0;
-  padding-top: 2rpx;
-}
-
-.slider-row slider {
-  width: 100%;
-}

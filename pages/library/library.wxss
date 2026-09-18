@@ -1,6 +1,7 @@
+/* 底部预留自定义 tabBar 高度 */
 .page {
-  /* 底部预留自定义 tabBar 高度 */
-  padding: 20rpx 32rpx calc(148rpx + env(safe-area-inset-bottom));
+  padding-top: 20rpx;
+  padding-bottom: calc(148rpx + env(safe-area-inset-bottom));
 }
 
 .search {

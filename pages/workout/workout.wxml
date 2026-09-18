@@ -1,3 +1,4 @@
+<page-meta page-style="{{fontStyle}}"></page-meta>
 <px-toast></px-toast>
 <!-- 自绘顶部导航：返回点击直接绑定页面方法 -->
 
@@ -30,20 +31,11 @@
         <view class="done-sub sub">{{planName}} · {{total - skippedGroups}}/{{total}} 组完成 · 用时 {{costText}}</view>
         <view class="done-cheer">{{doneCheer}}</view>
 
-        <view wx:if="{{doneCommentLive || doneComment}}" class="done-coach">
-          <text class="done-coach-tag">教练点评</text>
-          <view class="done-coach-text {{doneCommentLive && doneComment ? 'streaming' : ''}}">{{doneComment || '教练正在写点评…'}}</view>
-        </view>
-
         <view class="done-stats">
           <view class="ds-item" wx:for="{{doneStats}}" wx:key="label">
             <view class="ds-val">{{item.value}}</view>
             <view class="ds-label weak">{{item.label}}</view>
           </view>
-        </view>
-
-        <view class="share-row">
-          <button wx:if="{{canShareFeed}}" class="share-btn {{feedPosted || feedPosting ? 'posted' : 'primary'}}" hover-class="none" bindtap="onShareToFeed">{{feedPosted ? '已分享铁友圈' : (feedPosting ? '分享中…' : '分享铁友圈')}}</button>
         </view>
       </view>
     </block>
@@ -78,14 +70,15 @@
         <view class="g-target sub">目标：{{group.targetText}}</view>
         <view class="next-preview weak" wx:if="{{nextGroup}}">下一组：{{nextGroup.name}} · {{nextGroup.targetText}}</view>
 
-        <block wx:if="{{group.kind === 'time'}}">
+        <block wx:if="{{group.mode === 'time'}}">
           <view class="big-num timer">{{workLeft}}</view>
           <view class="big-unit weak">秒 · 倒数结束后自动进入下一组</view>
         </block>
+        <view class="g-tip weak" wx:elif="{{group.mode === 'failure'}}">做到再做不动为止，动作一变形就停，然后点击下方按钮</view>
         <view class="g-tip weak" wx:else>请按标准完成本组目标后，点击下方按钮</view>
 
         <view class="actions">
-          <block wx:if="{{group.kind === 'time'}}">
+          <block wx:if="{{group.mode === 'time'}}">
             <view wx:if="{{running}}" class="btn btn-ghost act-btn half" bindtap="onPauseWork">暂停</view>
             <view wx:else class="btn btn-ghost act-btn half" bindtap="onStartWork">{{timeStarted ? '继续计时' : '开始计时'}}</view>
             <view class="btn btn-primary act-btn half" bindtap="onCompleteSet">本组完成</view>

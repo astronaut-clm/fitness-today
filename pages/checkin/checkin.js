@@ -1,12 +1,32 @@
-const store = require('../../utils/store.js')
+// 打卡页：月历（哪天练过）+ 累计统计 + 当日明细
+const records = require('../../utils/records.js')
 const dateUtil = require('../../utils/date.js')
-const profile = require('../../utils/profile.js')
 const account = require('../../utils/account.js')
 const login = require('../../utils/login.js')
-const avatarView = require('../../utils/avatar.js')
-const tab = require('../../utils/tab.js')
-const aiWeekly = require('../../utils/ai-weekly.js')
-const limit = require('../../utils/limit.js')
+const nav = require('../../utils/nav.js')
+const profile = require('../../utils/profile.js')
+const throttle = require('../../utils/throttle.js')
+const toast = require('../../utils/toast.js')
+const fontBehavior = require('../../utils/font.js').behavior
+
+// 未登录/登出时的占位账号（char 为文字头像兜底字符）
+function emptyAccount() {
+  return { nickname: '', avatar: '', char: account.FALLBACK_CHAR }
+}
+
+function emptyDeleteConfirm() {
+  return { show: false, id: '', name: '' }
+}
+
+// 年月压成可比较的整数：202603 > 202602
+function ymOf(year, month) {
+  return year * 100 + month
+}
+
+function currentYM() {
+  const now = new Date()
+  return ymOf(now.getFullYear(), now.getMonth() + 1)
+}
 
 function recordView(record) {
   const time = new Date(record.createdAt)
@@ -20,39 +40,33 @@ function recordView(record) {
 }
 
 Page({
+  behaviors: [fontBehavior, account.avatarBehavior('accountInfo.avatar')],
+
   data: {
-    accountInfo: { nickname: '', avatar: '', char: '练' },
+    accountInfo: emptyAccount(),
     stats: { total: 0, streak: 0, monthCount: 0, monthMinutes: 0 },
-    year: 0,
-    month: 0,
     monthLabel: '',
     canNext: false,
     weekHead: dateUtil.WEEK_HEAD_LABELS,
     weeks: [],
     selectedLabel: '',
     selectedRecords: [],
-    // 周复盘：visible=已登录才展示；locked=本周次数不足；loading=生成中；review=复盘内容
-    weeklyVisible: false,
-    weeklyLocked: true,
-    weeklyLoading: false,
-    weeklyReview: null,
-    deleteConfirm: { show: false, id: '', name: '' }
+    deleteConfirm: emptyDeleteConfirm()
   },
 
   onLoad() {
-    this._avatar = avatarView.create((url) => this.setData({ 'accountInfo.avatar': url }))
-    // 今天日期与选中日仅 JS 内部使用（wxml 渲染用单元格自身的 isToday/isSel），不进 data
+    this.bindAvatar()
+    // 今天日期、选中日、当前翻到的年月都只在 JS 内部使用，不进 data
+    // （wxml 渲染日历用单元格自身的 isToday/isSel，月份只用派生出来的 monthLabel/canNext）
     this.todayStr = dateUtil.today()
     this.selected = this.todayStr
     const now = new Date()
-    this.setData({
-      year: now.getFullYear(),
-      month: now.getMonth() + 1
-    })
+    this.year = now.getFullYear()
+    this.month = now.getMonth() + 1
   },
 
   onShow() {
-    tab.sync(this, 2)
+    if (!nav.enter(this, nav.TAB.checkin)) return
     this.reload()
     this.pullCloud()
     this.refreshAccount()
@@ -60,135 +74,93 @@ Page({
   },
 
   refreshAccount() {
-    // 登录态以「是否完成过登录」为准，未登录一律显示登录卡片
     if (!account.isLoggedIn()) {
-      this.setData({ accountInfo: { nickname: '', avatar: '', char: '练' } })
+      this.setData({ accountInfo: emptyAccount() })
       return
     }
     this.renderAccount(account.get())
-    // 云端资料 15 秒内只拉一次，失败允许下次重试
-    if (!limit.pass(this, '_lastProfileFetchAt', 15000)) return
-    account.fetchProfile().then((res) => {
-      if (res && res.ok) this.renderAccount(res)
-      // 账号已不存在：清理本地数据并切回未登录视图
-      if (login.handleNoAccount(res)) {
-        this.setData({ accountInfo: { nickname: '', avatar: '', char: '练' } })
-        this.reload()
-        return
-      }
-      if (!res || !res.ok) limit.reset(this, '_lastProfileFetchAt')
+    // 云端资料的限频与失败重试见 utils/login.js 的 refreshAccount
+    login.refreshAccount(this, {
+      key: '_lastProfileFetchAt',
+      onProfile: (res) => this.renderAccount(res),
+      // 云端账号已不存在（清库/删号）：本机数据已被清空，直接回首页登录
+      onGone: () => nav.requireLogin()
     })
   },
 
-  // 头像存的是 cloud:// 文件 ID，换临时 https 链接渲染，换不到则回退文字头像
   renderAccount(src) {
     const nickname = (src && src.nickname) || ''
     this.setData({
-      accountInfo: { nickname: nickname, avatar: '', char: nickname ? nickname.slice(0, 1) : '练' }
+      accountInfo: { nickname: nickname, avatar: '', char: account.charOf(nickname) }
     })
-    this._avatar.show((src && src.avatar) || '')
+    this.showAvatar((src && src.avatar) || '')
   },
 
   goAccount() {
     wx.navigateTo({ url: '/pages/account/account' })
   },
 
-  // 登录后与云端收敛偏好与自定义计划（一次 userGet 拉回两者）；非 force 的重复 onShow 30 秒内跳过
+  // 登录后与云端收敛偏好与自定义计划（一次 userGet 拉回两者）；限频与失败重试见 utils/profile.js 的 syncPull
   syncPrefs(force) {
-    if (!account.isLoggedIn()) return Promise.resolve(false)
-    if (!force && !limit.pass(this, '_lastPrefsSyncAt', 30000)) return Promise.resolve(false)
-    return profile.syncFromCloudAll().then((res) => {
-      if (res && res.changed) this.reload()
-      if (!res || !res.ok) limit.reset(this, '_lastPrefsSyncAt')
-      return !!(res && res.ok)
+    return profile.syncPull(this, {
+      key: '_lastPrefsSyncAt',
+      force: !!force,
+      onChange: () => { if (nav.alive(this)) this.reload() }
     })
   },
 
   pullCloud() {
-    if (!store.syncEnabled()) return
-    if (!limit.pass(this, '_lastSync', 15000)) return
-    store.syncFromCloud().then((ok) => { if (ok) this.reload() }).catch(() => {})
+    if (!records.syncEnabled()) return
+    if (!throttle.pass(this, '_lastSync', 15000)) return
+    records.syncFromCloud().then((ok) => {
+      // 请求飞行期间可能已跳到别的页，别再给离开的页面重算一遍
+      if (ok && nav.alive(this)) this.reload()
+    }).catch(() => {})
   },
 
   reload() {
-    // 一次读取记录快照，统计/日历/明细都从同一份派生
-    this._records = store.getAllRecords()
-    this.setData({ stats: store.computeStatsFrom(this._records) })
+    // 读一次记录存到页面上：统计 / 日历 / 当日明细都从这一份算，
+    // 翻月、选日期时不用再读一遍记录
+    this._records = records.getAll()
+    this._dateMap = records.getDateMapFrom(this._records)
+    this.setData({ stats: records.computeStatsFrom(this._records) })
     this.renderCalendar()
     this.refreshSelected()
-    this.loadWeekly()
-  },
-
-  // 周复盘：仅登录可见（登出/未登录整卡隐藏）；本周练过 ≥2 次解锁
-  loadWeekly(force) {
-    if (!account.isLoggedIn()) {
-      this.setData({ weeklyVisible: false, weeklyLoading: false, weeklyReview: null })
-      return
-    }
-    this.setData({ weeklyVisible: true })
-    const records = this._records || store.getAllRecords()
-    if (aiWeekly.weekSessions(records) < 2) {
-      this.setData({ weeklyLocked: true, weeklyLoading: false, weeklyReview: null })
-      return
-    }
-    if (this._weeklyBusy) return
-    this._weeklyBusy = true
-    this.setData({ weeklyLocked: false, weeklyLoading: true })
-    aiWeekly.fetchWeekly({
-      records: records,
-      goal: profile.get().goal
-    }, { force: !!force }).then((res) => {
-      this._weeklyBusy = false
-      // 失败：有旧内容保留旧内容，无则结束加载态，下次 onShow 再试（6 小时失败水位限频）
-      const patch = { weeklyLoading: false }
-      if (res && res.ok) patch.weeklyReview = res.data
-      this.setData(patch)
-    })
-  },
-
-  onWeeklyRefresh() {
-    if (this._weeklyBusy) return
-    this.loadWeekly(true)
   },
 
   renderCalendar() {
-    const records = store.getDateMapFrom(this._records || store.getAllRecords())
+    const dateMap = this._dateMap || {}
     const selected = this.selected
     const today = this.todayStr
     // 每周行 { key, cells }：key 取该行首格标识，供 WXML wx:key 使用
-    const weeks = dateUtil.monthGrid(this.data.year, this.data.month).map(function (week) {
+    const weeks = dateUtil.monthGrid(this.year, this.month).map(function (week) {
       return {
         key: week[0].key,
         cells: week.map(function (cell) {
           if (!cell.inMonth) return cell
-          const count = (records[cell.date] || []).length
           return {
             key: cell.key,
             date: cell.date,
             day: cell.day,
             inMonth: true,
-            checked: count > 0,
+            checked: !!(dateMap[cell.date] && dateMap[cell.date].length),
             isToday: cell.date === today,
             isSel: cell.date === selected
           }
         })
       }
     })
-    const now = new Date()
-    const curYM = now.getFullYear() * 100 + now.getMonth() + 1
-    const viewYM = this.data.year * 100 + this.data.month
     this.setData({
-      monthLabel: dateUtil.monthLabel(this.data.year, this.data.month),
-      canNext: viewYM < curYM,
+      monthLabel: dateUtil.monthLabel(this.year, this.month),
+      canNext: ymOf(this.year, this.month) < currentYM(),
       weeks: weeks
     })
   },
 
   refreshSelected() {
     const selected = this.selected
-    const list = (this._records || store.getAllRecords()).filter(function (record) {
-      return record.date === selected
-    }).sort(function (a, b) {
+    // slice 一份再排序，别改到 _dateMap 里那个数组的顺序
+    const list = ((this._dateMap || {})[selected] || []).slice().sort(function (a, b) {
       return Number(a.createdAt) - Number(b.createdAt)
     })
     this.setData({
@@ -198,20 +170,21 @@ Page({
   },
 
   onPrevMonth() {
-    let year = this.data.year
-    let month = this.data.month - 1
+    let year = this.year
+    let month = this.month - 1
     if (month < 1) { month = 12; year-- }
-    this.setData({ year: year, month: month })
+    this.year = year
+    this.month = month
     this.renderCalendar()
   },
 
   onNextMonth() {
-    const now = new Date()
-    let year = this.data.year
-    let month = this.data.month + 1
+    let year = this.year
+    let month = this.month + 1
     if (month > 12) { month = 1; year++ }
-    if (year * 100 + month > now.getFullYear() * 100 + now.getMonth() + 1) return
-    this.setData({ year: year, month: month })
+    if (ymOf(year, month) > currentYM()) return
+    this.year = year
+    this.month = month
     this.renderCalendar()
   },
 
@@ -225,32 +198,29 @@ Page({
 
   onDeleteRecord(e) {
     const id = e.currentTarget.dataset.id
-    const record = store.getRecord(id)
+    const record = records.getRecord(id)
     if (!record) return
     this.setData({ deleteConfirm: { show: true, id: id, name: record.planName } })
   },
 
   onCancelDelete() {
-    this.setData({ deleteConfirm: { show: false, id: '', name: '' } })
+    this.setData({ deleteConfirm: emptyDeleteConfirm() })
   },
 
   onConfirmDelete() {
     const id = this.data.deleteConfirm.id
     if (!id) return
-    store.removeRecord(id)
+    // 删除同样要过本地写入这一关，失败必须让用户知道
+    if (!records.removeRecord(id)) toast.show('删除失败，请重试')
     this.reload()
-    this.setData({ deleteConfirm: { show: false, id: '', name: '' } })
-  },
-
-  // 头像链接失效（临时链接过期）时回退文字头像
-  onAvatarError() {
-    this._avatar.error()
+    this.setData({ deleteConfirm: emptyDeleteConfirm() })
   },
 
   onShareAppMessage() {
     const stats = this.data.stats
     return {
       title: '我已坚持打卡 ' + stats.total + ' 天，连续 ' + stats.streak + ' 天！',
-      path: '/pages/index/index' }
+      path: '/pages/index/index'
+    }
   }
 })

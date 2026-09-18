@@ -1,4 +1,4 @@
-.page { padding: 24rpx 32rpx 200rpx; }
+.page { padding-bottom: 200rpx; }
 .section { margin-top: 22rpx; }
 
 .seg { margin-top: 20rpx; }
@@ -33,6 +33,6 @@
 .pick-check { margin-left: 12rpx; color: var(--green); font-weight: 700; }
 .pick-meta { margin-top: 6rpx; font-size: 22rpx; }
 
-.save-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; gap: 20rpx; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: var(--pxs) solid var(--ink); background: var(--card); }
-.del-btn { flex: none; width: 200rpx; color: var(--primary); }
+/* 底部操作栏骨架在 app.wxss 的 .save-bar，这里只加横向排布 */
+.save-bar { display: flex; gap: 20rpx; }
 .save-btn { flex: 1; }

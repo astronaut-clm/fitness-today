@@ -1,4 +1,4 @@
-.page { padding: 24rpx 32rpx 200rpx; }
+.page { padding-bottom: 200rpx; }
 
 .steps { display: flex; align-items: center; gap: 16rpx; margin: 8rpx 8rpx 28rpx; }
 .step { display: flex; align-items: center; gap: 12rpx; color: var(--ink3); font-size: 26rpx; }
@@ -15,7 +15,8 @@
 .cp-arrow { color: var(--ink3); font-size: 40rpx; }
 .cp-item { margin-top: 16rpx; color: var(--ink2); font-size: 25rpx; line-height: 1.6; }
 
-.foot-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; gap: 12rpx; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: var(--px) solid var(--ink); background: var(--card); }
+/* 底部操作栏骨架在 app.wxss 的 .save-bar（wxml 上与它同时挂），这里只加纵向排布 */
+.foot-bar { display: flex; flex-direction: column; gap: 12rpx; }
 .foot-row { display: flex; align-items: stretch; gap: 20rpx; }
 /* 按钮内两行文案：主操作 + 小字提示 */
 .foot-stack { flex-direction: column; gap: 2rpx; height: auto; min-height: 92rpx; line-height: 1.15; }

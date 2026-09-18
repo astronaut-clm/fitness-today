@@ -12,7 +12,8 @@
   background-size: 8rpx 8rpx;
   border-top: var(--px, 4rpx) solid var(--ink, #1a1a1a);
   padding-bottom: env(safe-area-inset-bottom);
-  font-family: "Zpix", "Press Start 2P", "Courier New", Menlo, Consolas, monospace;
+  /* 兜底系统字体；实际字体由组件根节点的内联 style（跟随字体开关）决定 */
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: none;
 }
 
@@ -28,13 +29,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  --c: #7a7a7a;
-  color: #7a7a7a;
+  --c: var(--ink3, #7a7a7a);
+  color: var(--ink3, #7a7a7a);
 }
 
 .tab-item.on {
-  --c: #e60012;
-  color: #e60012;
+  --c: var(--primary, #e60012);
+  color: var(--primary, #e60012);
 }
 
 /* 选中标记：图标上方一条像素短线 */
@@ -46,7 +47,7 @@
 }
 
 .tab-item.on .tab-mark {
-  background: #e60012;
+  background: var(--primary, #e60012);
 }
 
 .tab-icon {

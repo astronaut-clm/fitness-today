@@ -1,4 +1,5 @@
-<navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar back="{{false}}"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
@@ -9,11 +10,11 @@
       </view>
       <view class="head-actions">
         <view wx:if="{{streak > 0}}" class="head-note streak">连续 {{streak}} 天</view>
-        <view wx:else class="head-note">今日开练</view>
+        <view class="rank-entry" bindtap="goRank">排行榜</view>
       </view>
     </view>
 
-    <block wx:if="{{!isLogged}}">
+    <block wx:if="{{!todaySummary}}">
       <view class="hero">
         <view class="hero-title">练了吧？</view>
         <view class="hero-sub" wx:if="{{recPlan}}">推荐：{{recPlan.name}} · {{recPlan.duration}} 分钟 · 约 {{recPlan.calories}} kcal</view>
@@ -57,31 +58,36 @@
       </view>
     </block>
 
-    <view class="entry-row">
-      <view class="entry-card g-card" bindtap="goRank">
-        <view class="entry-badge">榜</view>
-        <view class="flex1 entry-main">
-          <view class="entry-title">排行榜</view>
-          <view class="weak entry-sub">看看本月谁练得最多</view>
-        </view>
-        <view class="entry-arrow">›</view>
+    <!-- 周复盘：hy3 深度推理生成，本周 ≥2 次训练解锁 -->
+    <view class="weekly g-card">
+      <view class="weekly-head">
+        <view class="weekly-title">本周复盘</view>
+        <text wx:if="{{weeklyReview && !weeklyLoading}}" class="weekly-refresh" bindtap="onWeeklyRefresh">换一版</text>
       </view>
-
-      <view class="entry-card g-card" bindtap="goFeed">
-        <view class="entry-badge blue">圈</view>
-        <view class="flex1 entry-main">
-          <view class="entry-title">铁友圈</view>
-          <view class="weak entry-sub">分享训练心得，互相打气</view>
+      <view wx:if="{{weeklyLocked}}" class="weekly-hint weak">本周完成 2 次训练后，教练为你复盘</view>
+      <view wx:elif="{{weeklyLoading}}" class="weekly-hint weak">教练正在复盘本周训练…</view>
+      <block wx:elif="{{weeklyReview}}">
+        <view class="weekly-sec">
+          <text class="weekly-tag hl">亮点</text>
+          <text class="weekly-text">{{weeklyReview.highlight}}</text>
         </view>
-        <view class="entry-arrow">›</view>
-      </view>
+        <view class="weekly-sec" wx:if="{{weeklyReview.improve}}">
+          <text class="weekly-tag imp">更好</text>
+          <text class="weekly-text">{{weeklyReview.improve}}</text>
+        </view>
+        <view class="weekly-sec" wx:if="{{weeklyReview.next}}">
+          <text class="weekly-tag nxt">下周</text>
+          <text class="weekly-text">{{weeklyReview.next}}</text>
+        </view>
+      </block>
+      <view wx:else class="weekly-hint weak">复盘生成失败，稍后回来看看</view>
     </view>
     </block>
 
     <block wx:else>
       <view class="login-guide">
         <view class="login-guide-title">练了吧？</view>
-        <view class="weak login-guide-sub">登录后即可开始训练、查看排行榜与铁友圈</view>
+        <view class="weak login-guide-sub">登录后即可开始训练、查看排行榜</view>
       </view>
       <view class="login-card g-card">
         <view class="login-avatar">练</view>

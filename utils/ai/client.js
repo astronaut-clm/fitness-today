@@ -1,10 +1,9 @@
-// 大模型统一入口：模型实例、文本生成、超时与解析工具
-// 走小程序端 wx.cloud.extend.AI（provider=cloudbase，微信云开发售卖的模型）
-// 云函数侧 wx-server-sdk 的 cloud.ai() 是腾讯云 AI+ 通道，没有 cloudbase 这个 provider，会 404
+// 大模型统一入口：走小程序端 wx.cloud.extend.AI（provider=cloudbase）。
+// 注意云函数侧 wx-server-sdk 的 cloud.ai() 是腾讯云 AI+ 通道，没有 cloudbase provider，会 404
 const PROVIDER = 'cloudbase'
-// 模型可用性因环境而异（不支持的模型报 AI_MODEL_NOT_SUPPORTED），更换前先小请求验证。
-// hy3/hy3-preview 是同一强制思维链模型，思维链会吃光输出预算（empty_result）。
-// hunyuan-role-latest：角色扮演 instruct 模型（教练人设天然适配），需在云开发 AI+ 控制台手动开通
+// 模型可用性因环境而异，更换前先小请求验证。
+// hy3/hy3-preview 强制思维链会吃光输出预算（empty_result）；
+// hy-role（hunyuan-role-latest）是角色扮演 instruct 模型，需在云开发 AI+ 控制台手动开通
 const MODEL = 'hy-role'
 
 function getModel() {
@@ -90,22 +89,8 @@ function generateText(options) {
   })
 }
 
-// 统一流式生成：透传 SDK 的 onText（增量正文，不含思维链）/onFinish（完整文本）回调
-// options 同 generateText，另加 onText/onFinish；返回 SDK 原始 Promise（流建立即 resolve）
-function streamText(options) {
-  const model = getModel()
-  if (!model) return Promise.reject(new Error('ai_unavailable'))
-  const opts = options || {}
-  return Promise.resolve(model.streamText({
-    data: buildRequest(opts),
-    onText: opts.onText,
-    onFinish: opts.onFinish
-  }))
-}
-
 module.exports = {
   generateText: generateText,
-  streamText: streamText,
   parseJson: parseJson,
   withTimeout: withTimeout,
   safeStr: safeStr,

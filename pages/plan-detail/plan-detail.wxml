@@ -1,4 +1,5 @@
-<navigation-bar title="训练详情" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar title="训练详情"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y type="list" wx:if="{{plan}}">
   <view class="page">
@@ -32,7 +33,7 @@
         <view class="ex-idx">{{index + 1}}</view>
         <view class="flex1">
           <view class="ex-name">{{item.name}}</view>
-          <view class="ex-meta weak">{{item.sets}} 组 × {{item.reps}}<text wx:if="{{item.rest}}"> · {{item.rest}}</text></view>
+          <view class="ex-meta weak">{{item.sets}} 组 × {{item.targetText}}<text wx:if="{{item.rest}}"> · {{item.rest}}</text></view>
           <view class="set-adjust" wx:if="{{!readonly}}" catchtap="noop">
             <text class="set-label">组数</text>
             <text class="set-control {{item.canReduce ? '' : 'disabled'}}" data-id="{{item.actionId}}" data-delta="-1" catchtap="onAdjustSet">−</text>

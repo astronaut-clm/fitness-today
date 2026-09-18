@@ -1,4 +1,5 @@
-<navigation-bar back="{{false}}" color="#1A1A1A" background="#FFFFFF"></navigation-bar>
+<page-meta page-style="{{fontStyle}}"></page-meta>
+<navigation-bar back="{{false}}"></navigation-bar>
 <px-toast></px-toast>
 <scroll-view class="scrollarea" scroll-y>
   <view class="page">
@@ -33,31 +34,6 @@
     </view>
   </view>
 
-  <!-- 周复盘：hy3 深度推理生成，登录且本周 ≥2 次训练解锁 -->
-  <view wx:if="{{weeklyVisible}}" class="weekly g-card">
-    <view class="weekly-head">
-      <view class="weekly-title">本周复盘</view>
-      <text wx:if="{{weeklyReview && !weeklyLoading}}" class="weekly-refresh" bindtap="onWeeklyRefresh">换一版</text>
-    </view>
-    <view wx:if="{{weeklyLocked}}" class="weekly-hint weak">本周完成 2 次训练后，教练为你复盘</view>
-    <view wx:elif="{{weeklyLoading}}" class="weekly-hint weak">教练正在复盘本周训练…</view>
-    <block wx:elif="{{weeklyReview}}">
-      <view class="weekly-sec">
-        <text class="weekly-tag hl">亮点</text>
-        <text class="weekly-text">{{weeklyReview.highlight}}</text>
-      </view>
-      <view class="weekly-sec" wx:if="{{weeklyReview.improve}}">
-        <text class="weekly-tag imp">更好</text>
-        <text class="weekly-text">{{weeklyReview.improve}}</text>
-      </view>
-      <view class="weekly-sec" wx:if="{{weeklyReview.next}}">
-        <text class="weekly-tag nxt">下周</text>
-        <text class="weekly-text">{{weeklyReview.next}}</text>
-      </view>
-    </block>
-    <view wx:else class="weekly-hint weak">复盘生成失败，稍后回来看看</view>
-  </view>
-
   <view class="calendar g-card">
     <view class="cal-head">
       <view class="cal-arrow" bindtap="onPrevMonth">‹</view>
@@ -71,7 +47,7 @@
       <view
         wx:for="{{week.cells}}"
         wx:key="key"
-        class="date-cell {{!item.inMonth ? 'empty' : ''}} {{item.isToday ? 'today' : ''}} {{item.isSel ? 'selected' : ''}} {{item.checked ? 'has-record' : ''}}"
+        class="date-cell {{!item.inMonth ? 'blank' : ''}} {{item.isToday ? 'today' : ''}} {{item.isSel ? 'selected' : ''}} {{item.checked ? 'has-record' : ''}}"
         data-date="{{item.date}}"
         bindtap="onSelectDay"
       >

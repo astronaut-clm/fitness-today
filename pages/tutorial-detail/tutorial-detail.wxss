@@ -1,5 +1,5 @@
 .page {
-  padding: 20rpx 32rpx 48rpx;
+  padding-top: 20rpx;
 }
 
 .hero {

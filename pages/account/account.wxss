@@ -1,4 +1,4 @@
-.page { padding: 36rpx 32rpx 200rpx; }
+.page { padding-top: 36rpx; padding-bottom: 200rpx; }
 
 .avatar-wrap { display: flex; flex-direction: column; align-items: center; padding: 8rpx 0 34rpx; }
 /* 像素风方形头像容器，按钮做透明覆盖层负责点选 */

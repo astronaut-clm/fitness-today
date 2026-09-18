@@ -1,6 +1,8 @@
-const actionsData = require('../../data/actions.js')
+// 动作详情页：步骤要点、常见错误、演示视频
+const actionsData = require('../../databases/actions.js')
 const config = require('../../utils/config.js')
 const toast = require('../../utils/toast.js')
+const fontBehavior = require('../../utils/font.js').behavior
 
 // 动作演示视频地址：<ACTION_VIDEO_PREFIX><id>.mp4，前缀留空则返回 ''，页面不展示演示卡
 function actionVideo(id) {
@@ -8,7 +10,6 @@ function actionVideo(id) {
   return config.ACTION_VIDEO_PREFIX + id + '.mp4'
 }
 
-// 教学指导以动作自带数据为主，未配置的动作回落到这里给出通用建议。
 function defaultGuide() {
   return {
     tempo: '发力阶段平稳呼气，还原阶段控制 2 秒。',
@@ -17,6 +18,8 @@ function defaultGuide() {
 }
 
 Page({
+  behaviors: [fontBehavior],
+
   data: {
     view: null,
     related: []
@@ -72,5 +75,23 @@ Page({
     const id = e.currentTarget.dataset.id
     if (!id) return
     wx.navigateTo({ url: '/pages/tutorial-detail/tutorial-detail?id=' + id })
+  },
+
+  onShareAppMessage() {
+    const view = this.data.view
+    if (!view) return { title: '动作要领一看就会', path: '/pages/index/index' }
+    return {
+      title: view.name + '：' + view.category + '动作要领',
+      path: '/pages/tutorial-detail/tutorial-detail?id=' + view.id
+    }
+  },
+
+  onShareTimeline() {
+    const view = this.data.view
+    if (!view) return { title: '动作要领一看就会' }
+    return {
+      title: view.name + '：' + view.category + '动作要领',
+      query: 'id=' + view.id
+    }
   }
 })

@@ -1,8 +1,7 @@
-// 动作教学库（内置演示数据），分类顺序即展示顺序
+// 动作教学库，categories 的顺序即展示顺序。
 //
-// timed: true 标记「天然按时长计量」的动作（静态支撑、有氧），新增这类动作只打标记即可，
-// 自定义计划页据此把默认目标给成秒数。目标本身存在动作条目上，语义见 utils/exercise-item.js，
-// 用户把默认的 '30秒' 改成 '12次' 照样成立——flag 只决定默认值，不决定训练怎么跑。
+// timed: true 标记「天然按时长计量」的动作（静态支撑、有氧），自定义计划页据此把默认目标给成秒数。
+// 它只决定默认值、不决定训练怎么跑——用户把 '30秒' 改成 '12次' 照样成立
 
 const categories = ['胸部', '背部', '腿部', '臀部', '核心', '手臂', '肩部', '有氧']
 
@@ -300,12 +299,12 @@ const actions = [
   }
 ]
 
-// 自定义计划/训练页会按 actionId 高频查表，建索引替代线性扫描
+// 按 actionId 的查表很频繁，建索引替代线性扫描
 const actionById = {}
 actions.forEach(function (action) { actionById[action.id] = action })
 
 function getAction(id) {
-  return actionById[id] || null
+  return Object.prototype.hasOwnProperty.call(actionById, id) ? actionById[id] : null
 }
 
 module.exports = {

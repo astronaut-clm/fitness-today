@@ -26,12 +26,12 @@ Page(Object.assign({}, prefsForm, {
     this.refreshCustom()
   },
 
-  // 从自定义计划页返回时刷新已设置状态
+  // 从自定义计划页返回时刷新
   onShow() {
     this.refreshCustom()
   },
 
-  // 无论「完成」还是「跳过」，离开引导即记为已看过，避免反复打扰
+  // 完成或跳过都算看过，避免反复打扰
   onUnload() {
     login.markOnboardingDone()
   },
@@ -45,7 +45,7 @@ Page(Object.assign({}, prefsForm, {
 
   savePrefs() {
     profile.save(this.current)
-    // 不阻塞引导流程，但要接住 rejection：否则云调用失败会以未处理 rejection 冒出来
+    // 不阻塞流程，但要接住 rejection
     if (account.isLoggedIn()) profile.pushToCloud().catch(() => {})
   },
 
@@ -58,7 +58,7 @@ Page(Object.assign({}, prefsForm, {
     this.setData({ step: 2 })
   },
 
-  // 跳过当前步骤：第一步的目标为必选，与「保存并继续」同一逻辑；最后一步才结束引导
+  // 第一步的目标必选，所以跳过等同「保存并继续」；最后一步才真结束
   onSkipStep() {
     if (this.data.step === 1) {
       this.onNextStep()

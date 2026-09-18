@@ -4,7 +4,7 @@ const config = require('../../utils/config.js')
 const toast = require('../../utils/toast.js')
 const fontBehavior = require('../../utils/font.js').behavior
 
-// 动作演示视频地址：<ACTION_VIDEO_PREFIX><id>.mp4，前缀留空则返回 ''，页面不展示演示卡
+// 前缀留空则返回 ''，页面据此不渲染演示卡
 function actionVideo(id) {
   if (!id || !config.ACTION_VIDEO_PREFIX) return ''
   return config.ACTION_VIDEO_PREFIX + id + '.mp4'
@@ -46,7 +46,6 @@ Page({
       })
 
     const guide = defaultGuide()
-    // 演示动画：video 有值即展示 <video> 循环播放（见 wxml 的动作演示卡），为空则整卡不渲染
     const videoUrl = actionVideo(a.id)
     this.setData({
       view: {
@@ -67,7 +66,7 @@ Page({
   },
 
   onVideoError() {
-    // 视频加载失败：清空 video，wxml 据此隐藏演示卡，避免露出破图
+    // 清空 video，wxml 据此隐藏演示卡，避免露出破图
     this.setData({ 'view.video': '' })
   },
 

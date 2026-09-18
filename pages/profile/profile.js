@@ -1,4 +1,4 @@
-// 我的：训练偏好设置（目标/场景/经验/器械/周目标），表单交互复用 components/prefs-form/prefs-form.js
+// 训练偏好设置（目标/场景/经验/器械/周目标），表单交互复用 components/prefs-form
 const profile = require('../../utils/profile.js')
 const account = require('../../utils/account.js')
 const toast = require('../../utils/toast.js')
@@ -33,8 +33,8 @@ Page(Object.assign({}, prefsForm, {
   onSave() {
     profile.save(this.current)
     toast.back('偏好已保存', { success: true })
-    // pushToCloud 是 fire-and-forget：不接住就会出现「提示已保存、云端没写进去」。
-    // 失败提示走 wx.showToast —— toast.back 已经离开本页，组件级 toast 会随页面一起销毁。
+    // 必须接住 pushToCloud，否则会出现「提示已保存、云端没写进去」。
+    // 这里用原生 toast：toast.back 已经离开本页，组件级 toast 随页面一起销毁了
     if (account.isLoggedIn()) {
       const fallback = () => wx.showToast({ title: '云端同步失败，已存到本机', icon: 'none' })
       profile.pushToCloud().then((ok) => {

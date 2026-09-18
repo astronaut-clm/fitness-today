@@ -82,6 +82,6 @@
   </view>
 </scroll-view>
 
-<!-- 删除记录确认弹层 -->
+<!-- 删除确认 -->
 <px-dialog show="{{deleteConfirm.show}}" title="删除训练记录？" copy="{{deleteConfirm.name}} 将从记录中永久移除"
   confirm-text="删除" danger bind:cancel="onCancelDelete" bind:confirm="onConfirmDelete" />

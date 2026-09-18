@@ -16,7 +16,7 @@
       <view class="notice-round">{{plan.roundsText}}</view>
     </view>
 
-    <!-- 动作清单：修改组数后右上角提供「恢复默认」（visibility 控制显隐，占位恒定避免列表位移） -->
+    <!-- 改过组数才出现「恢复默认」；用 visibility 控制，占位恒定避免列表位移 -->
     <view class="ex-head">
       <view class="flex1">训练动作</view>
       <text class="adjust-reset {{!readonly && hasAdjustments ? '' : 'hide'}}" bindtap="onRestoreDefault">恢复默认</text>
@@ -48,7 +48,7 @@
   </view>
 </scroll-view>
 
-<!-- 底部操作栏：只读模式不提供开始训练入口 -->
+<!-- 只读模式不给开始训练入口 -->
 <view class="bar" wx:if="{{plan && !readonly}}">
   <view class="bar-info">
     <view class="bar-time num">{{plan.duration}} 分钟</view>

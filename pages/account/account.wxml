@@ -54,7 +54,7 @@
 <px-dialog show="{{showLogoutConfirm}}" title="退出并清空记录？" copy="再次登录会自动恢复全部云端数据"
   cancel-text="再想想" confirm-text="退出并清空" danger bind:cancel="onCancelLogout" bind:confirm="onConfirmLogout" />
 
-<!-- 保存中：页内像素加载层（原生 showLoading 无法用自定义字体） -->
+<!-- 页内加载层：原生 showLoading 用不了自定义字体 -->
 <view class="px-loading-mask" wx:if="{{savingShow}}" catchtouchmove="noop">
   <view class="px-loading">
     <view class="px-loading-dot"></view>

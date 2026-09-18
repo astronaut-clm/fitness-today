@@ -1,6 +1,5 @@
-// 训练记录：本机 storage 为主，登录后与云端 ft_records 集合双向收敛
-// 同步 = 全量拉取 + updatedAt 较新者胜 + 缺者补推；
-// 删除即本机物理删除，云端删除失败才进待删队列，留到下一轮重试
+// 训练记录：本机 storage 为主，登录后与云端 ft_records 双向收敛。
+// 同步 = 全量拉取 + updatedAt 较新者胜 + 缺者补推；删除失败才进待删队列，下一轮重试
 const storage = require('./storage.js')
 const dateUtil = require('./date.js')
 const config = require('./config.js')
@@ -10,11 +9,9 @@ const account = require('./account.js')
 const KEY = 'ft_records'
 const PENDING_DELETE_KEY = 'ft_pending_deletes'
 const COLL = 'ft_records'
-// 记录种类。目前只有「跟练完一个计划」一种，但统计侧（insights / ai）都按 type 过滤，
-// 将来加别的种类（如手动补录）时不必回去改那几处的字面量
+// 统计侧（insights / ai）都按 type 过滤，将来加别的种类时不必改那几处字面量
 const TYPE_PLAN = 'plan'
-// 单次全量拉取的上限：异常大的云端集合会把本地 storage 打满，
-// 届时所有写入都会静默失败，宁可少拉也不能拖垮本地存储
+// 拉取上限：异常大的集合会把本地 storage 打满，之后所有写入静默失败
 const MAX_PULL_RECORDS = 2000
 
 // ——— 本机存储 ———
@@ -35,20 +32,17 @@ function normalize(record) {
   })
 }
 
-// 新记录在前：同日按 createdAt 倒序
+// 新记录在前，同日按 createdAt 倒序
 function byNewest(a, b) {
   const byDate = String(b.date).localeCompare(String(a.date))
   return byDate || Number(b.createdAt) - Number(a.createdAt)
 }
 
-// 读出全部记录，顺手补齐 id / date / 时间戳等缺省字段。
-// 读穿缓存：一次页面交互里 getAll / computeStatsFrom / insights / coachProfile
-// 会重复读同一张表三四遍，每次都真读 storage 并逐条归一化没必要。
-// 所有写入都收口在 saveAll，写失败时主动失效，保证内存不会和磁盘不一致。
+// 读穿缓存：一次页面交互里 getAll / 统计 / insights 会重复读同一张表三四遍。
+// 写入全部收口在 saveAll，写失败即失效，保证内存不与磁盘不一致
 let cache = null
 
-// 数据版本号：每次成功写入自增。页面可用它判断「记录有没有变」，
-// 不必在每次 onShow 都把全表统计重算一遍
+// 每次成功写入自增，页面据此判断「记录变没变」，免得每次 onShow 都重算全表
 let version = 0
 function revision() {
   return version
@@ -68,7 +62,7 @@ function readAll() {
   return all
 }
 
-// 持久化并返回是否成功；失败时清掉读穿缓存，下次读会回到磁盘的真实状态
+// 失败时清掉缓存，下次读回到磁盘的真实状态
 function saveAll(next) {
   if (!storage.write(KEY, next)) {
     cache = null
@@ -97,7 +91,7 @@ function getDateMapFrom(source) {
   return out
 }
 
-// 写失败（一般是配额溢出）返回 null，由调用方提示，绝不谎报成功
+// 写失败（多为配额溢出）返回 null，绝不谎报成功
 function add(record) {
   const next = normalize(record)
   if (!next) return null
@@ -125,8 +119,8 @@ function replaceAll(source) {
   saveAll(next)
 }
 
-// updatedAt 较新者胜；skipIds 中的 id 不回填（本机待删，避免复活）
-// 返回远端 id -> record 映射，供调用方计算待补推的本机记录，省去二次遍历
+// updatedAt 较新者胜；skipIds（本机待删）不回填，避免复活。
+// 返回远端 id -> record 映射，省掉调用方为算 toPush 的二次遍历
 function mergeRemote(remoteRecords, skipIds) {
   const skip = skipIds || {}
   const all = readAll()
@@ -147,8 +141,7 @@ function mergeRemote(remoteRecords, skipIds) {
   return remoteMap
 }
 
-// 统计四个数：累计训练天数、连续天数、本月天数、本月分钟。
-// total / monthCount 算的是「天数」，所以同一天练两次只算一天，用 seen 去重
+// 累计天数 / 连续天数 / 本月天数 / 本月分钟。前三个按「天」算，同日多次只计一天
 function computeStatsFrom(source) {
   const ym = dateUtil.monthKey()
   const seen = {}
@@ -166,7 +159,7 @@ function computeStatsFrom(source) {
     if (inMonth) monthMinutes += Number(record.actualMinutes || 0)
   })
 
-  // 连续天数：从今天（今天没练就从昨天）往前一天天回退，断了就停
+  // 从今天（今天没练就从昨天）逐日回退，断了就停
   const bounds = dateUtil.todayAndYesterday()
   let streak = 0
   let cursor = seen[bounds.today] ? bounds.today : bounds.yesterday
@@ -221,7 +214,7 @@ function saveOne(record) {
 function removeOne(id) {
   if (!id) return Promise.resolve(false)
   return withDb(function (db) {
-    // 文档不存在也视为删除成功
+    // 文档不存在也算删除成功
     return db.collection(COLL).doc(id).remove()
       .then(function () { return true })
       .catch(function () { return false })
@@ -250,7 +243,7 @@ function pullAll() {
     const col = db.collection(COLL)
     const out = []
     const PAGE = 20
-    // _id 游标分页，避免 skip 深分页在并发写入时漏读/重读
+    // _id 游标分页：skip 深分页在并发写入时会漏读/重读
     function load(lastId) {
       const query = lastId ? col.where({ _id: db.command.gt(lastId) }) : col
       return query.orderBy('_id', 'asc').limit(PAGE).get().then(function (res) {
@@ -269,7 +262,7 @@ function pullAll() {
   })
 }
 
-// ——— 待删队列（离线删除的兜底） ———
+// ——— 待删队列：离线删除的兜底 ———
 
 function readPendingDeletes() {
   const list = storage.read(PENDING_DELETE_KEY, [])
@@ -282,7 +275,7 @@ function addPendingDelete(id) {
   storage.write(PENDING_DELETE_KEY, list)
 }
 
-// 重试待删队列，返回仍失败的 id
+// 返回仍失败的 id
 function flushPendingDeletes() {
   const list = readPendingDeletes()
   if (!list.length) return Promise.resolve([])
@@ -295,7 +288,7 @@ function flushPendingDeletes() {
   })
 }
 
-// ——— 对外：写操作与同步 ———
+// ——— 对外 ———
 
 function addRecord(record) {
   const saved = add(record)
@@ -324,12 +317,11 @@ function syncFromCloud() {
 
   return flushPendingDeletes().then(function (leftDeletes) {
     return pullAll().then(function (remote) {
-      // 拉取期间已登出则禁止回填，否则清空的记录会被复活
+      // 拉取期间登出了就禁止回填，否则刚清空的记录会被复活
       if (!remote || !account.isLoggedIn()) return false
 
       const skip = {}
       leftDeletes.forEach(function (id) { skip[id] = true })
-      // mergeRemote 顺带返回远端映射，无需为了算 toPush 再遍历一遍 remote
       const remoteMap = mergeRemote(remote, skip)
 
       const toPush = getAll().filter(function (record) {

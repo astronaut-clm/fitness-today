@@ -1,9 +1,8 @@
-// 大模型统一入口：走小程序端 wx.cloud.extend.AI（provider=cloudbase）。
-// 注意云函数侧 wx-server-sdk 的 cloud.ai() 是腾讯云 AI+ 通道，没有 cloudbase provider，会 404
+// 大模型统一入口，走小程序端 wx.cloud.extend.AI。
+// 别改到云函数侧的 cloud.ai()：那是腾讯云 AI+ 通道，没有 cloudbase provider，会 404
 const PROVIDER = 'cloudbase'
-// 模型可用性因环境而异，更换前先小请求验证。
-// hy3/hy3-preview 强制思维链会吃光输出预算（empty_result）；
-// hy-role（hunyuan-role-latest）是角色扮演 instruct 模型，需在云开发 AI+ 控制台手动开通
+// 换模型前先用小请求验证：可用性因环境而异。
+// hy3 系强制思维链会吃光输出预算（empty_result）；hy-role 需在 AI+ 控制台手动开通
 const MODEL = 'hy-role'
 
 function getModel() {
@@ -30,7 +29,7 @@ function extractReasoning(res) {
   return reasoning ? String(reasoning) : ''
 }
 
-// 模型偶尔会包一层 ```json，取最外层花括号
+// 模型偶尔包一层 ```json，取最外层花括号
 function parseJson(text) {
   const s = String(text).trim()
   const start = s.indexOf('{')
@@ -59,29 +58,28 @@ function strList(v, max, limit) {
   return (Array.isArray(v) ? v : []).map(function (s) { return safeStr(s, max) }).slice(0, limit)
 }
 
-// options: { model, reasoningEffort: low|medium|high, temperature, maxTokens, messages, enableThinking }
+// options: model / reasoningEffort / temperature / maxTokens / messages / enableThinking
 function buildRequest(options) {
   const opts = options || {}
   const data = {
     model: opts.model || MODEL,
     reasoning_effort: opts.reasoningEffort || 'low',
-    // 显式给足输出额度：推理模型默认 max_tokens 偏小，思维链会挤占导致正文为空（empty_result）
+    // 必须显式给足：默认值偏小，思维链一挤占正文就空（empty_result）
     max_tokens: opts.maxTokens || 2048,
     temperature: opts.temperature == null ? 0.3 : opts.temperature,
     messages: opts.messages || []
   }
-  // hy3-preview 思维链话痨（复述输入，预算给多少吃多少）：
-  // 交互场景直接关思考，混元 OpenAI 兼容参数 enable_thinking，不支持时不报错
+  // 混元的 OpenAI 兼容参数，不支持时不报错
   if (opts.enableThinking === false) data.enable_thinking = false
   return data
 }
 
-// 统一文本生成：resolve { text, reasoning }；reasoning 为思维链（未开启深度推理时为空串）
+// resolve { text, reasoning }，reasoning 未开深度推理时为空串
 function generateText(options) {
   const model = getModel()
   if (!model) return Promise.reject(new Error('ai_unavailable'))
   return Promise.resolve(model.generateText(buildRequest(options))).then(function (res) {
-    // 网关错误（403/限流/模型不支持等）以 { code, message } 形式返回，直接抛真实错误码
+    // 网关错误（403/限流/模型不支持）以 { code, message } 返回，抛真实错误码
     if (res && res.code) throw new Error(String(res.code))
     const text = extractText(res)
     if (!text) throw new Error('empty_result')

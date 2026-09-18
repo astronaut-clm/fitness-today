@@ -1,4 +1,4 @@
-// 页内像素提示，替代原生 wx.showToast 以使用像素字体
+// 页内提示，替代 wx.showToast 以便用上像素字体
 const registry = []
 
 function register(comp) {
@@ -10,7 +10,7 @@ function unregister(comp) {
   if (i >= 0) registry.splice(i, 1)
 }
 
-// 取栈顶页面的组件实例，避免提示出现在非当前页
+// 只取栈顶页的实例，避免提示出现在非当前页
 function currentComponent() {
   const pages = getCurrentPages()
   const current = pages[pages.length - 1]
@@ -26,11 +26,11 @@ function show(text, opts) {
     comp.play(text, opts)
     return
   }
-  // 当前页未挂载 px-toast 时退回原生提示
+  // 当前页没挂 px-toast 就退回原生
   wx.showToast({ title: text, icon: (opts && opts.success) ? 'success' : 'none' })
 }
 
-// 提示后延时返回上一页；若期间已跳转则不再返回，避免多退一层
+// 提示后延时返回上一页；期间已跳走就不再返回，避免多退一层
 function back(text, opts) {
   show(text, opts)
   const pages = getCurrentPages()

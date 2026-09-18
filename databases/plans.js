@@ -1,5 +1,5 @@
-// 难度等级：数组顺序即由易到难，正/反映射由它派生。新增等级只改这一行。
-// 全项目「有哪几档难度、叫什么」（计划筛选、训练经验选项）都从 LEVELS 取
+// 难度等级：顺序即由易到难，正/反映射由它派生。
+// 全项目的难度档位（计划筛选、训练经验选项）都从 LEVELS 取，新增等级只改这一行
 const LEVELS = ['初级', '中级', '高级']
 const LEVEL_MAP = {}
 const LEVEL_NAME = {}
@@ -9,18 +9,15 @@ LEVELS.forEach(function (name, index) {
 })
 
 // 训练场景：value 即 plan.scene（也是自定义计划 id 的后缀），name 为全站展示名。
-// 全项目「有哪些场景、叫什么」只在这里定义一次，其余模块一律从 scenes / SCENES / sceneName() 派生
+// 只在这里定义一次，其余模块从 scenes / SCENES / sceneName() 派生
 const scenes = [
   { value: 'home', name: '居家' },
   { value: 'gym', name: '健身房' }
 ]
 const SCENES = scenes.map(function (scene) { return scene.value })
 
-// 动作条目：{ actionId, sets, rest?, 目标 }。目标三选一，语义互斥，不写文案让别人再解析一遍：
-//   seconds: 30      计时组
-//   toFailure: true  力竭组
-//   reps: '8-10次'   计数组（区间、每侧等文案直接写）
-// 展示文案与训练模式由 utils/exercise-item.js 统一给出。
+// 动作条目的目标三选一、语义互斥：seconds 计时组 / toFailure 力竭组 / reps 计数组。
+// 展示文案与训练模式由 utils/exercise-item.js 给出
 const plans = [
   {
     id: 'home_wakeup',
@@ -168,7 +165,7 @@ const plans = [
   }
 ]
 
-// 内置数据不变，启动时一次性建索引：id 查表、场景分组、场景名，均为 O(1)
+// 内置数据不变，启动时一次性建索引，查表全为 O(1)
 const planById = {}
 const plansByScene = {}
 plans.forEach(function (plan) {
@@ -186,7 +183,7 @@ function listByScene(scene) {
 }
 
 function getPlan(id) {
-  return planById[id] || null
+  return Object.prototype.hasOwnProperty.call(planById, id) ? planById[id] : null
 }
 
 function sceneName(scene) {

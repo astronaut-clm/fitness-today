@@ -1,4 +1,4 @@
-/* padding 必须放内层容器，否则内层滚动层被挤窄、滚动条不贴右。 */
+/* padding 必须放内层容器，否则滚动层被挤窄、滚动条不贴右 */
 .page { padding-right: 28rpx; padding-bottom: 0; padding-left: 28rpx; }
 .user-card { display: flex; align-items: center; gap: 18rpx; padding: 22rpx 24rpx; margin-bottom: 20rpx; }
 .uc-avatar { width: 96rpx; height: 96rpx; flex: none; border-radius: 0; }
@@ -27,7 +27,7 @@
 .week-day { padding-bottom: 10rpx; color: var(--ink3); font-size: 21rpx; }
 .date-cell { position: relative; height: 74rpx; color: var(--ink); font-size: 25rpx; line-height: 62rpx; }
 .date-cell.blank { color: transparent; }
-/* 有训练记录的日期：绿框标记（今天/选中态在其后定义，优先级更高） */
+/* 练过的日期加绿框；今天与选中态在后面定义，优先级更高 */
 .date-cell.has-record > text { display: inline-block; width: 50rpx; height: 50rpx; border: var(--pxs) solid var(--green); border-radius: 0; line-height: 46rpx; }
 .date-cell.today > text { display: inline-block; width: 50rpx; height: 50rpx; border: var(--pxs) solid var(--ink); border-radius: 0; color: var(--ink); background: var(--card2); line-height: 46rpx; }
 .date-cell.selected > text { color: var(--card); background: var(--primary); border-color: var(--ink); }

@@ -3,7 +3,7 @@
   padding-bottom: 220rpx;
 }
 
-/* 自绘顶部导航：返回与动作按钮用同一套事件机制 */
+/* 自绘顶部导航 */
 .workout-nav {
   width: 100%;
   box-sizing: border-box;
@@ -33,7 +33,7 @@
   z-index: 10;
 }
 
-/* 与系统导航返回箭头同款：‹ 12x24px、字号 20px */
+/* 与系统返回箭头同款：‹ 12x24px、字号 20px */
 .workout-nav-arrow {
   width: 12px;
   height: 24px;
@@ -51,7 +51,7 @@
   color: var(--ink);
 }
 
-/* 语音开关：与计划名同行右对齐（插件可用时展示） */
+/* 语音开关，与计划名同行右对齐 */
 .plan-voice {
   flex: none;
   margin-left: 16rpx;
@@ -78,7 +78,7 @@
   padding: 8rpx;
 }
 
-/* 计划名与语音开关同行、顶部对齐 */
+/* 计划名与语音开关同行、顶对齐 */
 .plan-row {
   display: flex;
   align-items: center;
@@ -128,7 +128,7 @@
   font-weight: 700;
 }
 
-/* 复用全局 .g-card 样式，仅覆盖间距与对齐 */
+/* 复用 .g-card，只覆盖间距与对齐 */
 .panel {
   padding: 64rpx 40rpx 48rpx;
   margin-top: 32rpx;
@@ -143,7 +143,7 @@
 
 .panel.rest {
   padding-top: 72rpx;
-  /* 只改底色，保留 .g-card 的网点纹理 */
+  /* 只改底色，保留网点纹理 */
   background-color: var(--card2);
 }
 

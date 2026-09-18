@@ -12,7 +12,7 @@
   background-size: 8rpx 8rpx;
   border-top: var(--px, 4rpx) solid var(--ink, #1a1a1a);
   padding-bottom: env(safe-area-inset-bottom);
-  /* 兜底系统字体；实际字体由组件根节点的内联 style（跟随字体开关）决定 */
+  /* 兜底；实际字体由根节点内联 style 决定，跟随字体开关 */
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: none;
 }
@@ -38,7 +38,7 @@
   color: var(--primary, #e60012);
 }
 
-/* 选中标记：图标上方一条像素短线 */
+/* 选中标记：图标上方的像素短线 */
 .tab-mark {
   width: 40rpx;
   height: 6rpx;
@@ -56,7 +56,7 @@
   height: 48rpx;
 }
 
-/* 单个像素块：6rpx，直角、无模糊 */
+/* 单个像素块 6rpx，直角无模糊 */
 .px {
   position: absolute;
   top: 0;
@@ -73,7 +73,7 @@
   letter-spacing: 1rpx;
 }
 
-/* ===== 像素图标：home（8x8 房子）===== */
+/* ===== home（8x8 房子）===== */
 .icon-home {
   box-shadow:
     18rpx 0 0 0 var(--c),
@@ -117,7 +117,7 @@
     42rpx 42rpx 0 0 var(--c);
 }
 
-/* ===== 像素图标：dumbbell（8x8 哑铃）===== */
+/* ===== dumbbell（8x8 哑铃）===== */
 .icon-dumbbell {
   box-shadow:
     0 6rpx 0 0 var(--c),
@@ -154,7 +154,7 @@
     42rpx 36rpx 0 0 var(--c);
 }
 
-/* ===== 像素图标：user（8x8 人像）===== */
+/* ===== user（8x8 人像）===== */
 .icon-user {
   box-shadow:
     12rpx 0 0 0 var(--c),

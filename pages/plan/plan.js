@@ -10,13 +10,12 @@ const sessionStore = require('../../utils/workout/session.js')
 const nav = require('../../utils/nav.js')
 const fontBehavior = require('../../utils/font.js').behavior
 
-// 场景与难度档位都从 databases/plans.js 派生，页面不再自带一份清单
+// 场景与难度档位都从 databases/plans.js 派生
 const sceneTabs = plansData.scenes.map(function (scene) {
   return { value: scene.value, name: scene.name + '计划' }
 })
 
-// 难度筛选只列出该场景真的有计划的档位：内置计划目前没有「高级」，
-// 若照 LEVELS 全列出来，点进去必然是空列表——这种筛选项不该出现
+// 只列该场景真有计划的档位：内置计划没有「高级」，全列出来点进去必然是空列表
 function levelTabsFor(scene) {
   const available = {}
   plansData.listByScene(scene).forEach(function (plan) { available[plan.level] = true })
@@ -56,16 +55,14 @@ Page({
     scene: plansData.SCENES[0],
     level: '',
     list: [],
-    // 挑选模式：从首页「开始今日训练」进入，选中计划即可开始训练
-    pick: false
+    pick: false // 挑选模式：从首页进入，选中即开始训练
   },
 
   onLoad(options) {
-    // 非 tab 页可被分享路径/上次退出页面直接打开；未登录时先去首页登录，
-    // 同时也避免在无登录态下请求 AI 重排
+    // 分享路径/恢复上次退出页都可能直接打开本页；也避免无登录态下请求 AI
     if (!nav.requireLogin()) return
     this.setData({ pick: !!(options && options.pick === '1') })
-    // 与首页 hero 对齐：推荐计划不在默认场景时，先切到它所在的场景，避免两处展示不一致
+    // 与首页 hero 对齐：推荐不在默认场景时先切过去，避免两处不一致
     const recPlan = recommend.pick(records.getAll(), profile.get())
     if (recPlan && isKnownScene(recPlan.scene) && recPlan.scene !== this.data.scene) {
       this.switchScene(recPlan.scene)
@@ -76,14 +73,13 @@ Page({
 
   onShow() {
     if (!nav.requireLogin()) return
-    // 从自定义计划编辑页返回时刷新，保证新建/修改/删除即时生效。
+    // 从自定义计划编辑页返回要刷新
     this.applyFilter()
     this.syncCustomPlans()
     this.resolveAiPick(false)
   },
 
-  // 列表渲染合并：云端同步与 AI 结果常在很短时间内先后到达，
-  // 各自立刻重算会连着打几次整表 setData；同一 tick 的多次请求合并成一次
+  // 云端同步与 AI 结果常在很短时间内先后到达，合并同一 tick 的多次重算，省掉连续整表 setData
   scheduleFilter() {
     if (this._filterQueued) return
     this._filterQueued = true
@@ -93,14 +89,13 @@ Page({
     })
   },
 
-  // AI 重排：与首页 hero 同源（同日同签名命中缓存）；失败保持规则结果。
-  // allowSceneSwitch 仅首次进入为 true：允许切到 AI 计划所在场景；后续 onShow 不抢场景，避免覆盖用户手动切换
+  // 与首页 hero 同源（同日同签名命中缓存），失败保持规则结果。
+  // allowSceneSwitch 只在首次进入为 true，后续 onShow 不抢场景，免得覆盖用户手动切换
   resolveAiPick(allowSceneSwitch) {
     aiRecommend.fetchPlan(records.getAll(), profile.get()).then((res) => {
       if (!res || !res.ok || !res.byAI) return
       const plan = customPlans.resolvePlan(res.planId)
-      // 结果可能迟到：期间用户已离开本页，不必再重算列表
-      if (!plan || !nav.alive(this)) return
+      if (!plan || !nav.alive(this)) return // 结果可能迟到，此时用户已离开
       this._aiPlan = plan
       if (allowSceneSwitch && isKnownScene(plan.scene) && plan.scene !== this.data.scene) {
         this.switchScene(plan.scene)
@@ -109,17 +104,15 @@ Page({
     }).catch(() => {})
   },
 
-  // 已登录时与云端收敛偏好与自定义计划，换机/他端改动可见；限频与失败重试见 utils/profile.js 的 syncPull
-  syncCustomPlans(force) {
+  // 与云端收敛偏好与自定义计划，让换机/他端改动可见
+  syncCustomPlans() {
     return profile.syncPull(this, {
       key: '_lastCustomSyncAt',
-      force: !!force,
       onChange: () => this.scheduleFilter()
     })
   },
 
-  // 切场景：难度筛选项随场景变（各场景有的档位不同），
-  // 当前选中的档位在新场景里不存在时退回「全部」，否则会停在一个空列表上
+  // 各场景的难度档位不同，选中项在新场景不存在时退回「全部」，否则会停在空列表上
   switchScene(scene) {
     const levelTabs = levelTabsFor(scene)
     const stillThere = levelTabs.some(function (tab) { return tab.value === this.data.level }, this)
@@ -143,22 +136,21 @@ Page({
     this.applyFilter()
   },
 
-  // 按当前场景 + 难度筛出计划列表，顺带标上「今日推荐」「继续训练」「今日已练 N 次」
+  // 按场景 + 难度筛列表，顺带标上「今日推荐」「继续训练」「今日已练 N 次」
   applyFilter() {
-    // 全量读一次：今日次数统计与推荐打分都从这一份 records 算
+    // 读一次，今日次数与推荐打分都从这一份算
     const all = records.getAll()
     const today = dateUtil.today()
     const counts = {}
     all.forEach(function (record) {
       if (record.date === today && record.planId) counts[record.planId] = (counts[record.planId] || 0) + 1
     })
-    // 当日推荐计划：与首页 hero 同源（AI 重排已出结果时优先，否则规则打分）
+    // AI 重排已出结果时优先，否则规则打分
     const recPlan = this._aiPlan || recommend.pick(all, profile.get())
     const recId = recPlan && recPlan.id
-    // 进行中的训练：判据收在 sessionStore.isResumable，与计划详情页、训练页共用一份
     const active = sessionStore.get()
     const activeId = sessionStore.isResumable(active) ? active.planId : ''
-    // 自定义计划固定展示在对应场景最上方，不参与难度筛选，保证用户随时可见。
+    // 自定义计划固定置顶且不参与难度筛选，保证随时可见
     const custom = customPlans.listByScene(this.data.scene).map((p) => toCard(p, counts[p.id], recId, activeId))
     const builtin = plansData.listByScene(this.data.scene)
       .filter((p) => {
@@ -166,7 +158,7 @@ Page({
       })
       .map((p) => toCard(p, counts[p.id], recId, activeId))
     const list = custom.concat(builtin)
-    // 今日推荐置顶：作为当天训练的主入口（推荐不在当前场景时无需处理）
+    // 今日推荐置顶，作为当天训练的主入口
     if (recId) {
       const recIndex = list.findIndex(function (card) { return card.id === recId })
       if (recIndex > 0) list.unshift(list.splice(recIndex, 1)[0])

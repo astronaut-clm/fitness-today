@@ -1,5 +1,5 @@
-// 自定义训练计划：每场景各一份，只能覆盖不能删；读取时装饰成与内置计划一致的结构；
-// 云端同步由 profile.syncFromCloud 驱动（按场景比较 updatedAt，较新者胜）
+// 自定义计划：每场景一份，只能覆盖不能删，读取时装饰成与内置计划一致的结构。
+// 云端同步由 profile.syncFromCloud 驱动
 const cloud = require('./cloud.js')
 const actionsData = require('../databases/actions.js')
 const plansData = require('../databases/plans.js')
@@ -9,14 +9,14 @@ const workoutGroups = require('./workout/groups.js')
 
 const store = storage.scoped('ft_custom_plans_v1')
 const ID_PREFIX = 'custom_'
-// 有哪些场景由 databases/plans.js 定义，这里不再自带一份
+// 场景清单由 databases/plans.js 定义
 const SCENES = plansData.SCENES
 
 function emptyStore() {
   return { plans: {}, updatedAt: 0 }
 }
 
-// 本机存的是「用户选了哪些动作」，读出来时再装饰成完整计划（补时长、难度、卡路里等）
+// 本机只存「选了哪些动作」，读出来再装饰成完整计划（补时长、难度、卡路里）
 function getStore() {
   const raw = store.read()
   if (!raw || typeof raw !== 'object') return emptyStore()
@@ -35,17 +35,17 @@ function saveStore(next) {
   return safe
 }
 
-// 条目字段与上下限统一由 exercise-item 收敛；云端原样存收到的内容，不再清洗一遍
+// 字段边界统一由 exercise-item 收敛，云端原样收发
 function normalizeExercises(list) {
   return (list || []).map(function (ex) {
     return exerciseItem.normalizeItem(ex)
   })
 }
 
-// items: [{ exercise, action }]，动作已解析，避免重复查表
+// items 的 action 已解析好，避免重复查表
 function estimate(items, scene) {
   const gym = scene === 'gym'
-  // 与真实训练（workout/groups）共用同一份组间休息缺省值，避免估算与实际两套数值
+  // 与真实训练共用同一份休息缺省值，避免估算与实际两套数
   const restPerSet = workoutGroups.DEFAULT_REST[scene] || 20
   let workSeconds = 0
   let totalSets = 0
@@ -74,7 +74,7 @@ function defaultName(scene) {
   return plansData.sceneName(scene) + '专属'
 }
 
-// 装饰成与内置计划一致的结构；动作已下架（不在动作库）的条目直接丢弃
+// 动作已下架（不在动作库）的条目直接丢弃
 function decorate(stored) {
   if (!stored || !stored.scene) return null
   const items = []
@@ -108,18 +108,18 @@ function decorate(stored) {
   }
 }
 
-// 某场景的自定义计划，没有（或动作全下架了）返回 null
+// 没有、或动作全下架了都返回 null
 function get(scene) {
   return decorate(getStore().plans[scene])
 }
 
-// 只认 custom_ 开头的 id，其余交给内置计划库
+// 只认 custom_ 开头的 id
 function getById(id) {
   if (typeof id !== 'string' || id.indexOf(ID_PREFIX) !== 0) return null
   return get(id.slice(ID_PREFIX.length))
 }
 
-// 统一计划解析：自定义优先，回落内置计划库
+// 自定义优先，回落内置计划库
 function resolvePlan(id) {
   return getById(id) || plansData.getPlan(id)
 }
@@ -153,7 +153,7 @@ function save(scene, data) {
   return get(scene)
 }
 
-// 登出清空本机数据：云端保留，重新登录按账号拉回
+// 登出清本机；云端保留，重登按账号拉回
 function resetLocal() {
   saveStore(emptyStore())
 }
@@ -172,13 +172,12 @@ function pushToCloud() {
   const pushed = getStore()
   return cloud.call('login', 'cpSet', { customPlans: { plans: pushed.plans, updatedAt: pushed.updatedAt } }).then(function (res) {
     if (!res.ok || !res.customPlans) return false
-    // 时间戳回写的理由与边界见 cloud.adoptServerTs；没带回服务器时间戳视为推送未生效
+    // 回写理由见 cloud.adoptServerTs；没带回服务器时间戳视为推送未生效
     return cloud.adoptServerTs(res, pushed.updatedAt, localTs, writeTs)
   })
 }
 
-// 按场景逐条比较 updatedAt（较新者胜），本地较新的场景自动补推；
-// resolve { ok, changed }，changed 表示本地被云端覆盖
+// 按场景逐条比 updatedAt，较新者胜，本地较新的自动补推。changed=本地被云端覆盖
 function mergeFromCloud(remoteCustom) {
   const remotePlans = (remoteCustom && typeof remoteCustom.plans === 'object') ? remoteCustom.plans : {}
   const current = getStore()

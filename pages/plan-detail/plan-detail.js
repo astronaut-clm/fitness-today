@@ -7,7 +7,7 @@ const sessionStore = require('../../utils/workout/session.js')
 const toast = require('../../utils/toast.js')
 const fontBehavior = require('../../utils/font.js').behavior
 
-// 统一解析计划来源：先查自定义，再回落到内置计划库。
+// 先查自定义，再回落内置计划库
 const resolvePlan = customPlans.resolvePlan
 
 Page({
@@ -18,8 +18,7 @@ Page({
     items: [],
     hasActiveSession: false,
     hasAdjustments: false,
-    // 只读模式：从计划库进入，仅供查看，不提供开始训练/调整组数入口。
-    readonly: false,
+    readonly: false, // 从计划库进入时只供查看，不给开始训练/调整组数入口
     showSwitchConfirm: false,
     switchActiveName: ''
   },
@@ -72,8 +71,8 @@ Page({
     })
   },
 
-  // 是否存在与原计划不同的组数调整；原始动作先建索引，避免逐个补丁线性查找
-  hasAdjustments() {
+  // 原始动作先建索引，避免逐个补丁线性查找
+  computeHasAdjustments() {
     const patches = adjustments.get(this.planId).exercises
     if (!patches) return false
     const source = resolvePlan(this.planId)
@@ -89,9 +88,9 @@ Page({
 
   refreshStatus() {
     this.setData({
-      // 判据（未完成且至少练完一组）收在 sessionStore.isResumable，与计划列表页、训练页共用
+      // 判据收在 sessionStore.isResumable，与列表页、训练页共用
       hasActiveSession: !!sessionStore.resumableFor(this.planId),
-      hasAdjustments: this.hasAdjustments()
+      hasAdjustments: this.computeHasAdjustments()
     })
   },
 
@@ -106,12 +105,12 @@ Page({
     if (this.readonly) return
     const active = sessionStore.get()
     if (active && active.planId !== this.planId) {
-      // 其它计划一组都没完成时没有进度可丢，直接清掉，不再弹确认。
+      // 没有进度可丢就直接清掉，不弹确认
       if (!sessionStore.isResumable(active)) {
         sessionStore.clear()
       } else {
         const activePlan = resolvePlan(active.planId)
-        // 存在其它计划的未完成训练时弹页内确认层，避免点击「开始训练」无响应。
+        // 别让「开始训练」点了没反应
         this.setData({
           showSwitchConfirm: true,
           switchActiveName: (activePlan && activePlan.name) || active.planId

@@ -15,14 +15,14 @@
 .cp-arrow { color: var(--ink3); font-size: 40rpx; }
 .cp-item { margin-top: 16rpx; color: var(--ink2); font-size: 25rpx; line-height: 1.6; }
 
-/* 底部操作栏骨架在 app.wxss 的 .save-bar（wxml 上与它同时挂），这里只加纵向排布 */
+/* 骨架用 app.wxss 的 .save-bar（wxml 上两个类同时挂），这里只加纵向排布 */
 .foot-bar { display: flex; flex-direction: column; gap: 12rpx; }
 .foot-row { display: flex; align-items: stretch; gap: 20rpx; }
-/* 按钮内两行文案：主操作 + 小字提示 */
+/* 按钮内两行：主操作 + 小字提示 */
 .foot-stack { flex-direction: column; gap: 2rpx; height: auto; min-height: 92rpx; line-height: 1.15; }
 .foot-stack-main { font-size: 30rpx; font-weight: 700; }
 .foot-stack-sub { font-size: 20rpx; font-weight: 400; letter-spacing: 0; opacity: 0.9; }
 .foot-ghost { flex: none; width: 200rpx; height: auto; }
 .foot-primary { flex: 1; }
-/* 主操作按钮：引导内改用绿色，与红色区分 */
+/* 引导内的主操作用绿色，与全站红色区分 */
 .btn-green { background: var(--green); color: var(--card); }

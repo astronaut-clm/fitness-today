@@ -1,7 +1,7 @@
 .page { padding-top: 36rpx; padding-bottom: 200rpx; }
 
 .avatar-wrap { display: flex; flex-direction: column; align-items: center; padding: 8rpx 0 34rpx; }
-/* 像素风方形头像容器，按钮做透明覆盖层负责点选 */
+/* 方形头像容器，按钮做透明覆盖层负责点选 */
 .avatar-clip {
   position: relative;
   width: 168rpx;
@@ -52,7 +52,7 @@
 .menu-sub { margin-top: 6rpx; font-size: 21rpx; }
 .menu-arrow { color: var(--ink3); font-size: 40rpx; line-height: 1; }
 
-/* 字体选择：像素字体开关 */
+/* 像素字体开关 */
 .section { margin-top: 22rpx; }
 .switch-row { display: flex; align-items: center; gap: 18rpx; }
 .switch-row switch { flex: none; }

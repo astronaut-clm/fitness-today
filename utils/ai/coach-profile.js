@@ -1,5 +1,5 @@
-// 教练记忆：从训练记录算出来的长期画像，纯规则计算，只在拼 AI 提问时用。
-// 它完全由记录派生，所以既不存本机也不参与同步——每次要用就现算一遍
+// 教练记忆：从训练记录算出的长期画像，纯规则计算，只在拼 AI 提问时用。
+// 完全由记录派生，所以不存本机也不参与同步，每次现算
 const dateUtil = require('../date.js')
 const insights = require('../insights.js')
 const recordStore = require('../records.js')
@@ -36,7 +36,7 @@ function build(records) {
   let totalMinutes = 0
   const planCount = {}
   const sceneCount = {}
-  // 下标对齐 getDay()：0=周日 … 6=周六，AI 可据此识别用户的训练节奏
+  // 下标对齐 getDay()，0=周日；AI 据此识别训练节奏
   const weekdayRhythm = [0, 0, 0, 0, 0, 0, 0]
   const recent = []
   const previous = []
@@ -47,7 +47,8 @@ function build(records) {
     if (name) planCount[name] = (planCount[name] || 0) + 1
     const scene = safeStr(r.sceneName, 10)
     if (scene) sceneCount[scene] = (sceneCount[scene] || 0) + 1
-    if (r.date >= rhythmCutoff) weekdayRhythm[dateUtil.parse(r.date).getDay()]++
+    const d = r.date && dateUtil.parse(r.date)
+    if (d && r.date >= rhythmCutoff) weekdayRhythm[d.getDay()]++
     if (r.date >= recentCutoff) recent.push(r)
     else if (r.date >= prevCutoff) previous.push(r)
   })
@@ -73,12 +74,12 @@ function build(records) {
     topPlans: topKeys(planCount, 3),
     scenes: topKeys(sceneCount, 2),
     weekdayRhythm: weekdayRhythm,
-    // 近 30 天肌群组数分布，与规则推荐/疲劳口径一致（insights.recentMuscles）
+    // 与规则推荐的疲劳口径同源
     muscles30d: insights.recentMuscles(list, MUSCLE_DAYS)
   }
 }
 
-// 画像自己去仓库取全量记录，调用方不用传参
+// 自己去取全量记录，调用方不传参
 function get() {
   return build(recordStore.getAll())
 }

@@ -13,8 +13,7 @@ const toast = require('../../utils/toast.js')
 const nav = require('../../utils/nav.js')
 const fontBehavior = require('../../utils/font.js').behavior
 
-// 本周练够几次才解锁 AI 周复盘
-const WEEKLY_UNLOCK_SESSIONS = 2
+const WEEKLY_UNLOCK_SESSIONS = 2 // 本周练够几次才解锁 AI 周复盘
 
 Page({
   behaviors: [fontBehavior],
@@ -23,12 +22,12 @@ Page({
     dateText: '',
     streak: 0,
     recPlan: null,
-    // loggedIn=账号已登录；今日是否练过看 todaySummary 是否为空
+    // 今日练过没有看 todaySummary 是否为空，与 loggedIn 无关
     loggedIn: false,
     goalReady: false,
     todaySummary: null,
     insight: insights.empty(),
-    // 周复盘：locked=本周次数不足；loading=生成中；review=复盘内容
+    // weeklyLocked=本周次数不足
     weeklyLocked: true,
     weeklyLoading: false,
     weeklyReview: null,
@@ -44,17 +43,16 @@ Page({
     }
     this.setData({ loggedIn: true })
     this.refresh()
-    // 限频、失败重试、账号失效处理都在 login.refreshAccount 里
     login.refreshAccount(this, {
       key: '_lastVerifyAt',
       onGone: () => { if (nav.alive(this)) this.resetGuestView() }
     })
   },
 
-  // 未登录只留一个登录入口：页面内容全部不渲染，tabBar 也不显示（nav.sync 按登录态同步显隐）
-  // 不必再调 nav.sync：到这里的路径必经 onShow，那里已经同步过一次
+  // 未登录只留登录入口，页面内容与 tabBar 都不渲染。
+  // 不必再调 nav.sync：到这里必经 onShow，那里已同步过
   resetGuestView() {
-    // 登出后要清掉重算判据，否则下次 refresh 会误以为「记录没变」而沿用上一账号的结果
+    // 必须清掉重算判据，否则下次 refresh 会以为「记录没变」而沿用上个账号的结果
     this._records = null
     this._recordsRev = -1
     this._profileRev = -1
@@ -73,17 +71,15 @@ Page({
 
   refresh(opts) {
     const currentProfile = profile.get()
-    // 记录与偏好都没变 → 沿用上次结果。从子页频繁返回首页时，
-    // 这一步能省掉整轮的 getAll + 全表统计 + 整块 setData
+    // 记录与偏好都没变就沿用上次结果，省掉整轮 getAll + 全表统计 + setData
     const recordsRev = records.revision()
     const profileRev = Number(currentProfile.updatedAt || 0)
     if (this._records && this._recordsRev === recordsRev && this._profileRev === profileRev) return
     this._recordsRev = recordsRev
     this._profileRev = profileRev
-    // 读一次记录，本页几个数字都从这一份算
+    // 读一次，本页几个数字都从这一份算
     const all = records.getAll()
     const stats = records.computeStatsFrom(all)
-    // 今日汇总只关心今天这几条：从同一份 all 里过滤，不再全量读一遍 storage
     const today = dateUtil.today()
     const todayRecords = all.filter(function (record) { return record.date === today })
 
@@ -105,14 +101,13 @@ Page({
       todaySummary: todaySummary,
       insight: insightView
     })
-    // 登录后的过渡态（noCache）里云端偏好还没拉回，profile 为空时算出的签名会真打一次模型，
-    // 白白吃掉当天额度；这里跳过，等同步完成后的 refresh 再请求 AI
+    // noCache 是登录后的过渡态：偏好还没拉回，此时的签名会白打一次模型吃掉当天额度
     if (!(opts && opts.noCache)) this.requestAI(all, currentProfile)
     this._records = all
     this.loadWeekly()
   },
 
-  // 周复盘：仅登录可见（未登录在 resetGuestView 清空）；本周练过 ≥2 次解锁
+  // 仅登录可见，本周练过 ≥2 次才解锁
   loadWeekly(force) {
     if (!account.isLoggedIn()) {
       this.setData({ weeklyLocked: true, weeklyLoading: false, weeklyReview: null })
@@ -131,7 +126,7 @@ Page({
       goal: profile.get().goal
     }, { force: !!force }).then((res) => {
       this._weeklyBusy = false
-      // 失败：有旧内容保留旧内容，无则结束加载态，下次 onShow 再试（6 小时失败水位限频）
+      // 失败时有旧内容就留着，下次 onShow 再试（6 小时失败水位）
       const patch = { weeklyLoading: false }
       if (res && res.ok) patch.weeklyReview = res.data
       this.setData(patch)
@@ -147,8 +142,7 @@ Page({
     this.loadWeekly(true)
   },
 
-  // AI 重排：后台进行，不阻塞首屏；结果有效才覆盖推荐卡片，失败保持规则结果
-  // 命中缓存时同步返回，登录/同步导致的多次 refresh 不会把已出的 AI 结果冲掉
+  // 后台进行不阻塞首屏；结果有效才覆盖卡片，失败保持规则结果
   requestAI(all, profileData) {
     aiRecommend.fetchPlan(all, profileData).then((res) => {
       if (!res || !res.ok || !res.byAI) return
@@ -169,7 +163,7 @@ Page({
     wx.navigateTo({ url: '/pages/rank/rank' })
   },
 
-  // 一键登录：选择微信头像即完成登录，昵称默认取 openid 后六位
+  // 选择微信头像即完成登录，昵称默认取 openid 后六位
   onLoginOneTap(e) {
     if (this.data.loginBusy) return
     const tempUrl = (e.detail && e.detail.avatarUrl) || ''
@@ -183,11 +177,10 @@ Page({
         return
       }
       this.setData({ loginBusy: false, loggedIn: true })
-      // 登录成功，tabBar 现在该出现了
-      nav.sync(this, nav.TAB.index)
-      // 云端数据尚未拉回，本地仍为空态：只做即时展示、不写推荐缓存，避免污染
+      nav.sync(this, nav.TAB.index) // tabBar 现在该出现了
+      // 云端数据还没拉回，只做即时展示、不写推荐缓存
       this.refresh({ noCache: true })
-      // 云端同步后台执行，不阻塞引导跳转；完成后回填首页并落推荐缓存
+      // 同步放后台，不阻塞引导跳转
       login.syncAfterLogin().then((ok) => {
         if (ok && nav.alive(this)) this.refresh()
       }).catch(() => {})

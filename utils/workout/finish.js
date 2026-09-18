@@ -1,6 +1,5 @@
-// 训练完成后的收尾：落库、完成页那一屏的文案与统计。
-// 这里不读页面的 data，只吃一个 summary 对象；要不要把结果写回界面由页面决定。
-// summary = { planName, total, skipped, seconds, costText }
+// 训练收尾：落库 + 完成页那一屏的文案与统计。
+// 不读页面 data，只吃 summary = { planName, total, skipped, seconds, costText }
 const plansData = require('../../databases/plans.js')
 const records = require('../records.js')
 const sessionStore = require('./session.js')
@@ -10,7 +9,7 @@ const profile = require('../profile.js')
 const toast = require('../toast.js')
 const copy = require('./lines.js')
 
-// 秒 → '45 秒' / '3 分' / '3 分 20 秒'
+// 45 秒 / 3 分钟 / 3 分 20 秒
 function costText(seconds) {
   if (seconds < 60) return seconds + ' 秒'
   const minutes = Math.floor(seconds / 60)
@@ -18,10 +17,9 @@ function costText(seconds) {
   return rest ? minutes + ' 分 ' + rest + ' 秒' : minutes + ' 分钟'
 }
 
-// 落库并清掉断点续训的进度。失败时自己弹提示并返回 null（完成页照常展示）
+// 落库并清掉断点进度。失败时自己弹提示并返回 null，完成页照常展示
 function save(plan, summary) {
-  // addRecord 写本地失败（多半是 storage 配额溢出）会返回 null，
-  // 必须明确提示，不能让用户以为这条训练已经记下来了
+  // 写本地失败（多为配额溢出）必须明确提示，不能让用户以为已经记下来了
   let saved = null
   try {
     saved = records.addRecord({
@@ -49,7 +47,7 @@ function save(plan, summary) {
   return saved
 }
 
-// 完成页那一屏。必须在 save() 之后调用：连续打卡、本周训练要算上刚落库的这一条
+// 必须在 save() 之后调用：连续打卡、本周训练要算上刚落库的这条
 function feedback(summary) {
   const total = summary.total || 1
   const all = records.getAll()

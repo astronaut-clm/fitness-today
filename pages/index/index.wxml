@@ -58,7 +58,7 @@
       </view>
     </block>
 
-    <!-- 周复盘：hy3 深度推理生成，本周 ≥2 次训练解锁 -->
+    <!-- 周复盘：本周 ≥2 次训练才解锁 -->
     <view class="weekly g-card">
       <view class="weekly-head">
         <view class="weekly-title">本周复盘</view>

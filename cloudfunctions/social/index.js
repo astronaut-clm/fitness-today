@@ -1,6 +1,6 @@
-// 云函数 social：月度排行榜。跨用户的聚合统计只能在这里做——客户端读不到别人的记录。
-// 聚合按 `_openid` 分组：那是平台字段，只有客户端直连写入时才自动注入，
-// ft_records 正是客户端写的（utils/records.js），所以每条记录都带着作者身份。
+// 云函数 social：月度排行榜。跨用户聚合只能在这里做，客户端读不到别人的记录。
+// 按 _openid 分组：这是平台字段，只有客户端直连写入才会自动注入——
+// ft_records 正是客户端写的，所以每条记录都带着作者身份
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -17,7 +17,7 @@ function cleanText(value, max) {
   return String(value == null ? '' : value).trim().slice(0, max)
 }
 
-// 'YYYY-MM'（客户端本机时区）→ [当月1日, 次月1日) 区间
+// 'YYYY-MM' → [当月1日, 次月1日) 区间
 function monthRange(month) {
   const m = /^(\d{4})-(\d{2})$/.exec(String(month || ''))
   if (!m) return null
@@ -30,7 +30,7 @@ function monthRange(month) {
   return { start: m[1] + '-' + m[2] + '-01', end: nextYear + '-' + nextPad + '-01' }
 }
 
-// 昵称缺省用 openid 尾号兜底，避免展示完整 openid
+// 没昵称时用 openid 尾号兜底，别展示完整 openid
 function rankName(openid, user) {
   const nickname = cleanText(user && user.nickname, 30)
   if (nickname) return nickname
@@ -57,17 +57,18 @@ function rankMinutesExpr() {
   return db.command.aggregate.sum('$actualMinutes')
 }
 
-// 返回行含 openid，仅服务端内部使用 / 缓存
+// 返回行含 openid，仅服务端内部使用与缓存
 async function buildRankRows(range) {
   const $ = db.command.aggregate
   const res = await db.collection(COL_RECORDS).aggregate()
     .match({ date: _.gte(range.start).and(_.lt(range.end)) })
-    // addToSet 去重日期：同一天多次训练只算一天
+    // addToSet 去重：同一天多次训练只算一天
     .group({ _id: '$_openid', minutes: rankMinutesExpr(), days: $.addToSet('$date') })
     .project({ _id: 1, minutes: 1, days: $.size('$days') })
     .sort({ minutes: -1, _id: 1 })
     .limit(RANK_TOP)
     .end()
+    .catch(function () { return { list: [] } })
   const list = (res && res.list) || []
   const ids = list.map(function (row) { return row && row._id }).filter(Boolean)
   const userMap = await loadUserMap(ids)
@@ -93,6 +94,7 @@ async function myRank(range, openid) {
     .group({ _id: '$_openid', minutes: rankMinutesExpr(), days: $.addToSet('$date') })
     .project({ _id: 0, minutes: 1, days: $.size('$days') })
     .end()
+    .catch(function () { return { list: [] } })
   const mine = (mineRes && mineRes.list && mineRes.list[0]) || null
   const minutes = mine ? Math.max(0, Math.round(Number(mine.minutes) || 0)) : 0
   if (!minutes) return { minutes: 0, days: 0, rank: 0 }
@@ -102,6 +104,7 @@ async function myRank(range, openid) {
     .match({ minutes: _.gt(minutes) })
     .count('n')
     .end()
+    .catch(function () { return { list: [] } })
   const greater = (greaterRes && greaterRes.list && greaterRes.list[0] && greaterRes.list[0].n) || 0
   return { minutes: minutes, days: Number(mine.days) || 0, rank: greater + 1 }
 }
@@ -122,7 +125,7 @@ function writeRankCache(month, rows, now) {
   }).catch(function () {})
 }
 
-// 客户端读不到别人的云存储文件，用管理员权限批量换临时链接（有效期约 2 小时）
+// 客户端读不到别人的云存储文件，用管理员权限批量换临时链接
 async function resolveAvatarTempUrls(rows) {
   const fileIDs = []
   const indexMap = {}
@@ -153,7 +156,7 @@ async function resolveAvatarTempUrls(rows) {
   return out
 }
 
-// 月榜：前 N 名走共享缓存，「我的名次」在榜内时直接从缓存行得出
+// 前 N 名走共享缓存；「我的名次」在榜内时直接从缓存行得出
 async function rankMonth(openid, event) {
   const range = monthRange(event && event.month)
   if (!range) return { ok: false, code: 'bad_month' }
@@ -163,7 +166,7 @@ async function rankMonth(openid, event) {
   let raw = await readRankCache(month, now)
   if (!raw) {
     raw = await buildRankRows(range)
-    // 临时链接（约 2 小时）远长于缓存 TTL（60 秒），换好一并写入缓存
+    // 临时链接约 2 小时，远长于 60 秒的缓存 TTL，换好一并写进缓存
     const urlMap = await resolveAvatarTempUrls(raw)
     raw = raw.map(function (row, index) {
       return urlMap[index] ? Object.assign({}, row, { avatar: urlMap[index] }) : row
@@ -181,7 +184,7 @@ async function rankMonth(openid, event) {
       isMe: !!row.openid && row.openid === openid
     }
   })
-  // 在 Top100 内直接取榜单行，免去 myRank 的全表聚合
+  // 在榜内就直接取，免去 myRank 的全表聚合
   let mineRow = null
   raw.forEach(function (row) {
     if (row && row.openid === openid) mineRow = row
@@ -192,11 +195,15 @@ async function rankMonth(openid, event) {
   return { ok: true, month: month, rows: rows, me: me, updatedAt: now }
 }
 
-// 统一响应契约：{ ok: true, ... } 或 { ok: false, code }。
-// 客户端（utils/cloud.js）只认显式的 ok，漏写一律按失败处理
+// 响应契约同 login：客户端只认显式的 ok，漏写一律按失败
 exports.main = async (event) => {
   const openid = cloud.getWXContext().OPENID || ''
   if (!openid) return { ok: false, code: 'no_openid' }
   if ((event && event.action) !== 'rankMonth') return { ok: false, code: 'unknown_action' }
-  return rankMonth(openid, event)
+  try {
+    return await rankMonth(openid, event)
+  } catch (e) {
+    console.error('[social] rankMonth failed', e && e.message)
+    return { ok: false, code: 'server_error' }
+  }
 }

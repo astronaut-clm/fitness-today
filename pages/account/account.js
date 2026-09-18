@@ -1,4 +1,4 @@
-// 个人设置：头像走 chooseAvatar、昵称走 nickname 输入框，资料按 openid 写入云端 ft_users
+// 个人设置：头像走 chooseAvatar、昵称走 nickname 输入框，资料按 openid 写云端
 const account = require('../../utils/account.js')
 const customPlans = require('../../utils/custom-plans.js')
 const profile = require('../../utils/profile.js')
@@ -7,7 +7,7 @@ const font = require('../../utils/font.js')
 const fontBehavior = font.behavior
 const toast = require('../../utils/toast.js')
 
-// 文字头像首字由 account.charOf 统一给出（emoji 昵称的代理对问题在那里处理）
+// emoji 昵称的代理对问题在 account.charOf 里处理
 const charOf = account.charOf
 
 Page({
@@ -41,7 +41,7 @@ Page({
     this.setData({ usePixelFont: font.getChoice() === 'pixel' })
   },
 
-  // 像素字体开关即时生效：开启引用 Zpix，关闭即回系统字体（改页面根节点字体栈，无需重启）
+  // 改页面根节点字体栈即时生效，无需重启
   onTogglePixelFont(e) {
     const on = !!(e.detail && e.detail.value)
     font.setChoice(on ? 'pixel' : 'system')
@@ -49,8 +49,7 @@ Page({
     if (on) font.load()
   },
 
-  // 走 syncPull 而非直接 syncFromCloud：自带限频，
-  // 否则每次从子页返回都要打一次云端 userGet
+  // 用 syncPull 而非 syncFromCloud：它自带限频，否则每次从子页返回都打一次 userGet
   syncCustomPlans() {
     if (!account.isLoggedIn()) return
     return profile.syncPull(this, {
@@ -72,7 +71,7 @@ Page({
     this.setData({ showLogoutConfirm: false })
   },
 
-  // 清空本机数据并暂停同步，云端保留，同一微信再登录时自动拉回。
+  // 清本机并暂停同步；云端保留，同一微信再登录自动拉回
   onConfirmLogout() {
     this.setData({ showLogoutConfirm: false })
     login.resetSession()
@@ -92,7 +91,7 @@ Page({
       avatarChar: charOf(info.nickname)
     })
     this.showAvatar(info.avatar)
-    // force：进设置页就该看到云端最新值，不受 15 秒水位限制
+    // 进设置页就该看到云端最新值，不受水位限制
     login.refreshAccount(this, {
       force: true,
       onProfile: (res) => {
@@ -106,7 +105,7 @@ Page({
       },
       onGone: () => toast.back('账号已失效，请重新登录')
     }).then((res) => {
-      // 本地资料仍在，不影响编辑，但要让用户知道展示的可能不是云端最新值
+      // 本地资料还在、不影响编辑，但要让用户知道这可能不是最新值
       if (res.code === 'failed') toast.show('云端资料读取失败，显示的可能不是最新')
     })
   },
@@ -123,7 +122,7 @@ Page({
     this.setData({ nickname: (e.detail && e.detail.value) || '' })
   },
 
-  // 无保存按钮：昵称失焦或头像变更后自动写云端，改动即时生效。
+  // 没有保存按钮：昵称失焦或头像变更后自动写云端
   onNicknameBlur(e) {
     const nickname = ((e.detail && e.detail.value) || '').trim()
     this.setData({ nickname: nickname, avatarChar: charOf(nickname) })
@@ -163,7 +162,7 @@ Page({
       return account.saveProfile({ nickname: nickname, avatar: nextAvatar }).then((res) => {
         this._finishAutoSave()
         if (!res || !res.ok) {
-          // 资料保存失败：刚上传的新头像会成为云端孤儿文件，清掉（与当前头像同图同 md5 时除外）
+          // 保存失败时刚上传的头像会成为孤儿文件，清掉（同图同 md5 时除外）
           if (avatarChanged && nextAvatar && nextAvatar !== this._remoteAvatar) {
             account.deleteFile(nextAvatar)
           }

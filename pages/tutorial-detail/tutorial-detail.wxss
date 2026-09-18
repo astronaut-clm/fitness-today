@@ -22,7 +22,7 @@
   min-width: 0;
 }
 
-/* 难度置于头部卡片右上角，白底反色 */
+/* 难度放头部卡片右上角，白底反色 */
 .hero .hero-level {
   flex: none;
   margin-left: 16rpx;
@@ -64,7 +64,7 @@
 }
 
 .anim-frame {
-  /* 源视频为 1:1 正方形，容器须同比例，否则 <video> 补边处会露出原生黑底。
+  /* 源视频是 1:1，容器必须同比例，否则 <video> 补边处会露出原生黑底。
      容器固定尺寸 + 裁剪溢出：<video> 原生层按物理像素取整，边缘总会差出不到 1px；
      由容器裁掉视频多出的部分，任何机型的取整误差都落在容器外面，不会露出黑线 */
   width: 420rpx;
@@ -75,7 +75,7 @@
 
 .anim-img {
   display: block;
-  /* 四周各比容器大 2rpx，多出的部分被 anim-frame 裁掉；background 兜底防止缝隙透黑 */
+  /* 四周各大 2rpx，多出部分被 anim-frame 裁掉；background 兜底防缝隙透黑 */
   width: calc(100% + 4rpx);
   height: calc(100% + 4rpx);
   margin: -2rpx;
@@ -96,7 +96,7 @@
   padding: 10rpx 0;
 }
 
-/* 训练步骤：步骤 + 该步要点 */
+/* 步骤 + 该步要点 */
 .step {
   display: flex;
   align-items: flex-start;

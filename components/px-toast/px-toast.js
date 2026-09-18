@@ -1,4 +1,4 @@
-// 页内像素提示：由 utils/toast.js 驱动，以支持像素字体
+// 页内提示，由 utils/toast.js 驱动
 const toast = require('../../utils/toast.js')
 
 Component({
@@ -21,7 +21,7 @@ Component({
   },
 
   methods: {
-    // toast.js 只会挑栈顶页的实例来调，这里不用再判断一次
+    // toast.js 只挑栈顶页的实例来调，这里不用再判断
     play(text, opts) {
       if (this._timer) clearTimeout(this._timer)
       this.setData({ show: true, text: text, success: !!(opts && opts.success) })

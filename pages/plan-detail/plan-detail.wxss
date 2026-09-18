@@ -73,7 +73,7 @@
   padding: 6rpx 18rpx;
 }
 
-/* 隐藏时保留占位：按钮出现/消失不改变行高，动作卡片不位移 */
+/* 隐藏时保留占位，按钮出现/消失不改变行高 */
 .ex-head .adjust-reset.hide {
   visibility: hidden;
 }

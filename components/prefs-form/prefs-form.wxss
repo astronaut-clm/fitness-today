@@ -1,6 +1,4 @@
-/* 偏好配置表单样式：与 prefs-form.wxml 配套，由 app.wxss @import 全局生效 */
-
-/* ===== 偏好配置表单（profile / onboarding 共用，结构见同目录 prefs-form.wxml） ===== */
+/* 偏好表单样式，由 app.wxss @import 全局生效；结构见同目录 prefs-form.wxml */
 .intro {
   margin: 8rpx 8rpx 24rpx;
 }

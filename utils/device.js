@@ -1,5 +1,5 @@
-// 设备信息兼容层：wx.getWindowInfo / getDeviceInfo / getMenuButtonBoundingClientRect
-// 在低版本基础库上可能不存在或抛异常，直接调用会导致页面白屏，这里统一 try/catch 并回退旧接口。
+// 设备信息兼容层：这几个新接口在低版本基础库上可能不存在或抛异常，
+// 直接调用会白屏，这里统一 try/catch 并回退 getSystemInfoSync
 function fromSystemInfoSync() {
   try {
     if (typeof wx.getSystemInfoSync === 'function') {

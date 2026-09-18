@@ -1,6 +1,6 @@
-// 个人计划调整：仅存本机，不参与云端同步，不改内置计划数据。
-// 只调组数——每组做什么（计时 / 力竭 / 次数）属于计划本身，本机调整不碰，
-// 否则一个 { reps } 补丁盖到计时组上会造出 seconds 与 reps 并存的条目，谁生效要看读取顺序
+// 个人计划调整：只存本机，不同步、不改内置计划数据。
+// 只调组数——目标（计时/力竭/次数）属于计划本身，不碰：一个 { reps } 补丁盖到计时组上
+// 会造出 seconds 与 reps 并存的条目，谁生效就要看读取顺序了
 const exerciseItem = require('./exercise-item.js')
 const storage = require('./storage.js')
 
@@ -27,7 +27,8 @@ function getAll() {
 }
 
 function get(planId) {
-  return getAll()[planId] || { exercises: {} }
+  const all = getAll()
+  return Object.prototype.hasOwnProperty.call(all, planId) ? all[planId] : { exercises: {} }
 }
 
 function save(planId, adjustment) {
@@ -50,8 +51,7 @@ function clear(planId) {
   saveStore(next)
 }
 
-// 应用本机调整：覆盖各动作组数，组数变化时按比例重算时长与热量。
-// 读取时同样只认 sets，历史数据里的其它键一律忽略
+// 覆盖各动作组数，组数变了按比例重算时长与热量。只认 sets，历史数据里的其它键忽略
 function apply(plan) {
   if (!plan) return plan
   const patches = (get(plan.id) || {}).exercises || {}

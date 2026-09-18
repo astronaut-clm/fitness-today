@@ -4,7 +4,7 @@ const font = require('./utils/font.js')
 App({
   onLaunch() {
     font.load()
-    // 延后初始化云能力，避免阻塞首屏启动
+    // 延后初始化，别阻塞首屏
     setTimeout(function () {
       cloud.init()
     }, 0)

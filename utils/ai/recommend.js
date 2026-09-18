@@ -13,9 +13,9 @@ const clampNum = ai.clampNum
 const strList = ai.strList
 
 const CANDIDATE_SIZE = 5
-// 细节窗口只保留近 7 条：输入越小思考越快；更早的历史由 memory 摘要覆盖
+// 只带近 7 条明细，输入越小思考越快；更早的历史由 memory 摘要覆盖
 const RECENT_SIZE = 7
-// 首页交互场景 medium 频繁超时，用 low 轻量推理（有 memory 画像加持，质量足够）
+// 首页是交互场景，medium 频繁超时；有 memory 画像加持，low 的质量够用
 const REASONING_EFFORT = 'low'
 const TIMEOUT = 15000
 const DAILY_LIMIT = 2
@@ -45,7 +45,7 @@ const SYSTEM = [
   '【安全】不给医疗建议、不诊断伤痛；用户提及疼痛或伤病 → 建议休息并咨询专业人士。不承诺减重斤数与疗效。'
 ].join('\n')
 
-// 只传训练相关信号，不传 openid / 昵称 / 头像
+// 只传训练信号，不传 openid / 昵称 / 头像
 function buildPayload(records, profile) {
   const p = profile || {}
   const built = insights.weekProgress(records, p)
@@ -86,7 +86,7 @@ function buildPayload(records, profile) {
   }
 }
 
-// 输入指纹：同一天输入没变就复用上次结果
+// 同一天输入没变就复用上次结果
 function signature(payload) {
   return [
     payload.goal,
@@ -97,23 +97,21 @@ function signature(payload) {
   ].join('|')
 }
 
-// 命中缓存直接返回，不需要云环境；多次 refresh 时不会把已出的 AI 结果冲掉。
-// 额度判断必须放在「是否已有结果」之前：模型持续失败时 pick 一直为空，
-// 若先判 pick 就会每次都返回 null，导致 onShow 等触发点无限重打模型，DAILY_LIMIT 形同虚设
+// 额度判断必须在「是否已有结果」之前：模型持续失败时 pick 一直为空，
+// 先判 pick 会每次都返回 null，onShow 就无限重打模型，DAILY_LIMIT 形同虚设
 function readCached(today, sig) {
   const s = store.read()
   if (!s || s.date !== today) return null
   if (s.pick && s.sig === sig) return Object.assign({ ok: true }, s.pick)
   if (Number(s.calls || 0) >= DAILY_LIMIT) {
-    // 当天额度用完：有旧结果就复用，没有则明确失败，由调用方降级到规则推荐
+    // 额度用完：有旧结果就复用，没有则明确失败让调用方降级
     return s.pick ? Object.assign({ ok: true }, s.pick) : { ok: false, code: 'daily_limit' }
   }
   return null
 }
 
 function fetchPlan(records, profile) {
-  // buildPayload 会穿越 insight / recommend / date 三层，遇到脏记录会同步抛异常。
-  // 包一层转成 rejection，避免异常直接打断页面生命周期（调用方可统一 catch）
+  // buildPayload 会穿三层，脏记录会让它同步抛异常，别打断页面生命周期
   let payload
   try {
     payload = buildPayload(records, profile)
@@ -126,7 +124,7 @@ function fetchPlan(records, profile) {
   const sig = signature(payload)
   const cached = readCached(dateUtil.today(), sig)
   if (cached) return Promise.resolve(cached)
-  // 同一输入的并发调用共用一次请求（单飞状态机见 throttle.flight）
+  // 同一输入的并发调用共用一次请求
   return flight.run(sig, function () { return run(dateUtil.today(), sig, payload) })
 }
 
@@ -137,23 +135,22 @@ function run(today, sig, payload) {
     const cur = (saved && saved.date === today)
       ? saved
       : { date: today, sig: sig, pick: null, calls: 0 }
-    // 并发竞态：可能已被兄弟请求写满当天额度
+    // 可能已被兄弟请求写满当天额度
     if (Number(cur.calls || 0) >= DAILY_LIMIT) {
       return cur.pick ? Object.assign({ ok: true }, cur.pick) : { ok: false, code: 'daily_limit' }
     }
 
     cur.sig = sig
-    // 先计数再打模型，避免并发/重试把当天额度打穿
+    // 先计数再打模型，免得并发/重试把额度打穿
     cur.calls = Number(cur.calls || 0) + 1
-    store.write(cur)
+    // 计数没落盘就等于没有额度账本，宁可放弃本次调用也不打穿限额
+    if (!store.write(cur)) return { ok: false, code: 'write_failed' }
 
     const startedAt = Date.now()
     const req = ai.generateText({
       reasoningEffort: REASONING_EFFORT,
-      // hy3-preview 思维链话痨会吃光输出预算（empty_result 根因）：交互场景直接关思考
-      enableThinking: false,
-      // 关思考后输出仅 ~50 token JSON，800 绰绰有余
-      maxTokens: 800,
+      enableThinking: false, // 思维链会吃光输出预算（empty_result 根因）
+      maxTokens: 800, // 关思考后输出仅 ~50 token JSON
       temperature: 0.3,
       messages: [
         { role: 'system', content: SYSTEM },
@@ -164,13 +161,13 @@ function run(today, sig, payload) {
     function toPick(out) {
       const raw = ai.parseJson(out.text)
       const id = safeStr(raw && raw.planId, 40)
-      // 关键校验：planId 必须在候选集内，防模型幻觉
+      // planId 必须在候选集内，防模型幻觉
       if (!payload.candidates.some(function (c) { return c.id === id })) throw new Error('bad_plan')
       return { planId: id, reason: safeStr(raw.reason, 40), byAI: true }
     }
 
-    // 迟到也收货：withTimeout 只是前端放弃等待，模型多半能在服务端跑完。
-    // 结果迟到时写入缓存，下次进页面（同日同签名）直接命中，超时不再是纯损失
+    // 迟到也收货：withTimeout 只是前端放弃等待，服务端多半跑完了。
+    // 写进缓存，下次进页面（同日同签名）直接命中，超时不再是纯损失
     req.then(function (out) {
       try {
         const latest = store.read()
@@ -189,14 +186,14 @@ function run(today, sig, payload) {
       })
       .catch(function (e) {
         console.warn('[ai] recommend failed', e && e.message, (Date.now() - startedAt) + 'ms')
-        // 失败也保留上次结果，避免卡片在多次 refresh 间闪回
+        // 失败保留上次结果，避免卡片在多次 refresh 间闪回
         if (cur.pick) return Object.assign({ ok: true }, cur.pick)
         return { ok: false }
       })
   })
 }
 
-// 换号/登出必须清理：否则新账号会命中上一个用户的推荐结果与已消耗的当天额度
+// 换号/登出必须清理，否则新账号会命中上个用户的推荐与已消耗的额度
 function resetLocal() {
   store.remove()
   flight.clear()

@@ -8,11 +8,9 @@ const nav = require('../../utils/nav.js')
 const toast = require('../../utils/toast.js')
 const fontBehavior = require('../../utils/font.js').behavior
 
-// 分类筛选里的「不筛选」项
-const ALL_CATS = '全部'
-// 新增动作的默认组数
-const DEFAULT_SETS = 3
-// 场景清单从 databases/plans.js 派生，与计划列表页的分段选择同一份数据
+const ALL_CATS = '全部' // 分类筛选里的「不筛选」项
+const DEFAULT_SETS = 3 // 新增动作的默认组数
+// 与计划列表页的分段选择同一份数据
 const sceneTabs = plansData.scenes.map(function (scene) {
   return { value: scene.value, name: scene.name + '计划' }
 })
@@ -41,8 +39,7 @@ Page({
     cat: ALL_CATS,
     picker: [],
     selected: [],
-    // 切换场景会丢弃未保存改动的确认弹层
-    switchConfirm: false,
+    switchConfirm: false, // 切场景会丢弃未保存改动，先确认
     pendingScene: ''
   },
 
@@ -67,12 +64,12 @@ Page({
     this._dirty = false
   },
 
-  // 任何编辑都打脏标记，供切场景前判断是否需要确认
+  // 任何编辑都打脏标记，切场景前据此判断要不要确认
   markDirty() {
     this._dirty = true
   },
 
-  // 切换分类时整表重建；勾选态变化只补丁单行（见 setChecked）
+  // 切分类时整表重建；勾选态变化只补丁单行，见 setChecked
   buildPicker() {
     const cat = this.data.cat
     const chosen = {}
@@ -93,7 +90,7 @@ Page({
     this.setData({ picker: picker })
   },
 
-  // 只翻转对应行的勾选态，避免为一次点击重建整张动作表
+  // 只翻转这一行，避免为一次点击重建整张动作表
   setChecked(actionId, checked) {
     const index = this.data.picker.findIndex(function (row) { return row.id === actionId })
     if (index < 0) return
@@ -103,7 +100,7 @@ Page({
   onScene(e) {
     const scene = e.currentTarget.dataset.scene
     if (scene === this.data.scene) return
-    // 切场景会从存储重载，当前场景的未保存改动将丢失：先确认，避免静默丢弃
+    // 切场景会从存储重载，未保存的改动会丢，先确认
     if (this._dirty) {
       this.setData({ switchConfirm: true, pendingScene: scene })
       return
@@ -170,7 +167,7 @@ Page({
     this.markDirty()
   },
 
-  // 目标只在这里收一次自由文案，保存时统一解析成结构化目标
+  // 这里只收自由文案，保存时才解析成结构化目标
   onTarget(e) {
     const index = Number(e.currentTarget.dataset.index)
     const selected = this.data.selected.slice()

@@ -30,7 +30,7 @@
   color: #b26a00;
 }
 
-/* 右上角排行榜入口：红底白字「排行榜」，替换原「今日开练」占位 */
+/* 右上角排行榜入口 */
 .rank-entry {
   display: flex;
   align-items: center;
@@ -48,7 +48,7 @@
 
 .hero {
   background: var(--blue);
-  /* 彩色底叠加反白网点（halftone），增强复古质感 */
+  /* 彩色底叠反白网点，增强复古质感 */
   background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5rpx, transparent 1.6rpx);
   background-size: 8rpx 8rpx;
   border: var(--px) solid var(--ink);
@@ -118,7 +118,7 @@
   color: var(--ink);
 }
 
-/* 单独成行时按钮不拉满整行宽度，保持短一些 */
+/* 单独成行时不拉满整行 */
 .hbtn-short {
   flex: none;
   padding: 0 96rpx;
@@ -156,7 +156,7 @@
   font-weight: 700;
 }
 
-/* 周复盘卡片：像素标签 + 文本行，与全局卡片同一语言 */
+/* 周复盘卡片 */
 .weekly { padding: 22rpx 24rpx; margin-top: 28rpx; }
 .weekly-head { display: flex; align-items: center; justify-content: space-between; }
 .weekly-title { color: var(--ink); font-size: 30rpx; font-weight: 700; }
@@ -220,7 +220,7 @@
   font-weight: 700;
 }
 
-/* 未登录：首页只展示登录入口 */
+/* 未登录时只展示登录入口 */
 .login-guide {
   margin: 48rpx 8rpx 32rpx;
 }
@@ -275,7 +275,7 @@
   font-size: 23rpx;
 }
 
-/* 只有「点击登录」按钮可点击：重置 button 默认样式 */
+/* 重置 button 默认样式 */
 button.login-pill {
   flex: none;
   width: auto;

@@ -9,7 +9,7 @@ const throttle = require('../../utils/throttle.js')
 const toast = require('../../utils/toast.js')
 const fontBehavior = require('../../utils/font.js').behavior
 
-// 未登录/登出时的占位账号（char 为文字头像兜底字符）
+// 未登录/登出时的占位账号
 function emptyAccount() {
   return { nickname: '', avatar: '', char: account.FALLBACK_CHAR }
 }
@@ -18,7 +18,7 @@ function emptyDeleteConfirm() {
   return { show: false, id: '', name: '' }
 }
 
-// 年月压成可比较的整数：202603 > 202602
+// 压成可比较的整数：202603 > 202602
 function ymOf(year, month) {
   return year * 100 + month
 }
@@ -56,8 +56,7 @@ Page({
 
   onLoad() {
     this.bindAvatar()
-    // 今天日期、选中日、当前翻到的年月都只在 JS 内部使用，不进 data
-    // （wxml 渲染日历用单元格自身的 isToday/isSel，月份只用派生出来的 monthLabel/canNext）
+    // 这几个只在 JS 内部用，不进 data：wxml 渲染日历靠单元格自身的 isToday/isSel
     this.todayStr = dateUtil.today()
     this.selected = this.todayStr
     const now = new Date()
@@ -79,11 +78,10 @@ Page({
       return
     }
     this.renderAccount(account.get())
-    // 云端资料的限频与失败重试见 utils/login.js 的 refreshAccount
     login.refreshAccount(this, {
       key: '_lastProfileFetchAt',
       onProfile: (res) => this.renderAccount(res),
-      // 云端账号已不存在（清库/删号）：本机数据已被清空，直接回首页登录
+      // 账号已不存在，本机数据已清空，回首页重新登录
       onGone: () => nav.requireLogin()
     })
   },
@@ -100,11 +98,10 @@ Page({
     wx.navigateTo({ url: '/pages/account/account' })
   },
 
-  // 登录后与云端收敛偏好与自定义计划（一次 userGet 拉回两者）；限频与失败重试见 utils/profile.js 的 syncPull
-  syncPrefs(force) {
+  // 一次 userGet 把偏好与自定义计划一起收敛回来
+  syncPrefs() {
     return profile.syncPull(this, {
       key: '_lastPrefsSyncAt',
-      force: !!force,
       onChange: () => { if (nav.alive(this)) this.reload() }
     })
   },
@@ -113,14 +110,13 @@ Page({
     if (!records.syncEnabled()) return
     if (!throttle.pass(this, '_lastSync', 15000)) return
     records.syncFromCloud().then((ok) => {
-      // 请求飞行期间可能已跳到别的页，别再给离开的页面重算一遍
+      // 请求期间可能已跳到别的页，别给离开的页面重算
       if (ok && nav.alive(this)) this.reload()
     }).catch(() => {})
   },
 
   reload() {
-    // 读一次记录存到页面上：统计 / 日历 / 当日明细都从这一份算，
-    // 翻月、选日期时不用再读一遍记录
+    // 读一次挂到页面上：统计 / 日历 / 当日明细都从这一份算，翻月、选日期不再重读
     this._records = records.getAll()
     this._dateMap = records.getDateMapFrom(this._records)
     this.setData({ stats: records.computeStatsFrom(this._records) })
@@ -132,12 +128,12 @@ Page({
     const dateMap = this._dateMap || {}
     const selected = this.selected
     const today = this.todayStr
-    // 每周行 { key, cells }：key 取该行首格标识，供 WXML wx:key 使用
+    // key 取该行首格标识，供 wx:key 用
     const weeks = dateUtil.monthGrid(this.year, this.month).map(function (week) {
       return {
         key: week[0].key,
         cells: week.map(function (cell) {
-          if (!cell.inMonth) return cell
+          if (!cell.inMonth) return Object.assign({ checked: false, isToday: false, isSel: false }, cell)
           return {
             key: cell.key,
             date: cell.date,
@@ -159,7 +155,7 @@ Page({
 
   refreshSelected() {
     const selected = this.selected
-    // slice 一份再排序，别改到 _dateMap 里那个数组的顺序
+    // slice 一份再排，别动 _dateMap 里那个数组的顺序
     const list = ((this._dateMap || {})[selected] || []).slice().sort(function (a, b) {
       return Number(a.createdAt) - Number(b.createdAt)
     })
@@ -210,7 +206,7 @@ Page({
   onConfirmDelete() {
     const id = this.data.deleteConfirm.id
     if (!id) return
-    // 删除同样要过本地写入这一关，失败必须让用户知道
+    // 删除也要过本地写入这一关，失败必须让用户知道
     if (!records.removeRecord(id)) toast.show('删除失败，请重试')
     this.reload()
     this.setData({ deleteConfirm: emptyDeleteConfirm() })

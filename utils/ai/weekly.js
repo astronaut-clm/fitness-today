@@ -1,5 +1,5 @@
-// 周训练复盘：hy3 深度推理（免费额度），后台任务不怕慢——45s 超时 + 按周缓存
-// 触发：打卡页展示时自动生成（本周练过 ≥2 次）；缓存按周一日期为键，跨周自动重算
+// 周复盘：hy3 深度推理（免费额度），后台任务不怕慢——45s 超时 + 按周缓存。
+// 缓存以周一日期为键，跨周自动重算
 const cloud = require('../cloud.js')
 const ai = require('./client.js')
 const coachMemory = require('./coach-profile.js')
@@ -23,7 +23,7 @@ const SYSTEM = [
   '【安全】不给医疗建议、不诊断伤痛、不承诺减重斤数与疗效。'
 ].join('\n')
 
-// 统计 [start, end] 这一周的计划训练：次数、天数、总时长、完成率
+// 统计 [start, end] 内的训练：次数、天数、总时长、完成率
 function rangeStats(records, start, end) {
   let sessions = 0
   let minutes = 0
@@ -46,13 +46,12 @@ function rangeStats(records, start, end) {
   }
 }
 
-// 周复盘解锁判据：本周计划训练次数
+// 解锁判据：本周训练次数
 function weekSessions(records) {
   return rangeStats(records, dateUtil.weekStart(), dateUtil.today()).sessions
 }
 
-// input: { records, goal }；opts.force 跳过缓存与水位（手动「换一版」）
-// resolve { ok, data: { highlight, improve, next }, cached? }
+// opts.force 跳过缓存与水位（手动「换一版」）。resolve { ok, data, cached? }
 function fetchWeekly(input, opts) {
   const data = input || {}
   const force = !!(opts && opts.force)
@@ -62,38 +61,34 @@ function fetchWeekly(input, opts) {
 
   if (!force && saved && saved.week === wk) {
     if (saved.data) return Promise.resolve({ ok: true, cached: true, data: saved.data })
-    // 失败水位：避免每次进页面都重试烧额度
+    // 失败水位，免得每次进页面都重试烧额度
     if (Date.now() - Number(saved.attemptedAt || 0) < RETRY_GAP) return Promise.resolve({ ok: false })
   }
-  // 同一周的并发调用共用一次请求，避免重复烧额度；
-  // 手动「换一版」不进单飞：它刻意要另起一次请求
+  // 同一周的并发调用共用一次请求；「换一版」刻意要另起一次，故不进单飞
   if (!force) {
     const pending = flight.get(wk)
     if (pending) return pending
   }
 
-  // 脏记录会让统计同步抛异常，转成明确的失败结果
-  let thisWeek
-  let lastWeek
+  // 脏记录会让统计同步抛异常，转成明确的失败
+  let payload
   try {
-    thisWeek = rangeStats(data.records, wk, today)
-    lastWeek = rangeStats(data.records, dateUtil.addDays(wk, -7), dateUtil.addDays(wk, -1))
+    payload = {
+      week: { start: wk, end: today },
+      thisWeek: rangeStats(data.records, wk, today),
+      lastWeek: rangeStats(data.records, dateUtil.addDays(wk, -7), dateUtil.addDays(wk, -1)),
+      goal: ai.safeStr(data.goal, 20),
+      memory: coachMemory.get()
+    }
   } catch (e) {
     console.warn('[ai] weekly stats failed', e && e.message)
     return Promise.resolve({ ok: false })
-  }
-  const payload = {
-    week: { start: wk, end: today },
-    thisWeek: thisWeek,
-    lastWeek: lastWeek,
-    goal: ai.safeStr(data.goal, 20),
-    memory: coachMemory.get()
   }
 
   function start() {
     return cloud.init().then(function (ok) {
       if (!ok) return { ok: false }
-      store.write({ week: wk, data: (saved && saved.week === wk && saved.data) || null, attemptedAt: Date.now() })
+      if (!store.write({ week: wk, data: (saved && saved.week === wk && saved.data) || null, attemptedAt: Date.now() })) return { ok: false }
       return ai.withTimeout(ai.generateText({
         model: 'hy3', // 免费额度；强制思维链适合复盘的多因素权衡，慢无所谓（后台任务）
         reasoningEffort: 'medium',

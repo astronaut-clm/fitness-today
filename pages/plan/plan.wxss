@@ -85,7 +85,7 @@
   font-weight: 700;
 }
 
-/* 进行中训练的入口：红色强调 */
+/* 进行中训练的入口用红色强调 */
 .plan-more-continue {
   color: var(--primary);
 }

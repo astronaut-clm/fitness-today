@@ -17,11 +17,11 @@
   color: var(--ink);
   font-size: 28rpx;
   font-weight: 700;
-  /* 不拦截点击：与原生 toast 一致，不阻塞底层交互 */
+  /* 与原生 toast 一致，不阻塞底层交互 */
   pointer-events: none;
 }
 
-/* 默认（错误/警告）：红底方框 + 叉子，置于提示开头 */
+/* 错误/警告：红底方框 + 叉子 */
 .px-toast-icon {
   position: relative;
   flex: none;
@@ -35,7 +35,7 @@
   background: var(--primary);
 }
 
-/* 叉子：两条旋转硬边条，避免依赖像素字体是否包含 ✕ 字形 */
+/* 用两条旋转硬边条画，不依赖字体里有没有 ✕ 字形 */
 .px-toast-icon::before,
 .px-toast-icon::after {
   content: '';
@@ -53,7 +53,7 @@
   transform: rotate(-45deg);
 }
 
-/* 成功：绿底方框 + 对勾（用边框折出，同样不依赖字形） */
+/* 成功：绿底方框 + 用边框折出的对勾，同样不依赖字形 */
 .px-toast-icon.success {
   background: var(--green);
 }

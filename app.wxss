@@ -1,8 +1,8 @@
 @import "./components/prefs-form/prefs-form.wxss";
 
-/**app.wxss 全局样式与设计变量 —— 8-bit NES 多彩像素主题**/
+/* 全局样式与设计变量：8-bit NES 多彩像素主题 */
 page {
-  /* 描边/文字用黑，强调色红黄蓝，成功用绿，底色为白 */
+  /* 描边与文字用黑，强调色红黄蓝，成功用绿，底色白 */
   --ink: #1a1a1a;        /* 黑：主文字 / 描边 */
   --ink2: #4a4a4a;       /* 灰：次级文字 */
   --ink3: #7a7a7a;       /* 中灰：弱化文字（提升白底对比度） */
@@ -16,7 +16,7 @@ page {
   --green-bg: #c8f000;   /* 浅绿 */
   --blue: #0058f8;       /* NES 蓝：hero 主视觉 / 时长进度 */
 
-  /* 像素风尺寸：统一描边与硬阴影 */
+  /* 统一描边宽度与硬阴影 */
   --px: 4rpx;
   --pxs: 3rpx;
   --shadow: 6rpx 6rpx 0 0 #1a1a1a;
@@ -25,18 +25,18 @@ page {
   color: var(--ink);
   font-size: 28rpx;
   line-height: 1.5;
-  /* 默认系统字体栈；像素字体由页面根节点样式（page-meta page-style）按开关切换 */
+  /* 像素字体由 page-meta 的 page-style 按开关切换，见 utils/font.js */
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
-  /* 关闭抗锯齿，保留生硬锯齿，更接近像素观感 */
+  /* 关抗锯齿，保留硬边，更像像素 */
   -webkit-font-smoothing: none;
   font-smooth: never;
   letter-spacing: 1rpx;
 }
 
-/* 通用卡片：直角 + 深色描边 + 像素硬阴影 + 抖动网点纹理 */
+/* 通用卡片：直角 + 描边 + 硬阴影 + 网点纹理 */
 .g-card {
   background: var(--card);
-  /* 抖动网点：4x4 棋盘格叠在底色上形成颗粒质感 */
+  /* 棋盘格叠底色，形成颗粒质感 */
   background-image:
     linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%),
     linear-gradient(45deg, rgba(26, 26, 26, 0.05) 25%, transparent 25%, transparent 75%, rgba(26, 26, 26, 0.05) 75%);
@@ -84,7 +84,7 @@ page {
   color: var(--ink2);
 }
 
-/* 自定义计划标签：黄底强调，用于卡片左上角标识来源 */
+/* 自定义计划：黄底 */
 .tag-custom {
   background: var(--primary-bg);
   color: var(--ink);
@@ -92,7 +92,7 @@ page {
   font-weight: 700;
 }
 
-/* 当日推荐计划标签：绿底强调，用于计划库标识推荐来源 */
+/* 今日推荐：绿底 */
 .tag-rec {
   background: var(--green-bg);
   color: var(--ink);
@@ -122,9 +122,7 @@ page {
   min-width: 0;
 }
 
-/* ===== 复古屏幕增强：像素转角 ===== */
-
-/* 像素转角：强制全站直角，清除组件默认圆角 */
+/* 强制全站直角，清掉组件默认圆角 */
 button,
 input,
 textarea,
@@ -146,14 +144,14 @@ input::after {
   border-radius: 0;
 }
 
-/* 原生表单控件默认不继承页面字体，显式继承以便跟随像素字体开关 */
+/* 原生控件默认不继承页面字体，显式继承才能跟随字体开关 */
 button,
 input,
 textarea {
   font-family: inherit;
 }
 
-/* 统一像素弹窗，跟随全局像素字体。用法：.px-mask > .px-dialog > 标题/正文/输入/按钮 */
+/* 弹窗：.px-mask > .px-dialog > 标题/正文/按钮 */
 .px-mask {
   position: fixed;
   left: 0;
@@ -222,7 +220,7 @@ textarea {
   color: var(--card);
 }
 
-/* 统一像素加载提示，替代原生 wx.showLoading。用法：.px-loading-mask > .px-loading > 方块 + 文案 */
+/* 加载提示，替代 wx.showLoading：.px-loading-mask > .px-loading > 方块 + 文案 */
 .px-loading-mask {
   position: fixed;
   left: 0;
@@ -263,7 +261,7 @@ textarea {
   50%, 100% { opacity: 0; }
 }
 
-/* ===== 页面骨架与共用样板（各页 wxss 只写自身差异） ===== */
+/* ===== 页面骨架与共用样板，各页 wxss 只写差异 ===== */
 page {
   height: 100vh;
   display: flex;
@@ -278,8 +276,8 @@ page {
   background: var(--bg);
 }
 
-/* 页面内容容器：横向内边距与顶部留白全站一致，各页 wxss 只覆盖 padding-bottom
-   （底部固定操作栏 200rpx 上下、自定义 tabBar 148rpx + 安全区） */
+/* 横向内边距与顶部留白全站一致，各页只覆盖 padding-bottom
+   （底部操作栏约 200rpx、自定义 tabBar 148rpx + 安全区） */
 .page {
   padding: 24rpx 32rpx 48rpx;
   box-sizing: border-box;
@@ -289,7 +287,7 @@ page {
   height: 24rpx;
 }
 
-/* 底部固定操作栏（profile / account 等页共用） */
+/* 底部固定操作栏，profile / account / custom-plan / onboarding 共用 */
 .save-bar {
   position: fixed;
   right: 0;
@@ -300,7 +298,7 @@ page {
   background: var(--card);
 }
 
-/* 居中加载/空态/重试（排行榜等需要请求云端的页面共用） */
+/* 加载 / 空态 / 重试，需要请求云端的页面共用 */
 .loading-box {
   display: flex;
   justify-content: center;
@@ -332,7 +330,7 @@ page {
   text-align: center;
 }
 
-/* 场景分段选择（plan / custom-plan 页共用） */
+/* 场景分段选择，plan / custom-plan 共用 */
 .seg {
   display: flex;
   padding: 8rpx;

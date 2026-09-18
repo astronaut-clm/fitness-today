@@ -3,7 +3,7 @@ const actionsData = require('../../databases/actions.js')
 const nav = require('../../utils/nav.js')
 const fontBehavior = require('../../utils/font.js').behavior
 
-// 视图字段与搜索文本预计算一次，避免每次筛选重复 join / 取 steps
+// 视图字段与搜索文本预算一次，避免每次筛选重复 join
 const ACTIONS = actionsData.actions.map(function (a) {
   return {
     id: a.id,
@@ -28,8 +28,7 @@ Page({
   },
 
   onLoad() {
-    // 门禁放在 onLoad：小程序「恢复到上次退出页面」会直接打开本页，
-    // 放在 onShow 会先把整列表渲染完再被踢回首页
+    // 门禁必须在 onLoad：「恢复上次退出页」会直接打开本页，放 onShow 会先渲染完整列表再被踢走
     if (!nav.requireLogin()) return
     this.applyFilter()
   },

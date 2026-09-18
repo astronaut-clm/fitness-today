@@ -1,4 +1,4 @@
-// 训练偏好：本机存储，登录后与云端按 updatedAt 收敛（userGet 一次往返含自定义计划）
+// 训练偏好：本机存储，登录后与云端按 updatedAt 收敛（一次 userGet 连自定义计划一起拉回）
 const cloud = require('./cloud.js')
 const account = require('./account.js')
 const customPlans = require('./custom-plans.js')
@@ -6,10 +6,10 @@ const plansData = require('../databases/plans.js')
 const storage = require('./storage.js')
 const throttle = require('./throttle.js')
 
-// 引导已完成标记在 utils/login.js 里管（同一 key 只在那里定义一次）
+// 引导「已看过」标记在 utils/login.js 里管
 const store = storage.scoped('ft_user_profile_v1')
 
-// 周目标默认值：insights / 表单页等共用一份，避免同一数字散落多处
+// insights 与表单页共用一份，避免同一数字散落多处
 const DEFAULT_WEEKLY_TARGET = { days: 3, minutes: 90 }
 
 const defaults = {
@@ -57,7 +57,7 @@ function fillDefaults(src) {
   const profile = {}
   Object.keys(defaults).forEach(function (key) {
     const value = saved[key] == null ? defaults[key] : saved[key]
-    // 数组默认值拷一份，别把模块级 defaults 的引用暴露给调用方（外部 slice 后修改会污染默认值）
+    // 数组要拷一份，否则调用方改返回值会污染模块级 defaults
     profile[key] = Array.isArray(value) ? value.slice() : value
   })
   return profile
@@ -105,7 +105,7 @@ function pushToCloud() {
     }
   }).then(function (res) {
     if (!res.ok) return false
-    // 时间戳回写的理由与边界见 cloud.adoptServerTs；没带回服务器时间戳也算推送成功
+    // 回写理由见 cloud.adoptServerTs；没带回服务器时间戳也算推送成功
     cloud.adoptServerTs(res, p.updatedAt, localTs, writeTs)
     return true
   })
@@ -117,14 +117,13 @@ function applyFromCloud(prefs) {
   return next
 }
 
-// 双向收敛（需已登录）：偏好与自定义计划各按 updatedAt 较新者胜，本机较新的一方补传；
-// changed 表示本地被云端覆盖。计划调整（plan-adjustments）仅存本机，不参与同步。
-// 走 account.readCloud 的 userGet 单飞：打卡页会同时触发资料刷新与偏好同步，合并成一次云调用
+// 双向收敛（需已登录）：偏好与自定义计划各按 updatedAt 较新者胜，本机较新的补传。
+// changed 表示本地被云端覆盖。plan-adjustments 只存本机，不参与同步
 function syncFromCloud() {
   return account.readCloud().then(function (res) {
     if (!res) return { ok: false, changed: false }
-    // fetchProfile 与本函数共享同一次 userGet：可能已被判定「账号不存在」并登出，
-    // 此时禁止回填或补推，否则会在删号后把本机数据重新写回云端
+    // 与 fetchProfile 共享同一次 userGet，那边可能已判定「账号不存在」并登出。
+    // 此时禁止回填或补推，否则删号后又把本机数据写回云端
     if (!account.isLoggedIn()) return { ok: false, changed: false }
     let changed = false
     const pushTasks = []
@@ -152,20 +151,15 @@ function syncFromCloud() {
       return { ok: ok, changed: changed }
     })
   }).catch(function (err) {
-    // 网络/存储异常不应冒泡为未处理 rejection；按失败处理，下一轮 onShow 再收敛
+    // 别冒泡成未处理 rejection，按失败处理、下一轮 onShow 再收敛
     console.error('[profile] syncFromCloud', err)
     return { ok: false, changed: false }
   })
 }
 
-// 页面级同步入口：一次 userGet 拉回偏好与自定义计划，云端有变更回调 onChange 刷新本页。
-// 限频窗口与失败重试策略收在这里，避免每个调用页各写一份 30 秒水位。
-// pull(page, opts)
-//   opts.key      限频基准点挂在 page 上的属性名（每个页面各自一个，互不干扰）
-//   opts.force    忽略限频，常用于下拉刷新
-//   opts.interval 覆盖默认窗口（默认 30 秒，避免频繁切页重复请求）
-//   opts.onChange(res) 云端确实有变更（res.changed）时回调刷新本页视图
-// 返回 Promise<boolean>：本次是否同步成功；未登录 / 被限频都按「未同步」返回 false，不是错误
+// 页面级同步入口，限频与失败重试都收在这里，免得每个调用页各写一份水位。
+// opts: key（限频基准点挂在 page 上的属性名）/ force / interval / onChange(res)
+// resolve 本次是否同步成功；未登录与被限频都返回 false，不算错误
 const SYNC_INTERVAL = 30000
 
 function syncPull(page, opts) {
@@ -175,7 +169,7 @@ function syncPull(page, opts) {
   if (!options.force && !throttle.pass(page, key, options.interval || SYNC_INTERVAL)) return Promise.resolve(false)
   return syncFromCloud().then(function (res) {
     if (!res || !res.ok) {
-      // 失败不留水位，下次 onShow 可以立即重试
+      // 失败不留水位，下次 onShow 可立即重试
       throttle.reset(page, key)
       return false
     }
@@ -184,7 +178,7 @@ function syncPull(page, opts) {
   })
 }
 
-// 退出登录时清空本机偏好（云端保留，重新登录后按账号拉回）
+// 登出清空本机偏好；云端保留，重登后按账号拉回
 function resetLocal() {
   const next = fillDefaults(null)
   next.updatedAt = 0

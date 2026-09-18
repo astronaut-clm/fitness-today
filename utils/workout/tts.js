@@ -1,5 +1,5 @@
-// 训练语音播报（基于「微信同声传译」WechatSI 插件）
-// 预合成缓存 + 队列顺序播放（interrupt 可抢占）；插件缺失或合成失败时静默降级
+// 语音播报引擎（WechatSI 插件）：预合成缓存 + 队列顺序播放，interrupt 可抢占。
+// 插件缺失或合成失败一律静默降级
 const storage = require('../storage.js')
 
 const store = storage.scoped('ft_voice_enabled_v1')
@@ -19,11 +19,10 @@ const queue = []
 let current = null
 let playing = false
 let optionSet = false
-let pendingInterrupt = 0 // 抢占任务序号：连续抢占时只执行最新一次
+let pendingInterrupt = 0 // 连续抢占时只执行最新一次
 
-// 所有延时任务登记在此：停止播放或页面卸载时可一次性作废。
-// 否则「抢占延时 60ms」这类定时器会在离开页面后继续执行 stop/入队/起播，
-// 训练页退出后还会漏出一句话
+// 延时任务统一登记，dispose 时一次作废。
+// 否则「抢占延时 60ms」会在离开页面后继续起播，训练页退出还漏出一句
 const timers = new Set()
 
 function later(fn, ms) {
@@ -38,8 +37,7 @@ function later(fn, ms) {
 function clearTimers() {
   timers.forEach(function (id) { clearTimeout(id) })
   timers.clear()
-  // 作废所有在飞的抢占任务，避免它们继续执行 stop/入队/起播
-  pendingInterrupt++
+  pendingInterrupt++ // 作废所有在飞的抢占任务
 }
 
 let enabledCache = null
@@ -63,7 +61,7 @@ function setEnabled(on) {
 function ensureOption() {
   if (optionSet) return
   optionSet = true
-  // 静音/锁屏下也要出声；与其他音频混播避免互相打断
+  // 静音/锁屏下也要出声；混播避免与其他音频互相打断
   try { wx.setInnerAudioOption({ obeyMuteSwitch: false, mixWithOther: true, fail: function () {} }) } catch (e) {}
 }
 
@@ -92,12 +90,11 @@ function synthesize(text, cb) {
   })
 }
 
-// 热实例池：path -> 已预解码的 InnerAudioContext，播报时拿来即播（起播零解码延迟）；
-// 消费后立即补货（倒数读秒每组都用），实例播完即销毁不复用（复用的 stop/play 时序竞争会让 onEnded 不触发）
+// 热实例池：path -> 已预解码的 InnerAudioContext，拿来即播（起播零解码延迟）。
+// 消费后立即补货；播完即销毁不复用——复用时 stop/play 的时序竞争会让 onEnded 不触发
 const hot = {}
 const hotText = {}
-// 热实例数量上限：句子有限但可能长期占用音频通道，超出后按创建顺序淘汰最早的
-const HOT_MAX = 20
+const HOT_MAX = 20 // 实例会长期占用音频通道，超出后淘汰最早的
 
 function releaseHot(path) {
   const ctx = hot[path]
@@ -107,14 +104,14 @@ function releaseHot(path) {
   try { ctx.destroy() } catch (e) {}
 }
 
-// 关掉语音或离开页面时释放整个热实例池：否则这批实例会一直占着音频通道
+// 关语音或离开页面时必须调用，否则这批实例一直占着音频通道
 function releaseAllHot() {
   Object.keys(hot).forEach(function (path) { releaseHot(path) })
 }
 
-// 每次播放优先消费热实例，否则新建；播完即销毁
+// 优先消费热实例，否则新建；播完即销毁
 function playNext() {
-  // 队列是延迟消费的，期间用户可能已关掉语音（含延迟到达的句子），这里兜底
+  // 队列是延迟消费的，期间用户可能已关掉语音
   if (playing || !enabled()) return
   const path = queue.shift()
   if (!path) return
@@ -126,7 +123,11 @@ function playNext() {
     const text = hotText[path]
     if (text) { delete hotText[path]; heat(text) }
   } else {
-    ctx = wx.createInnerAudioContext()
+    try {
+      ctx = wx.createInnerAudioContext()
+    } catch (e) {
+      ctx = null
+    }
   }
   if (!ctx) return
   playing = true
@@ -135,8 +136,7 @@ function playNext() {
   function done() {
     if (settled) return
     settled = true
-    // 已被 stop() 抢占（interrupt / 页面隐藏），播放状态由抢占方接管
-    if (current !== ctx) return
+    if (current !== ctx) return // 已被抢占，播放状态交给抢占方
     current = null
     playing = false
     try { ctx.destroy() } catch (e) {}
@@ -149,7 +149,7 @@ function playNext() {
   ctx.play()
 }
 
-// 对起播延迟敏感的语句（如倒数读秒）：合成完成后常驻已解码实例，播报时无需再加载
+// 对起播延迟敏感的句子（倒数读秒）：合成后常驻已解码实例
 function heat(text) {
   if (!available || !enabled()) return
   synthesize(text, function (path) {
@@ -163,7 +163,7 @@ function heat(text) {
       ctx.src = path
       hot[path] = ctx
       hotText[path] = text
-      // 超出上限时淘汰最早创建的实例（对象键按插入顺序，keys[0] 即最旧）
+      // 对象键按插入顺序，keys[0] 即最旧
       const keys = Object.keys(hot)
       if (keys.length > HOT_MAX) {
         keys.slice(0, keys.length - HOT_MAX).forEach(function (key) {
@@ -174,12 +174,12 @@ function heat(text) {
   })
 }
 
-// 播放一段文本；opts.interrupt=true 时抢占（清空队列并打断当前播报）
+// opts.interrupt=true 时清空队列并打断当前播报
 function speak(text, opts) {
   speakAll([text], opts)
 }
 
-// 顺序播放多段文本：先全部合成再按序入队，避免回调乱序导致后句先播
+// 先全部合成再按序入队，避免回调乱序导致后句先播
 function speakAll(texts, opts) {
   if (!enabled()) return
   const list = (texts || []).filter(function (t) { return !!t })
@@ -189,9 +189,8 @@ function speakAll(texts, opts) {
   let remaining = list.length
   function flush() {
     if (interrupt) {
-      // 点击场景下打断当前播报延后约 60ms 执行：音频实例 stop/destroy 开销大，需等点击回调返回、
-      // 界面绘制完成，否则阻塞 JS 线程造成按钮卡顿；计时器场景（nowait）无此顾虑，立即执行。
-      // 连续抢占按序号只保留最后一次
+      // 点击场景下打断延后 60ms：stop/destroy 开销大，得等点击回调返回、界面画完，
+      // 否则阻塞 JS 线程造成按钮卡顿。计时器场景（nowait）无此顾虑，立即执行
       queue.length = 0
       const seq = ++pendingInterrupt
       later(function () {
@@ -214,8 +213,8 @@ function speakAll(texts, opts) {
   })
 }
 
-// 预加载：合成完成后提前设置 src 触发音频下载/解码，降低首次播放起播延迟
-// 串行执行且播报时让路，避免实例创建/销毁与播放管线竞争
+// 提前设置 src 触发下载/解码，降低首次起播延迟。
+// 串行执行且播报时让路，避免与播放管线竞争
 const preloadQueue = []
 let preloading = false
 
@@ -272,8 +271,7 @@ function stop() {
   }
 }
 
-// 离开训练页必须调用。只调 stop() 收不干净：
-// 已排定的抢占定时器仍会重新入队并起播，热实例池也会一直占着音频通道
+// 离开训练页必须调用：只调 stop() 收不干净（抢占定时器会重新起播、热实例池不释放）
 function dispose() {
   clearTimers()
   stop()

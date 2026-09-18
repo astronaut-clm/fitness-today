@@ -35,7 +35,7 @@
       </view>
     </view>
 
-    <!-- 训练步骤：每条步骤附带对应动作要点 -->
+    <!-- 每条步骤附带对应要点 -->
     <view class="g-card">
       <view class="section-title">训练步骤</view>
       <view class="step" wx:for="{{view.steps}}" wx:key="step">
